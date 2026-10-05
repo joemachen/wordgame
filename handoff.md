@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD: see §9 (roadmap phase 1 done) · 256 unit tests passing · UI self-test 9/9 passing_
+_Last updated: 2026-10-05 · HEAD `846dfc2` · 256 unit tests passing · UI self-test 9/9 passing_
 
 ---
 
@@ -117,7 +117,7 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
-(phase 1) Rename bosses, name Style Guides, and tier bosses by week
+846dfc2 Rename bosses, name Style Guides, and tier bosses by week
 1dbb5f3 Trim roadmap to a working game first
 fded71c Fold infrastructure, modes, presentation, persistence and Steam into the roadmap
 24041f3 Update handoff with retuned targets and balance snapshot
