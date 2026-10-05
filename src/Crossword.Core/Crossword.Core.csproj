@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Headless, engine-agnostic game core.
+    BCL only: do NOT add PackageReferences or any Godot/engine assemblies here.
+    Enforced by tests/Crossword.Tests/Architecture/CoreDependencyTests.cs.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Crossword.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>
