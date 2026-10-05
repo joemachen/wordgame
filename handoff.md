@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `51f5925` (+ docs: ROADMAP.md) · 251 unit tests passing · UI self-test 9/9 passing (UI untouched this session)_
+_Last updated: 2026-10-05 · HEAD `7c9f4ad` · 251 unit tests passing · UI self-test 9/9 passing_
 
 ---
 
@@ -41,32 +41,36 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Roadmap decisions (ROADMAP.md):** new boss names *merge* with existing bosses (renames + additions; "Saturday Stumper" boss → "The Puzzle Master", "Tight Deadline" stake → "Rush Job"); every roadmap entry carries a *proposed* effect + status; "Scrabble Board" → "Tile Rack" and the Trademarks dictionary is parked pending legal review; **dictionaries are per-run choices with tradeoffs**, not permanent global unlocks.
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 
-## 4. Current balance snapshot (100-run sims, `RunSimulator`)
+## 4. Current balance snapshot (150-run sims, `RunSimulator`)
 
-Week targets 150/400/900/1900/3800, day multipliers ×1/×1.3/×1.6 (tuned against the *naive* bot).
+Week targets **225/800/2400/6500/16000** (retuned 2026-10-05 against the evaluating bot; was 150/400/900/1900/3800),
+day multipliers ×1/×1.3/×1.6.
 
-| Shop bot | skill 0.9 | 0.8 | 0.7 | unspent $ at end |
-|---|---|---|---|---|
-| Evaluating (default) | **97%** | 83% | 59% | ~$10 |
-| Naive | 42% | 29% | 15% | ~$22 (0.9) |
+| Shop bot | skill 0.9 | 0.8 | 0.7 |
+|---|---|---|---|
+| Evaluating (default) | **39%** | 14% | 3% |
+| Naive | 2% | — | — |
 
-- **Shopping well matters more than word-finding:** same word skill, +55 pts win rate from the shop alone.
-- Evaluating bot gaps: 0.9→0.8 = 14 pts (compressed by the 97% ceiling), 0.8→0.7 = 24 pts — wider than the naive
-  bot's 13/14, so the "narrow skill gap" was partly a bot artifact. Re-measure after retuning targets.
-- Item concentration (skill 0.9, evaluating): Pulitzer 94%, Margin Notes 92%, Word Count 91% of runs; then
-  Editor-in-Chief, Broadsheet, Cross-Reference ~50–60%. Margin Notes is strong partly because the bot only
-  discards when it has no play (always +6 Mult).
+- Losses at skill 0.9 ramp up by week: 9 / 12 / 19 / 21 / 30 (of 150 runs). Boss loss rate per encounter: Strict
+  Editor 12%, Tight Deadline 9%, Black Squares 4%, Vowel Tax 4%, Pocket Edition 3%.
+- **Skill gap is now wide** (0.9→0.8 ≈ 25 pts), so the old "narrow gap" concern was a bot/target artifact.
+- **Early weeks are punishing for weaker players:** skill 0.7 loses in Week 1 ~65% of runs. The user chose this over a
+  softer early curve (e.g. 200/800/…: 45% / 17% / 5%). Revisit after human playtests.
+- **Shopping well matters more than word-finding:** with the *old* targets the same word skill went 42% → 97% from
+  the shop bot alone.
+- Item concentration (measured on the *old* targets, re-measure): Pulitzer, Margin Notes, Word Count in >90% of
+  skill-0.9 runs; Margin Notes is strong partly because the bot only discards when it has no play (+6 Mult).
 - Deck edits (enhance/strike/add tile) never pay off: buying them at any fixed estimated gain *lowered* the bot's
   win rate, so `ShopBotConfig` defaults skip them. A money reserve for interest also lowered win rate.
 - Re-run with CLI `runsim 100 0.9` (add `naive` for the old bot) or the scratch harness pattern in §7.
 
 ## 5. Open concerns / known gaps
 
-1. **Targets are too soft for good shopping** (evaluating bot wins 97% at skill 0.9). Recommended: retune week
-   targets so the evaluating bot at 0.9 wins ~40–50%, then re-check the skill gap. **Awaiting user go-ahead.**
+1. **Harsh early game for average players** (see §4). Decide after playtests; the Press Run stakes (ROADMAP §5)
+   could carry difficulty instead if the base game should be gentler.
 2. **Possible dominant items / weak deck edits** (see §4): Pulitzer, Margin Notes, Word Count near-universal picks;
-   deck edits not worth buying. Candidates for tuning once targets are settled. The bot values items by the
-   *best* play per decision (strong-shopper view), not the play its skill level would pick.
+   deck edits not worth buying. The bot values items by the *best* play per decision (strong-shopper view), not
+   the play its skill level would pick.
 3. **No save/load.** State is immutable records, so it's mostly serialization (Desk Items are polymorphic records — needs a type discriminator).
 4. **UI is first-pass:** no art, sound, tile animations, or settings; drag preview feel only verified via simulated input.
 5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping. "Q without U" is a dead tile (consider a "Qu" tile).
@@ -74,15 +78,15 @@ Week targets 150/400/900/1900/3800, day multipliers ×1/×1.3/×1.6 (tuned again
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
-Longer-term phases live in `ROADMAP.md` §6 (naming pass → new items/bosses → Stationery → save/load + meta → decks/dictionaries/stakes).
+Longer-term phases live in `ROADMAP.md` §6 (phase 0 retune ✅ → naming pass → new items/bosses → Stationery →
+save/load + meta → decks/dictionaries/stakes).
 
-1. **Retune week targets against the evaluating bot** (recommended next; quick with the scratch harness), then
-   re-measure the skill gap and item pick rates.
-2. Balance pass on outliers: Pulitzer / Margin Notes / Word Count, and make deck edits worth buying.
-3. User playtests a few runs via `run_local_qa.bat` → recalibrate feel from their feedback.
-4. Save/load (resume a run).
+1. User playtests a few runs at the new targets via `run_local_qa.bat` → check early-game feel (concern #1).
+2. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;
+   make deck edits worth buying.
+3. ROADMAP phase 1: naming pass (boss + Style Guide renames) and tiered boss pools.
+4. Save/load (resume a run) — prerequisite for meta-progression.
 5. UI polish: tile placement/score animations, sound, juice; deck viewer; tooltips for Desk Items/bosses.
-6. More content: Rare items, more bosses, more enhancements, consumables (Tarot-like one-shots).
 
 ## 7. How to work in this repo (practical tips learned the hard way)
 
@@ -108,6 +112,9 @@ Longer-term phases live in `ROADMAP.md` §6 (naming pass → new items/bosses �
 ## 9. Commit history (newest first)
 
 ```
+7c9f4ad Retune week targets against the evaluating shop bot
+d1f42bc Add ROADMAP.md feature design roadmap
+1737088 Update handoff with evaluating shop bot results and next steps
 51f5925 Add evaluating shop bot to the run simulator
 cb0b6f0 Add handoff.md session brief and point CLAUDE.md at it
 74e9fd8 Add hand shuffle and drag-and-drop tile arrangement to the game UI
