@@ -13,9 +13,12 @@ public sealed record RoundConfig(
 {
     public PremiumPairs PremiumPairs => Premiums ?? PremiumPairs.Default;
 
-    /// <summary>Placeholder progression: target grows 50% per round.</summary>
+    /// <summary>
+    /// Round 1 target 300: in simulation a strong player (skill 0.9) clears it ~90% of the time; skill 0.8 about half.
+    /// Growth of 50% per round is a PLACEHOLDER until Desk Items / shop provide scaling.
+    /// </summary>
     public static RoundConfig ForRound(int roundIndex) =>
-        new(TargetScore: (long)(150 * Math.Pow(1.5, roundIndex)));
+        new(TargetScore: (long)(300 * Math.Pow(1.5, roundIndex)));
 }
 
 public enum RoundStatus

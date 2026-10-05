@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Crossword.Core.Analysis;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
 using Crossword.Core.Rules;
@@ -57,6 +58,12 @@ public static class Program
                 case "check" or "c":
                     foreach (var word in rest)
                         Console.WriteLine($"{word.ToUpperInvariant()}: {(_lexicon.Contains(word) ? "valid" : "NOT a word")}");
+                    break;
+                case "hint":
+                    Hint(rest.Length > 0 && int.TryParse(rest[0], out var n) ? n : 5);
+                    break;
+                case "sim":
+                    Simulate(rest.Length > 0 && int.TryParse(rest[0], out var r) ? r : 100);
                     break;
                 case "board" or "b":
                     PrintRound();
@@ -163,6 +170,38 @@ public static class Program
         PrintRound();
     }
 
+    private static void Hint(int count)
+    {
+        var ranked = MoveRanker.Rank(_round.Board, _round.Hand, _lexicon, _run.DeskItems, Scoring);
+        if (ranked.Count == 0)
+        {
+            Console.WriteLine("No legal plays with this hand.");
+            return;
+        }
+
+        Console.WriteLine($"{ranked.Count} legal plays. Best {Math.Min(count, ranked.Count)}:");
+        foreach (var (play, score) in ranked.Take(count))
+        {
+            var main = play.Words[0];
+            string command = $"play {main.Cells[0].Position} {(main.Direction == Direction.Across ? 'a' : 'd')} {main.Text}";
+            Console.WriteLine($"  {score.Total,5}  {command,-24} words: {string.Join(", ", play.Words.Select(w => w.Text))}");
+        }
+    }
+
+    private static void Simulate(int rounds)
+    {
+        var config = RoundConfig.ForRound(_run.RoundIndex);
+        Console.WriteLine($"Simulating {rounds} rounds with greedy play (round {_run.RoundIndex + 1} settings)...");
+        var sw = Stopwatch.StartNew();
+        var results = Enumerable.Range(1, rounds)
+            .AsParallel()
+            .Select(seed => RoundSimulator.PlayRound((ulong)seed, config, _lexicon, _run.DeskItems, Scoring))
+            .OrderBy(r => r.Seed)
+            .ToList();
+        Console.WriteLine(SimulationReport.Format(results, config.TargetScore));
+        Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
+    }
+
     private static void PrintRound()
     {
         Console.WriteLine();
@@ -195,6 +234,8 @@ public static class Program
                                              including letters already on the board.
               discard | x <LETTERS>          Discard tiles (costs a discard), e.g. 'discard QV'
               check | c <WORD...>            Look words up in the dictionary
+              hint [n]                       Show the n best legal plays (dev/QA aid)
+              sim [rounds]                   Greedy-play simulation for balance tuning (default 100)
               board | b                      Show board, status, and hand
               status | s                     Show score and resources
               next                           Start the next round (after winning)

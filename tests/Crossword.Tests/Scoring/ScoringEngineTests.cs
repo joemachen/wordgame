@@ -11,7 +11,20 @@ namespace Crossword.Tests.Scoring;
 [Trait("Category", "Scoring")]
 public class ScoringEngineTests
 {
-    private static readonly ScoringConfig Config = ScoringConfig.Default;
+    /// <summary>Fixed numbers so balance tuning of <see cref="ScoringConfig.Default"/> never breaks these tests.</summary>
+    private static readonly ScoringConfig Config = ScoringConfig.Default with
+    {
+        Tiers =
+        [
+            new WordTier(2, 2, 1),
+            new WordTier(3, 5, 1),
+            new WordTier(4, 10, 2),
+            new WordTier(5, 20, 3),
+            new WordTier(6, 30, 4),
+            new WordTier(7, 40, 5),
+        ],
+        IntersectionMult = 2,
+    };
 
     private static Board WithPremiums(Board board, params (int Row, int Col, Premium Premium)[] premiums)
     {
@@ -149,6 +162,17 @@ public class ScoringEngineTests
             score.Log.Select(e => e.SourceId));
         Assert.Equal(score.Chips, score.Log[^1].ChipsAfter);
         Assert.Equal(score.Mult, score.Log[^1].MultAfter);
+    }
+
+    [Fact]
+    public void DefaultConfig_TiersAscendAndCoverTwoLetterWords()
+    {
+        var tiers = ScoringConfig.Default.Tiers;
+
+        Assert.Equal(2, tiers.Min(t => t.MinLength));
+        Assert.True(tiers.Zip(tiers.Skip(1)).All(p => p.First.MinLength < p.Second.MinLength
+            && p.First.BaseChips <= p.Second.BaseChips && p.First.BaseMult <= p.Second.BaseMult));
+        Assert.Equal(26, ScoringConfig.Default.LetterValues.Count);
     }
 
     [Fact]
