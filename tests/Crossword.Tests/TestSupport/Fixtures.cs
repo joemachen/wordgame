@@ -65,4 +65,12 @@ internal static class Fixtures
         Xunit.Assert.True(result.IsOk, result.IsOk ? "" : result.Error.Message);
         return result.Value;
     }
+
+    /// <summary>Returns the board with the tile at (row, col) given an enhancement.</summary>
+    public static Board Enhance(Board board, int row, int col, TileEnhancement enhancement)
+    {
+        int index = row * board.Size + col;
+        var tile = board.Cells[index] ?? throw new InvalidOperationException($"No tile at ({row},{col}).");
+        return board with { Cells = board.Cells.SetItem(index, tile with { Enhancement = enhancement }) };
+    }
 }

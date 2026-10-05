@@ -12,6 +12,9 @@ public sealed record ScoreContext(long Chips, decimal Mult, PlayAnalysis Play, I
     public static ScoreContext Start(PlayAnalysis play, long chips = 0, decimal mult = 0) =>
         new(chips, mult, play, ImmutableList<EffectEvent>.Empty);
 
+    /// <summary>Money earned during this play (e.g. Gilded tiles); paid into the run immediately.</summary>
+    public int Money { get; init; }
+
     /// <summary>Final play score: floor(Chips × Mult).</summary>
     public long Total => (long)decimal.Floor(Chips * Mult);
 
@@ -20,6 +23,8 @@ public sealed record ScoreContext(long Chips, decimal Mult, PlayAnalysis Play, I
     public ScoreContext AddMult(decimal amount) => this with { Mult = Mult + amount };
 
     public ScoreContext TimesMult(decimal factor) => this with { Mult = Mult * factor };
+
+    public ScoreContext AddMoney(int amount) => this with { Money = Money + amount };
 
     /// <summary>Appends an event snapshotting the current Chips/Mult, for UI playback.</summary>
     public ScoreContext Record(string sourceId, string description) =>

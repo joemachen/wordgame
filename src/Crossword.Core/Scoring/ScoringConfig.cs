@@ -15,7 +15,10 @@ public sealed record WordTier(int MinLength, long BaseChips, decimal BaseMult);
 public sealed record ScoringConfig(
     ImmutableArray<WordTier> Tiers,
     ImmutableDictionary<char, int> LetterValues,
-    decimal IntersectionMult)
+    decimal IntersectionMult,
+    long BoldChips = 10,
+    decimal ItalicMult = 2,
+    int GildedMoney = 1)
 {
     public static ScoringConfig Default { get; } = new(
         Tiers:

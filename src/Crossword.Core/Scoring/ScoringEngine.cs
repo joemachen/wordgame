@@ -8,9 +8,10 @@ namespace Crossword.Core.Scoring;
 /// Scores a validated play as one pooled Chips × Mult:
 /// 1. Tier — longest word sets base Chips and Mult.
 /// 2. Words — every formed word adds its letter chips (DL/TL per tile, then DW/TW per word; new tiles only).
-/// 3. Intersections — each new tile in both an Across and a Down word adds Mult.
-/// 4. Desk Items — applied in slot order.
-/// 5. Total — floor(Chips × Mult).
+/// 3. Enhancements — each enhanced tile triggers once per formed word containing it (new or existing tiles).
+/// 4. Intersections — each new tile in both an Across and a Down word adds Mult.
+/// 5. Desk Items — applied in slot order.
+/// 6. Total — floor(Chips × Mult).
 /// </summary>
 public static class ScoringEngine
 {
@@ -19,12 +20,14 @@ public static class ScoringEngine
         public const string Tier = "tier";
         public const string Word = "word";
         public const string Intersection = "intersection";
+        public const string Enhancement = "enhancement";
     }
 
     public static ScoreContext Score(PlayAnalysis play, IReadOnlyList<IDeskItem> deskItemsInSlotOrder, ScoringConfig config)
     {
         var context = ApplyTier(play, config);
         context = play.Words.Aggregate(context, (ctx, word) => ApplyWord(ctx, word, config));
+        context = play.Words.Aggregate(context, (ctx, word) => ApplyEnhancements(ctx, word, config));
         context = ApplyIntersections(context, config);
         return EffectPipeline.Apply(deskItemsInSlotOrder, context);
     }
@@ -66,6 +69,25 @@ public static class ScoringEngine
         var (chips, wordMultiplier) = WordChips(word, context.Play.BoardAfter, config);
         string suffix = wordMultiplier > 1 ? $" (×{wordMultiplier} word)" : string.Empty;
         return context.AddChips(chips).Record(Sources.Word, $"{word.Text}: +{chips} chips{suffix}");
+    }
+
+    private static ScoreContext ApplyEnhancements(ScoreContext context, FormedWord word, ScoringConfig config)
+    {
+        foreach (var cell in word.Cells)
+        {
+            var tile = cell.Tile;
+            context = tile.Enhancement switch
+            {
+                TileEnhancement.Bold => context.AddChips(config.BoldChips)
+                    .Record(Sources.Enhancement, $"Bold {tile} in {word.Text}: +{config.BoldChips} chips"),
+                TileEnhancement.Italic => context.AddMult(config.ItalicMult)
+                    .Record(Sources.Enhancement, $"Italic {tile} in {word.Text}: +{config.ItalicMult} mult"),
+                TileEnhancement.Gilded => context.AddMoney(config.GildedMoney)
+                    .Record(Sources.Enhancement, $"Gilded {tile} in {word.Text}: +${config.GildedMoney}"),
+                _ => context,
+            };
+        }
+        return context;
     }
 
     private static ScoreContext ApplyIntersections(ScoreContext context, ScoringConfig config)
