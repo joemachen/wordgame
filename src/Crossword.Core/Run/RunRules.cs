@@ -1,8 +1,10 @@
 using System.Collections.Immutable;
+using Crossword.Core.Analysis;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
 using Crossword.Core.Random;
 using Crossword.Core.Rules;
+using Crossword.Core.Stationery;
 
 namespace Crossword.Core.Run;
 
@@ -63,6 +65,33 @@ public static class RunRules
         return result.IsOk
             ? Result<GameSession, RoundError>.Ok(Settle(session with { Round = result.Value }))
             : Result<GameSession, RoundError>.Fail(result.Error);
+    }
+
+    /// <summary>
+    /// Uses the Stationery in <paramref name="slot"/> during a round, consuming it. The Answer Key returns the best play
+    /// for the current hand (scored with the Desk Items) for the UI to place; it is kept when there is no legal play.
+    /// </summary>
+    public static Result<StationeryUse, string> UseStationery(GameSession session, int slot, IWordGraph lexicon)
+    {
+        if (session.Phase != RunPhase.InRound)
+            return Result<StationeryUse, string>.Fail("Stationery can only be used during a round.");
+        if (slot < 0 || slot >= session.Run.Stationery.Length)
+            return Result<StationeryUse, string>.Fail($"No stationery in slot {slot + 1}.");
+
+        var used = session with { Run = session.Run.RemoveStationery(slot).Value };
+        switch (session.Run.Stationery[slot])
+        {
+            case AnswerKey:
+                var round = session.Round;
+                var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, session.Run.DeskItems,
+                    round.Config.EffectiveScoring(session.Scoring), round.Config.MinWordLength,
+                    RoundRules.Environment(round, session.Run.Money));
+                return Hints.Best(ranked) is { } best
+                    ? Result<StationeryUse, string>.Ok(new StationeryUse(used, best))
+                    : Result<StationeryUse, string>.Fail("No legal play with this hand — discard some tiles first.");
+            default:
+                return Result<StationeryUse, string>.Fail($"{session.Run.Stationery[slot].Name} can't be used.");
+        }
     }
 
     /// <summary>Leaves the shop and starts the next round.</summary>

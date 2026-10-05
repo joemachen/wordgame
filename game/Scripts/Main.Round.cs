@@ -41,7 +41,7 @@ public partial class Main
         _recallButton.Pressed += Recall;
         _discardButton = UiKit.MakeButton("Discard selected", UiKit.Mult.Darkened(0.3f), 18);
         _discardButton.Pressed += Discard;
-        _hintButton = UiKit.MakeButton("Hint", UiKit.PanelRaised, 18);
+        _hintButton = UiKit.MakeButton(_devMode ? "Hint (dev)" : "Hint", UiKit.PanelRaised, 18);
         _hintButton.Pressed += Hint;
         _shuffleButton = UiKit.MakeButton("Shuffle  Space", UiKit.PanelRaised, 18);
         _shuffleButton.Pressed += ShuffleHand;
@@ -328,22 +328,36 @@ public partial class Main
             : head + "[i]valid word — no definition on file[/i]";
     }));
 
-    private RankedPlay? BestPlay() =>
+    private IReadOnlyList<RankedPlay> RankedPlays() =>
         MoveRanker.Rank(Round.Board, Round.Hand, _lexicon, Run.DeskItems, RoundScoring, Round.Config.MinWordLength,
-            RoundRules.Environment(Round, Run.Money)).FirstOrDefault();
+            RoundRules.Environment(Round, Run.Money));
 
-    private void Hint()
+    private RankedPlay? BestPlay() => Hints.Best(RankedPlays());
+
+    /// <summary>The Hint button: a decent play (never the best), or the best play in dev mode.</summary>
+    private void Hint() => ShowHint(best: _devMode);
+
+    private void ShowHint(bool best)
     {
-        if (BestPlay() is not { } best)
+        var ranked = RankedPlays();
+        if ((best ? Hints.Best(ranked) : Hints.Decent(ranked)) is not { } hint)
         {
             SetMessage("No legal play with this hand — discard some tiles.", UiKit.Bad);
             return;
         }
+        PlacePlay(hint, ReferenceEquals(hint, ranked[0]) ? null : "a hint, not the best play");
+    }
+
+    /// <summary>Puts a play's tiles on the board as pending (not submitted); <paramref name="note"/> follows the preview.</summary>
+    private void PlacePlay(RankedPlay play, string? note)
+    {
         _pending.Clear();
         _selected.Clear();
-        foreach (var placed in best.Play.Placed)
+        foreach (var placed in play.Play.Placed)
             _pending[placed.Position] = placed.Tile;
         Refresh();
+        if (note is not null)
+            SetMessage(_messageLabel.Text + "  ·  " + note, UiKit.Good);
     }
 
     private void Discard()

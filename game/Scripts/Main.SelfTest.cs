@@ -83,6 +83,11 @@ public partial class Main
             .Value.Words.Select(w => w.Text).ToList();
         string defined = _definitionsLabel.GetParsedText();
         Check("preview defines each word", words.Count > 0 && words.All(w => defined.Contains(w)));
+        var ranked = RankedPlays();
+        var decent = Crossword.Core.Analysis.Hints.Decent(ranked)!;
+        Check("hint shows a decent play, not the best",
+            _pending.Count == decent.Play.Placed.Length && decent.Play.Placed.All(p => _pending.TryGetValue(p.Position, out var t) && t == p.Tile)
+            && (_devMode || decent.Score.Total < ranked[0].Score.Total || ranked.Count == 1));
 
         // 7. Tab opens the Style Guides popup with every tier's guide and the hinted play's tier highlighted;
         //    Esc closes it without recalling the pending play.
@@ -96,6 +101,17 @@ public partial class Main
             _highlightedTier == RoundScoring.TierFor(words.Max(w => w.Length)).MinLength);
         await PressKey(global::Godot.Key.Escape);
         Check("esc closes style guides, keeps the play", !_styleGuidesOverlay.Visible && _pending.Count == pendingBefore);
+
+        // 8. Using an Answer Key places the best play and empties its Stationery slot.
+        _session = _session with { Run = Run.AddStationery(new Crossword.Core.Stationery.AnswerKey()).Value };
+        Refresh();
+        await Frames(2);
+        var useButton = _deskRow.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "Use");
+        var best = RankedPlays()[0];
+        await Click(Centre(useButton));
+        Check("answer key places the best play",
+            Run.Stationery.IsEmpty && _pending.Count == best.Play.Placed.Length
+            && best.Play.Placed.All(p => _pending.TryGetValue(p.Position, out var t) && t == p.Tile));
 
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);

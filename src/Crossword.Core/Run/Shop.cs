@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Stationery;
 
 namespace Crossword.Core.Run;
 
@@ -25,7 +26,9 @@ public sealed record ShopConfig(
     int StyleGuidePrice = 3,
     int CommonWeight = 60,
     int UncommonWeight = 30,
-    int RareWeight = 10)
+    int RareWeight = 10,
+    int StationeryOffers = 1,
+    int StationeryPrice = 3)
 {
     public static ShopConfig Default { get; } = new();
 
@@ -37,6 +40,8 @@ public sealed record ShopConfig(
     };
 
     public int SellValueOf(IDeskItem item) => Math.Max(1, PriceOf(item) / 2);
+
+    public int SellValueOf(IStationery item) => Math.Max(1, StationeryPrice / 2);
 }
 
 public abstract record ShopOffer(int Price)
@@ -72,6 +77,12 @@ public sealed record StrikeOffer(int MaxTiles, int Price) : ShopOffer(Price)
 public sealed record StyleGuideOffer(int TierMinLength, string Name, string TierLabel, long Chips, decimal Mult, int Price) : ShopOffer(Price)
 {
     public override string Description => $"{Name}: {TierLabel} words +{Chips} chips, +{Mult} mult (permanent)";
+}
+
+/// <summary>A one-shot Stationery item, kept in a Stationery slot until used.</summary>
+public sealed record StationeryOffer(IStationery Item, int Price) : ShopOffer(Price)
+{
+    public override string Description => $"{Item.Name} (Stationery) — {Item.Description}";
 }
 
 /// <summary>Player-facing Style Guide names, one per word tier (keyed by the tier's minimum length).</summary>

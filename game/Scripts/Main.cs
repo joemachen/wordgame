@@ -11,8 +11,8 @@ namespace Wordgame.Godot;
 /// Root of the game UI. Holds the current immutable <see cref="GameSession"/> plus purely visual state
 /// (selected/pending tiles) and rebuilds the screen from them. All rules go through Crossword.Core.
 ///
-/// Command-line user args (after "--"): --seed=N, --give=id,id (dev), --autoplay=N (play N best moves / leave shops),
-/// --hint (pre-place the best play), --screenshot=path.png (save a screenshot after loading and quit),
+/// Command-line user args (after "--"): --seed=N, --give=id,id (dev: Desk Items or Stationery, e.g. answer-key), --autoplay=N (play N best moves / leave shops),
+/// --hint (pre-place the best play), --dev (the Hint button shows the best play), --screenshot=path.png (save a screenshot after loading and quit),
 /// --selftest (drive the UI with simulated input, print PASS/FAIL, quit).
 /// </summary>
 public partial class Main : Control
@@ -29,6 +29,7 @@ public partial class Main : Control
     private IReadOnlyList<int> _handOrder = Array.Empty<int>();
     private Crossword.Core.Random.Rng _arrangementRng = Crossword.Core.Random.Rng.FromSeed(Time.GetTicksUsec());
     private bool _animating;
+    private bool _devMode;
 
     // Hand drag in progress: the dragged tile (shown as a ghost in the row), its starting slot, the latest cursor.
     private int? _handDragId;
@@ -69,6 +70,7 @@ public partial class Main : Control
         var args = ParseArgs();
         _lexicon = LexiconLoader.Enable;
         _ = Task.Run(() => DefinitionLoader.Default); // warm up off the main thread so the first preview doesn't hitch
+        _devMode = args.ContainsKey("dev");
         BuildLayout();
 
         ulong seed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : (ulong)Time.GetTicksUsec();
@@ -78,6 +80,8 @@ public partial class Main : Control
             foreach (var id in give.Split(',', StringSplitOptions.RemoveEmptyEntries))
                 if (Crossword.Core.DeskItems.DeskItemCatalog.Find(id) is { } item && Run.AddDeskItem(item) is { IsOk: true } added)
                     _session = _session with { Run = added.Value };
+                else if (Crossword.Core.Stationery.StationeryCatalog.Find(id) is { } stationery && Run.AddStationery(stationery) is { IsOk: true } held)
+                    _session = _session with { Run = held.Value };
 
         if (args.TryGetValue("autoplay", out var auto) && int.TryParse(auto, out int steps))
             Autoplay(steps);
@@ -85,7 +89,7 @@ public partial class Main : Control
         Refresh();
 
         if (args.ContainsKey("hint") && _session.Phase == RunPhase.InRound)
-            Hint();
+            ShowHint(best: true);
 
         if (args.TryGetValue("screenshot", out var path))
             _ = ScreenshotAndQuit(path);

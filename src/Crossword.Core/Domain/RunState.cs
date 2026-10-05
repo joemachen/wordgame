@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Crossword.Core.Effects;
 using Crossword.Core.Random;
+using Crossword.Core.Stationery;
 
 namespace Crossword.Core.Domain;
 
@@ -24,6 +25,10 @@ public sealed record RunState(
         RoundIndex: 0);
 
     public const int MaxDeskSlots = 5;
+    public const int MaxStationerySlots = 2;
+
+    /// <summary>One-shot Stationery held for later use; duplicates are allowed.</summary>
+    public ImmutableArray<IStationery> Stationery { get; init; } = ImmutableArray<IStationery>.Empty;
 
     /// <summary>Style Guide upgrades bought: word tier MinLength → number of upgrades.</summary>
     public ImmutableDictionary<int, int> TierUpgrades { get; init; } = ImmutableDictionary<int, int>.Empty;
@@ -56,6 +61,16 @@ public sealed record RunState(
         var item = DeskItems[from];
         return Result<RunState, string>.Ok(this with { DeskItems = DeskItems.RemoveAt(from).Insert(to, item) });
     }
+
+    public Result<RunState, string> AddStationery(IStationery item) =>
+        Stationery.Length >= MaxStationerySlots
+            ? Result<RunState, string>.Fail($"Both {MaxStationerySlots} stationery slots are full.")
+            : Result<RunState, string>.Ok(this with { Stationery = Stationery.Add(item) });
+
+    public Result<RunState, string> RemoveStationery(int slot) =>
+        slot >= 0 && slot < Stationery.Length
+            ? Result<RunState, string>.Ok(this with { Stationery = Stationery.RemoveAt(slot) })
+            : Result<RunState, string>.Fail($"No stationery in slot {slot + 1}.");
 
     private bool IsSlot(int slot) => slot >= 0 && slot < DeskItems.Length;
 }

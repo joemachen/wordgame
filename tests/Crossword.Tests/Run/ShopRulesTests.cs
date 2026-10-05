@@ -34,8 +34,9 @@ public class ShopRulesTests
 
         Assert.Equal(a.Offers, b.Offers);
         Assert.Equal(rngA, rngB);
-        Assert.Equal(Shop.DeskItemOffers + Shop.EditOffers + Shop.StyleGuideOffers, a.Offers.Length);
+        Assert.Equal(Shop.DeskItemOffers + Shop.EditOffers + Shop.StyleGuideOffers + Shop.StationeryOffers, a.Offers.Length);
         Assert.Single(a.Offers.OfType<StyleGuideOffer>());
+        Assert.Single(a.Offers.OfType<StationeryOffer>());
         Assert.DoesNotContain(a.Offers.OfType<DeskItemOffer>(), o => o.Item.Id == "red-pen");
     }
 

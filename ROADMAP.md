@@ -94,10 +94,13 @@ These are in addition to the 18 Desk Items already in `DeskItemCatalog`. Rarity 
 ### Stationery (consumables) 🟡 — new system
 
 One-shot items bought in the shop, held in **2 Stationery slots**, used during a round (the equivalent of
-Balatro's Tarot cards). Needs new state (slots in `RunState`), shop offers, use actions in `RunRules`, and UI.
+Balatro's Tarot cards). ✅ The system exists (`RunState.Stationery`, `StationeryOffer` in the shop at $3, sell for
+half, `RunRules.UseStationery`, UI slots beside the Desk Items) with the Answer Key as its first item; the rest
+of this table is still proposed. Shop bots don't buy Stationery yet.
 
 | Stationery | Effect (*proposed*) |
 |---|---|
+| **Answer Key** ✅ | Reveals the best play for your current hand. The free Hint only shows a decent play (never the best), so solving the board for you costs money. |
 | **White-Out** | Remove one tile from the board |
 | **Highlighter** | One tile's letter value ×3 on your next play |
 | **Fountain Pen** | Rewrite one hand tile as any letter |
@@ -235,7 +238,7 @@ tests and a `runsim` balance check.
 | **0** ✅ | Retune week targets against the evaluating shop bot → 225/800/2400/6500/16000 (skill 0.9 wins ~39%) | — |
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
-| **3** | Stationery consumable system (state, shop, actions, UI) | — |
+| **3** 🟡 | Stationery consumable system (state, shop, actions, UI) — system + Answer Key done; more Stationery and bot support to go | — |
 | **4** | In-run save/resume → profile & unlock tracking (§9) | — |
 | **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |
 | **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile); legal checklist (§10) | before shipping |

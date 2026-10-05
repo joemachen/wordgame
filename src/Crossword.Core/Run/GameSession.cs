@@ -36,3 +36,6 @@ public sealed record GameSession(
 }
 
 public sealed record SessionOutcome(GameSession Session, ScoreContext Score);
+
+/// <summary>Result of using Stationery: the new session and, for the Answer Key, the play it reveals.</summary>
+public sealed record StationeryUse(GameSession Session, Analysis.RankedPlay? Play);

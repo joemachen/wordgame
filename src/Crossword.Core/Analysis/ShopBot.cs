@@ -403,6 +403,8 @@ public static class NaiveShopBot
                 return null;
             case StyleGuideOffer { TierMinLength: < 3 }:
                 return null; // the bot rarely scores with 2-letter words as its longest
+            case StationeryOffer:
+                return null; // bots don't use Stationery yet
             default:
                 return [];
         }

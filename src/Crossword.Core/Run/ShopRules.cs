@@ -3,6 +3,7 @@ using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
 using Crossword.Core.Random;
+using Crossword.Core.Stationery;
 
 namespace Crossword.Core.Run;
 
@@ -56,6 +57,19 @@ public static class ShopRules
         return Result<GameSession, string>.Ok(session with { Run = removed with { Money = removed.Money + value } });
     }
 
+    /// <summary>Sells the Stationery in <paramref name="slot"/> for half its price. Allowed during rounds and in the shop.</summary>
+    public static Result<GameSession, string> SellStationery(GameSession session, int slot)
+    {
+        if (session.Phase is not (RunPhase.InRound or RunPhase.Shop))
+            return Fail("Nothing to sell now.");
+        if (slot < 0 || slot >= session.Run.Stationery.Length)
+            return Fail($"No stationery in slot {slot + 1}.");
+
+        int value = session.Config.Shop.SellValueOf(session.Run.Stationery[slot]);
+        var removed = session.Run.RemoveStationery(slot).Value;
+        return Result<GameSession, string>.Ok(session with { Run = removed with { Money = removed.Money + value } });
+    }
+
     public static Result<GameSession, string> Reroll(GameSession session)
     {
         if (session.Phase != RunPhase.Shop || session.Shop is not { } shop)
@@ -94,6 +108,9 @@ public static class ShopRules
                 {
                     Deck = run.Deck.SetItem(index, run.Deck[index] with { Enhancement = enhance.Enhancement }),
                 });
+
+            case StationeryOffer stationery:
+                return run.AddStationery(stationery.Item);
 
             case StyleGuideOffer guide:
                 return Result<RunState, string>.Ok(run.UpgradeTier(guide.TierMinLength));
@@ -163,6 +180,16 @@ public static class ShopRules
             string label = tier.Label(t == tiers.Length - 1);
             offers.Add(new StyleGuideOffer(tier.MinLength, StyleGuideNames.For(tier.MinLength, label), label, tier.LevelChips,
                 tier.LevelMult, config.StyleGuidePrice));
+        }
+
+        // A single-entry catalog consumes no RNG, so adding Stationery left every other shop roll unchanged.
+        var stationery = StationeryCatalog.All;
+        for (int i = 0; i < config.StationeryOffers && stationery.Length > 0; i++)
+        {
+            int pick = 0;
+            if (stationery.Length > 1)
+                (pick, rng) = rng.NextInt(stationery.Length);
+            offers.Add(new StationeryOffer(stationery[pick], config.StationeryPrice));
         }
 
         return (offers.ToImmutable(), rng);

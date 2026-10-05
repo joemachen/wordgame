@@ -95,6 +95,7 @@ public partial class Main
         {
             DeskItemOffer desk => RarityColor(desk.Item.Rarity),
             StyleGuideOffer => UiKit.Chips,
+            StationeryOffer => StationeryColor,
             null => UiKit.PanelBorder,
             _ => UiKit.Money,
         };
@@ -112,6 +113,7 @@ public partial class Main
         (string kind, string title, string body) = offer switch
         {
             DeskItemOffer d => ($"DESK ITEM · {d.Item.Rarity.ToString().ToUpperInvariant()}", d.Item.Name, d.Item.Description),
+            StationeryOffer st => ("STATIONERY · ONE USE", st.Item.Name, st.Item.Description),
             StyleGuideOffer g => ("STYLE GUIDE", g.Name, $"{g.TierLabel} words: +{g.Chips} chips, +{g.Mult} mult for every play whose longest word is this length. Permanent."),
             AddTileOffer a => ("NEW TILE", a.Enhancement == TileEnhancement.None ? $"Tile {a.Letter}" : $"{a.Enhancement} {a.Letter}", "Added to your deck."),
             EnhanceOffer e => ("EDIT", $"Make a tile {e.Enhancement}", EnhancementBlurb(e.Enhancement) + " You choose the tile."),
