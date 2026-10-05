@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `846dfc2` (code; later commits are docs only) · 256 unit tests passing · UI self-test 9/9 passing_
+_Last updated: 2026-10-05 · HEAD `846dfc2` (code; later commits are docs only) · 256 unit tests passing · UI self-test 15/15 passing_
 
 ---
 
@@ -26,7 +26,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 225/800/2400/6500/16000. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
 | Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike). |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. |
-| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, reorder), live score preview, animated scoring, Desk Items bar (reorder/sell), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
+| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview, animated scoring, Desk Items bar (reorder/sell), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -78,7 +78,7 @@ day multipliers ×1/×1.3/×1.6.
    deck edits not worth buying. The bot values items by the *best* play per decision (strong-shopper view), not
    the play its skill level would pick.
 3. **No save/load.** State is immutable records, so it's mostly serialization (Desk Items are polymorphic records — needs a type discriminator).
-4. **UI is first-pass:** no art, sound, tile animations, or settings; drag preview feel only verified via simulated input.
+4. **UI is first-pass:** no art, sound, or settings; only the hand-reorder slide is animated. Drag feel (ghost slot, sliding tiles, lifted preview) only verified via simulated input + screenshots — needs a real-mouse playtest.
 5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping. "Q without U" is a dead tile (consider a "Qu" tile).
 6. **Hand arrangement is UI-only** (not saved); fine until save/load exists.
 
@@ -102,7 +102,8 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
   - `... --path game -- --seed=42 --selftest` → PASS/FAIL lines, exit 1 on failure. Extend `game/Scripts/Main.SelfTest.cs` for new interactions.
   - Build the Godot project (`dotnet build game/Wordgame.Godot.csproj`) before launching Godot; it loads assemblies from `game/.godot/mono/temp/bin`.
 - **Desktop control (computer-use) can't target the portable Godot exe** — use `--selftest`/`--screenshot` instead.
-- **Simulated input quirk:** under `Viewport.PushInput`, `_DropData`'s `atPosition` arrives in the wrong coordinate space. Don't base UI logic on it (hand reorder uses drag direction instead).
+- **Simulated input quirk:** under `Viewport.PushInput`, `_DropData`'s `atPosition` arrives in the wrong coordinate space. Don't base UI logic on it: hand reorder tracks the cursor in `Main._Input` (canvas coords for real and pushed input, matching `GetGlobalRect()`) and drops into the ghost's slot.
+- **Mid-interaction screenshots:** `--screenshot` quits before any input; to see a drag mid-flight, temporarily add `GetViewport().GetTexture().GetImage().SavePng(...)` inside a self-test step.
 - **Editing gotchas:** the Write/Edit tools turn `\uXXXX` escapes into literal characters, and bash heredocs can mangle `\n`. For multi-file edits, write a Python script with raw strings (`r"""..."""`) to the scratchpad and run it; for C# char literals prefer `(char)0xFEFF` style.
 - **Batch files must be CRLF** (`.gitattributes` enforces; normalize with `sed -i 's/\r*$/\r/'` after writing).
 - Running `run_local_qa.bat` from a captured shell hangs because Godot inherits the pipe — expected; it's fine on double-click.

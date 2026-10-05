@@ -27,7 +27,8 @@ public partial class Main
         box.AddChild(_boardHolder);
 
         var handHolder = new CenterContainer();
-        _handRow = UiKit.HBox(10);
+        _handRow = new HandRow { CanAcceptDrop = () => _handDragId is not null, Dropped = DropOnHand };
+        _handRow.AddThemeConstantOverride("separation", 10);
         handHolder.AddChild(_handRow);
         box.AddChild(handHolder);
 
@@ -134,7 +135,9 @@ public partial class Main
             if (!_animating)
             {
                 button.DragPreviewFactory = () => UiKit.MakeTile(tile, value, HandTileSize, UiKit.Selected, raised: true);
-                button.TileDropped = MoveHandTile;
+                button.DragStarted = BeginHandDrag;
+                button.CanAcceptDrop = () => _handDragId is not null;
+                button.Dropped = DropOnHand;
             }
             _handRow.AddChild(button);
         }
@@ -187,15 +190,78 @@ public partial class Main
         Refresh();
     }
 
-    /// <summary>The dropped tile takes the target's slot: dragging rightwards lands after it, leftwards before it.</summary>
-    private void MoveHandTile(int tileId, int targetId)
+    // ---------------------------------------------------------------- hand drag (ghost slot)
+
+    /// <summary>The dragged tile stays in the row as a ghost marking where it will land.</summary>
+    private void BeginHandDrag(int tileId)
     {
-        if (_animating)
+        if (_animating || HandTileButton(tileId) is not { } ghost)
             return;
-        var order = _handOrder.ToList();
-        bool after = order.IndexOf(tileId) < order.IndexOf(targetId);
-        _handOrder = HandArrangement.Move(_handOrder, tileId, targetId, after);
+        _handDragId = tileId;
+        _ghostHome = ghost.GetIndex();
+        ghost.SetGhost(true);
+        UpdateHandGhost();
+    }
+
+    /// <summary>
+    /// Moves the ghost to the slot under the cursor (or back home when the cursor leaves the hand). The row always
+    /// holds the same equal-width slots, so the slot under the cursor doesn't shift as the ghost moves.
+    /// </summary>
+    private void UpdateHandGhost()
+    {
+        if (_handDragId is not { } id || HandTileButton(id) is not { } ghost)
+            return;
+        int count = _handRow.GetChildCount();
+        var rect = _handRow.GetGlobalRect();
+        int index = _ghostHome;
+        if (rect.HasPoint(_cursor))
+        {
+            float separation = _handRow.GetThemeConstant("separation");
+            float slot = (rect.Size.X + separation) / count;
+            index = Mathf.Clamp((int)Mathf.Floor((_cursor.X - rect.Position.X + separation / 2) / slot), 0, count - 1);
+        }
+        _handRow.MoveChildAnimated(ghost, index);
+    }
+
+    /// <summary>A hand tile dropped on the hand takes the ghost's slot.</summary>
+    private void DropOnHand(int tileId)
+    {
+        if (_animating || _handDragId != tileId)
+            return;
+        UpdateHandGhost();
+        var visible = _handRow.GetChildren().OfType<TileButton>().Select(b => b.TileId).ToList();
+        int index = visible.IndexOf(tileId);
+        _handDragId = null;
+        if (index >= 0 && visible.Count > 1)
+        {
+            _handOrder = index > 0
+                ? HandArrangement.Move(_handOrder, tileId, visible[index - 1], after: true)
+                : HandArrangement.Move(_handOrder, tileId, visible[1], after: false);
+        }
         Refresh();
+    }
+
+    private TileButton? HandTileButton(int tileId) =>
+        _handRow.GetChildren().OfType<TileButton>().FirstOrDefault(b => b.TileId == tileId);
+
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is not InputEventMouse mouse)
+            return;
+        _cursor = mouse.Position;
+        if (_handDragId is not null && mouse is InputEventMouseMotion)
+            UpdateHandGhost();
+    }
+
+    public override void _Notification(int what)
+    {
+        // Fired after any drop has been handled. A drag that didn't land on the hand (cancelled, or placed on the
+        // board) leaves its ghost behind: rebuild the row. Deferred so no nodes are freed mid-propagation.
+        if (what == NotificationDragEnd && _handDragId is not null)
+        {
+            _handDragId = null;
+            Callable.From(RefreshHand).CallDeferred();
+        }
     }
 
     private void ShuffleHand()

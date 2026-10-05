@@ -30,6 +30,11 @@ public partial class Main : Control
     private Crossword.Core.Random.Rng _arrangementRng = Crossword.Core.Random.Rng.FromSeed(Time.GetTicksUsec());
     private bool _animating;
 
+    // Hand drag in progress: the dragged tile (shown as a ghost in the row), its starting slot, the latest cursor.
+    private int? _handDragId;
+    private int _ghostHome;
+    private Vector2 _cursor;
+
     // Sidebar
     private Label _titleLabel = null!;
     private Label _bossLabel = null!;
@@ -47,7 +52,7 @@ public partial class Main : Control
     private HBoxContainer _deskRow = null!;
     private Control _roundArea = null!;
     private CenterContainer _boardHolder = null!;
-    private HBoxContainer _handRow = null!;
+    private HandRow _handRow = null!;
     private Button _submitButton = null!;
     private Button _recallButton = null!;
     private Button _discardButton = null!;
