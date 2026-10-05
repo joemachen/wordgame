@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `ebe236e` (code) · 269 unit tests passing · UI self-test 19/19 passing_
+_Last updated: 2026-10-05 · HEAD `cdcf32a` (code) · 269 unit tests passing · UI self-test 19/19 passing_
 
 ---
 
@@ -121,6 +121,8 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+cdcf32a Add a Style Guides popup listing every word tier and its guide
+6dbf5be Record definitions commit in handoff
 ebe236e Show word definitions in the play preview
 d6a99cd Record hand drag ghost commit in handoff
 b469770 Show a ghost slot and slide tiles apart when dragging in the hand
