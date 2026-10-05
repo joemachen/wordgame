@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `846dfc2` · 256 unit tests passing · UI self-test 9/9 passing_
+_Last updated: 2026-10-05 · HEAD `846dfc2` (code; later commits are docs only) · 256 unit tests passing · UI self-test 9/9 passing_
 
 ---
 
@@ -23,8 +23,8 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
-| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Paycheck economy with interest + overkill bonus. Endless mode. |
-| Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, Style Guide tier upgrades, 5 bosses, shop deck edits (add/enhance/strike). |
+| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 225/800/2400/6500/16000. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
+| Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike). |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, reorder), live score preview, animated scoring, Desk Items bar (reorder/sell), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
@@ -39,6 +39,8 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Economy:** Balatro-style payouts **plus capped overkill bonus** (user's choice). **Run length:** 5 Weeks × 3 rounds (user's choice). **Newspaper theme** (Week / Daily / Saturday Stumper / Sunday Edition, Desk Items, deadlines).
 - **Balance is data-driven:** all numbers live in config records (`ScoringConfig`, `RunConfig`, `ShopConfig`, `EconomyConfig`, Desk Item constructor defaults) and are tuned with simulations, not by hand. Unit tests pin their own numbers so retuning never breaks them.
 - **Roadmap decisions (ROADMAP.md):** new boss names *merge* with existing bosses (renames + additions; "Saturday Stumper" boss → "The Puzzle Master", "Tight Deadline" stake → "Rush Job"); every roadmap entry carries a *proposed* effect + status; "Scrabble Board" → "Tile Rack" and the Trademarks dictionary is parked pending legal review; **dictionaries are per-run choices with tradeoffs**, not permanent global unlocks.
+- **Week targets 225/800/2400/6500/16000** (user's choice over a softer early curve): skill 0.9 wins ~39%, but weaker players often lose in Week 1. Revisit after playtests.
+- **Boss tiers follow measured difficulty** (user's choice over the original roadmap tiers): easiest bosses early, The Strict Grammarian (hardest) as the Week 5 finale.
 - **Focus: a working game first.** Steam/launch work (Steamworks, store page, demo, Next Fest) is off the roadmap for now. Simulator throughput target: ~10k runs in minutes (100k+ not needed).
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 
@@ -58,7 +60,7 @@ day multipliers ×1/×1.3/×1.6.
   **The Strict Grammarian 29% as the Week 5 finale** (was ~12% when it could appear in any week), Tight Deadline 9%,
   Vowel Drought 4%, Ink Spill 2%, Tight Margins 2%. The finale is now a real wall: ~1 in 4 losses happen there.
 - **Skill gap is now wide** (0.9→0.8 ≈ 25 pts), so the old "narrow gap" concern was a bot/target artifact.
-- **Early weeks are punishing for weaker players:** skill 0.7 loses in Week 1 ~65% of runs. The user chose this over a
+- **Early weeks are punishing for weaker players:** skill 0.7 loses in Week 1 ~60% of runs (89 of 150 after phase 1). The user chose this over a
   softer early curve (e.g. 200/800/…: 45% / 17% / 5%). Revisit after human playtests.
 - **Shopping well matters more than word-finding:** with the *old* targets the same word skill went 42% → 97% from
   the shop bot alone.
@@ -117,6 +119,7 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+f7b61a7 Record phase 1 commit hash in handoff
 846dfc2 Rename bosses, name Style Guides, and tier bosses by week
 1dbb5f3 Trim roadmap to a working game first
 fded71c Fold infrastructure, modes, presentation, persistence and Steam into the roadmap
