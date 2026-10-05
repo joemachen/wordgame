@@ -1,10 +1,11 @@
 # Session Handoff — wordgame
 
 > **For a new Claude session:** read this file first, then `CLAUDE.md` (rules, architecture, commands).
-> This file is the "where are we and what's next" brief; `CLAUDE.md` is the "how the code works" reference.
+> This file is the "where are we and what's next" brief; `CLAUDE.md` is the "how the code works" reference;
+> [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `51f5925` · 251 unit tests passing · UI self-test 9/9 passing (UI untouched this session)_
+_Last updated: 2026-10-05 · HEAD `51f5925` (+ docs: ROADMAP.md) · 251 unit tests passing · UI self-test 9/9 passing (UI untouched this session)_
 
 ---
 
@@ -37,6 +38,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **2-letter words are legal** (lowest tier). **Discards exist** (3/round). **Premiums only count under newly placed tiles**; **enhancements trigger per formed word, including old tiles** (deliberate: rewards building onto the grid).
 - **Economy:** Balatro-style payouts **plus capped overkill bonus** (user's choice). **Run length:** 5 Weeks × 3 rounds (user's choice). **Newspaper theme** (Week / Daily / Saturday Stumper / Sunday Edition, Desk Items, deadlines).
 - **Balance is data-driven:** all numbers live in config records (`ScoringConfig`, `RunConfig`, `ShopConfig`, `EconomyConfig`, Desk Item constructor defaults) and are tuned with simulations, not by hand. Unit tests pin their own numbers so retuning never breaks them.
+- **Roadmap decisions (ROADMAP.md):** new boss names *merge* with existing bosses (renames + additions; "Saturday Stumper" boss → "The Puzzle Master", "Tight Deadline" stake → "Rush Job"); every roadmap entry carries a *proposed* effect + status; "Scrabble Board" → "Tile Rack" and the Trademarks dictionary is parked pending legal review; **dictionaries are per-run choices with tradeoffs**, not permanent global unlocks.
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 
 ## 4. Current balance snapshot (100-run sims, `RunSimulator`)
@@ -71,6 +73,8 @@ Week targets 150/400/900/1900/3800, day multipliers ×1/×1.3/×1.6 (tuned again
 6. **Hand arrangement is UI-only** (not saved); fine until save/load exists.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
+
+Longer-term phases live in `ROADMAP.md` §6 (naming pass → new items/bosses → Stationery → save/load + meta → decks/dictionaries/stakes).
 
 1. **Retune week targets against the evaluating bot** (recommended next; quick with the scratch harness), then
    re-measure the skill gap and item pick rates.

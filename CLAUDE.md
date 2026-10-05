@@ -4,6 +4,7 @@ Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target
 
 > **Start of every session: read [`handoff.md`](handoff.md)** — current status, decisions, open concerns, next steps, and workflow tips.
 > **End of every meaningful chunk of work: update `handoff.md`** (status table, decisions, next steps, HEAD/test counts, date).
+> **Feature design roadmap: [`ROADMAP.md`](ROADMAP.md)** — the official plan for upcoming features (dictionaries, decks, items, Stationery, bosses, stakes, build order) with *proposed* numbers. Mark entries ✅ when they land; keep current status in `handoff.md`.
 
 ## Core Principles
 1. Core game logic must remain in `src/Crossword.Core` with zero game engine imports and no NuGet packages (BCL only). Enforced by `tests/Crossword.Tests/Architecture/CoreDependencyTests.cs`.
@@ -50,6 +51,7 @@ All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item
 - `game/` — **Godot 4.7 (.NET) UI** (`Wordgame.Godot.csproj`, `project.godot`, `Scenes/Main.tscn`). UI is built in code in `Scripts/Main*.cs` + `UiKit.cs`; it only renders `GameSession` and calls `RunRules`/`ShopRules` — no rules in the UI. Visual-only state (selected/pending tiles) lives in `Main`. Compatibility renderer.
 - `src/Crossword.Cli` — developer text console (parser, renderer, simulation report, REPL); references Core only
 - `tests/Crossword.Tests` — xUnit tests, mirroring Core folder structure (+ `Cli/` parser tests, `TestSupport/Fixtures`)
+- `ROADMAP.md` — feature design roadmap; `handoff.md` — session status brief
 - `run_local_qa.bat [--cli] [--ci] [seed]` — build → test → launch the **Godot game window** (double-click). `--cli` uses the text console, `--ci` skips pauses. Godot path comes from `GODOT` in gitignored `qa.local.bat` (see `qa.local.bat.example`); falls back to the console if missing. Keep it working as the project evolves.
 
 ## Commands
