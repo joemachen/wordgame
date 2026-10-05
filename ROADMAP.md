@@ -108,7 +108,7 @@ Stationery at a fixed estimated gain per item and `StationeryBot` uses it in sim
 | **Scissors** ✅ | Swap up to 2 hand tiles for new draws without spending a discard |
 | **Correction Tape** | Undo your last submission this round; its tiles return to your hand and you get the submission back |
 | **Red Ink Bottle** ✅ | +3 Mult on every play for the rest of the round (stacks) |
-| **Margin Clip** ✅ | +1 submission this round |
+| **Margin Clip** ✅ | +1 submission this round. **$6** (the rest are $3): at $3 it alone added +13 pts of win rate. |
 
 ### Style Guides (word-tier upgrades)
 

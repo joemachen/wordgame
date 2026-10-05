@@ -46,28 +46,33 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 - **Definitions come from Open English WordNet** (user's choice; CC BY 4.0 → attribution in `THIRD_PARTY_NOTICES.md`, must also appear in in-game credits before release). Wiktionary was rejected for now (CC BY-SA share-alike). Unknown words show "valid word — no definition on file". Definitions appear in the play preview only (user's choice; not in the scoring log or board tooltips).
 - **Style Guides are shown in a Run Info-style popup** (Tab / sidebar button), user's choice over an always-visible sidebar table or desk-bar badges.
-- **Stationery batch (user's choice, 2026-10-05):** Margin Clip, Scissors, White-Out, Red Ink Bottle, flat $3. Red Ink is a round-level `RoundConfig.BonusMult` (scoring step 4b, before Desk Items, so ×Mult items multiply it). White-Out's tile is gone for the round (not returned); leftover fragments are only checked when a later play crosses them. **Deadlock escape** (Claude's call, flagged to the user): holding Scissors/White-Out postpones the "no play, no discards" loss, since otherwise the round would end while the player holds the way out.
+- **Stationery batch (user's choice, 2026-10-05):** Margin Clip, Scissors, White-Out, Red Ink Bottle, $3 each except
+  **Margin Clip $6** (user's call after it measured +13 pts at $3; per-item prices via `ShopConfig.StationeryPrices`). Red Ink is a round-level `RoundConfig.BonusMult` (scoring step 4b, before Desk Items, so ×Mult items multiply it). White-Out's tile is gone for the round (not returned); leftover fragments are only checked when a later play crosses them. **Deadlock escape** (Claude's call, flagged to the user): holding Scissors/White-Out postpones the "no play, no discards" loss, since otherwise the round would end while the player holds the way out.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Current balance snapshot (after the 2026-10-05 retune + Stationery batch)
 
 Week targets **340/1200/3600/9750/16000**, day multipliers ×1/×1.3/×1.6, The Strict Grammarian's deadline ×0.75.
 **Reference player = ScoreFraction model** (`runsim 150 0.75 frac`: picks the best play worth ≤75% of the best one).
-Evaluating shop bot, 150 runs each. **The bot now buys Margin Clips** (default `ShopBotConfig.StationeryGain`), which
-moved every row up ~10–16 pts:
+Evaluating shop bot, 150 runs each. **The bot buys Margin Clips** (default `ShopBotConfig.StationeryGain`), now
+priced **$6** (`ShopConfig.StationeryPrices`; user's call after it measured over-tuned at $3):
 
-| Skill (ScoreFraction) | Victory (before Stationery → now) | Rounds won in 1–2 subs | Mean subs to win (Daily, W1 → W5) | Margin Clips used/run |
+| Skill (ScoreFraction) | Victory: no Stationery → Margin Clip $3 → **$6 (current)** | Rounds won in 1–2 subs | Mean subs to win (Daily, W1 → W5) | Margin Clips used/run |
 |---|---|---|---|---|
-| 0.9 | 45% → **61%** | 71% | 2.41 → 2.27 | 0.49 |
-| 0.75 (reference) | 31% → **47%** | 61% | 2.50 → 2.52 | 0.60 |
-| 0.6 | ~13% → **23%** | 48% | 2.73 → 2.71 | 0.59 |
+| 0.9 | 45% → 61% → **56%** | 72% | 2.41 → 2.21 | 0.32 |
+| 0.75 (reference) | 31% → 47% → **43%** | 63% | 2.50 → 2.44 | 0.29 |
+| 0.6 | ~13% → 23% → **18%** | 52% | 2.73 → 2.74 | 0.22 |
+
+**Margin Clip price sweep** (scratch harness, 200 paired runs, ScoreFraction 0.75, baseline without Stationery 37.5%):
+always offered +13 / +13 / +9.5 / +10 pts at $3 / $5 / $6 / $7; realistic full pool +8.5 / +5.5 / +6 / +4.5. Price is a
+weak lever — an extra submission saves runs, so the bot buys it at any of these prices; $5–$7 are within noise (±3.5).
 
 **Per-item Stationery value** (scratch harness: 200 paired runs per arm, ScoreFraction 0.75, the shop offers only that
 item and the bot buys it at a fixed gain; baseline without Stationery 37.5% on seeds 1–200):
 
 | Item ($3) | Win-rate change | Uses/run | Notes |
 |---|---|---|---|
-| **Margin Clip** | **+13 to +14 pts** | ~1.6 | Used on a short last submission. Far the best buy per dollar in the game. |
+| **Margin Clip** | **+13 to +14 pts** | ~1.6 | Used on a short last submission. Far the best buy per dollar → now $6 (still +9.5 when always offered). |
 | Answer Key | −3 (gain 0.1), −11 (0.3) | ~3 | Used when only the best play wins the round now. |
 | Red Ink Bottle | −2.5 (0.1), −10 (0.3) | ~5.6 | Used on boss openers and short last submissions. |
 | Scissors | −8 (0.05), −10.5 (0.1) | ~2.7 | Cuts unused Q/Z/X/J tiles before a play. |
@@ -97,10 +102,11 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 
 ## 5. Open concerns / known gaps
 
-1. **Overall difficulty after the retune + Stationery** (see §4): the reference player wins ~47%, a weaker one ~23%,
+1. **Overall difficulty after the retune + Stationery** (see §4): the reference player wins ~43%, a weaker one ~18%,
    much of it from Margin Clips. Check in playtests; the Press Run stakes (ROADMAP §5) could carry difficulty.
-   **Margin Clip at $3 is over-tuned** (+13 pts alone) and the other four Stationery don't pay for themselves for the
-   bot — the user hasn't decided on fixes yet (see §6).
+   **Margin Clip is still the strongest Stationery at $6** (+9.5 pts when always offered, ~+6 in the real pool); if
+   it stays too strong, price won't fix it — give it a cost instead (see §6). The other four don't pay for themselves
+   for the bot.
 2. **Possible dominant items / weak deck edits** (see §4): Pulitzer, Margin Notes, Word Count near-universal picks;
    deck edits not worth buying. The bot values items by the *best* play per decision (strong-shopper view), not
    the play its skill level would pick. Stationery is bought at fixed per-item gains (`ShopBotConfig.StationeryGain`),
@@ -117,9 +123,9 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
-1. **Stationery balance** (decision pending): Margin Clip is too strong at $3 — options: price it higher (~$6), make
-   it rarer in the pool, or give it a cost (e.g. −1 discard). The others may need buffs (e.g. Red Ink +5, Answer Key
-   $2) — check in playtests, since the bot's use is rule-based. Re-measure with the scratch harness (§7).
+1. **Stationery balance:** Margin Clip raised to $6 (done). If it still dominates in playtests, give it a cost
+   (e.g. −1 discard) or make it rarer — price alone stops working above ~$5. The others may need buffs (e.g. Red Ink +5,
+   Answer Key $2) — check in playtests, since the bot's use is rule-based. Re-measure with the scratch harness (§7).
 2. **Playtest the retune, new Hint and Stationery** via `run_local_qa.bat` — do rounds feel longer, is difficulty right
    (concern #1), is the free Hint useful without being a crutch, do Scissors/White-Out feel worth $3? If 3+ play rounds
    are wanted, try 5 submissions per round with higher targets (targets alone plateau at ~2.5 plays).

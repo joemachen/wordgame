@@ -195,7 +195,7 @@ public static class ShopRules
             int pick = 0;
             if (stationery.Length > 1)
                 (pick, rng) = rng.NextInt(stationery.Length);
-            offers.Add(new StationeryOffer(stationery[pick], config.StationeryPrice));
+            offers.Add(new StationeryOffer(stationery[pick], config.PriceOf(stationery[pick])));
         }
 
         return (offers.ToImmutable(), rng);

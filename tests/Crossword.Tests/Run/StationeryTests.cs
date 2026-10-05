@@ -88,6 +88,22 @@ public class StationeryTests
     }
 
     [Fact]
+    public void PerItemPrice_OverridesTheFlatPrice_ForOffersAndSelling()
+    {
+        var shop = Shop with
+        {
+            StationeryIds = new HashSet<string> { "margin-clip" },
+            StationeryPrices = new Dictionary<string, int> { ["margin-clip"] = 6 },
+        };
+        var (generated, _) = ShopRules.Generate(RunState.New(1), Config with { Shop = shop }, Rng.FromSeed(10));
+
+        Assert.Equal(6, Assert.Single(generated.Offers.OfType<StationeryOffer>()).Price);
+        Assert.Equal(3, shop.SellValueOf(new MarginClip()));
+        Assert.Equal(3, shop.PriceOf(new AnswerKey()));
+        Assert.Equal(1, shop.SellValueOf(new AnswerKey()));
+    }
+
+    [Fact]
     public void Buy_ChargesPrice_AndFillsASlot()
     {
         var next = ShopRules.Buy(InShop(10, new StationeryOffer(new AnswerKey(), 3)), 0).Value;

@@ -8,7 +8,8 @@ namespace Crossword.Core.Run;
 
 /// <summary>
 /// Shop prices and offer mix. PLACEHOLDER numbers pending run simulation.
-/// <see cref="StationeryIds"/> limits the Stationery pool to those ids (null = the whole catalog).
+/// <see cref="StationeryIds"/> limits the Stationery pool to those ids (null = the whole catalog);
+/// <see cref="StationeryPrices"/> overrides <see cref="StationeryPrice"/> per item id.
 /// </summary>
 public sealed record ShopConfig(
     int DeskItemOffers = 2,
@@ -32,9 +33,14 @@ public sealed record ShopConfig(
     int RareWeight = 10,
     int StationeryOffers = 1,
     int StationeryPrice = 3,
-    IReadOnlySet<string>? StationeryIds = null)
+    IReadOnlySet<string>? StationeryIds = null,
+    IReadOnlyDictionary<string, int>? StationeryPrices = null)
 {
-    public static ShopConfig Default { get; } = new();
+    /// <summary>
+    /// Margin Clip costs $6: at the flat $3 it alone added +13 pts of win rate (ScoreFraction 0.75). Price is a weak lever
+    /// for it — $5–$7 measure alike — because an extra submission saves runs.
+    /// </summary>
+    public static ShopConfig Default { get; } = new(StationeryPrices: new Dictionary<string, int> { ["margin-clip"] = 6 });
 
     public int PriceOf(IDeskItem item) => item.Rarity switch
     {
@@ -45,7 +51,10 @@ public sealed record ShopConfig(
 
     public int SellValueOf(IDeskItem item) => Math.Max(1, PriceOf(item) / 2);
 
-    public int SellValueOf(IStationery item) => Math.Max(1, StationeryPrice / 2);
+    public int PriceOf(IStationery item) =>
+        StationeryPrices is not null && StationeryPrices.TryGetValue(item.Id, out int price) ? price : StationeryPrice;
+
+    public int SellValueOf(IStationery item) => Math.Max(1, PriceOf(item) / 2);
 }
 
 public abstract record ShopOffer(int Price)
