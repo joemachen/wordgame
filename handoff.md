@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `7c9f4ad` · 251 unit tests passing · UI self-test 9/9 passing_
+_Last updated: 2026-10-05 · HEAD: see §9 (roadmap phase 1 done) · 256 unit tests passing · UI self-test 9/9 passing_
 
 ---
 
@@ -42,18 +42,21 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Focus: a working game first.** Steam/launch work (Steamworks, store page, demo, Next Fest) is off the roadmap for now. Simulator throughput target: ~10k runs in minutes (100k+ not needed).
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 
-## 4. Current balance snapshot (150-run sims, `RunSimulator`)
+## 4. Current balance snapshot (`RunSimulator`, 300 runs at 0.9, 150 at 0.8/0.7; after phase 1 boss tiers)
 
 Week targets **225/800/2400/6500/16000** (retuned 2026-10-05 against the evaluating bot; was 150/400/900/1900/3800),
 day multipliers ×1/×1.3/×1.6.
 
 | Shop bot | skill 0.9 | 0.8 | 0.7 |
 |---|---|---|---|
-| Evaluating (default) | **39%** | 14% | 3% |
+| Evaluating (default) | **39%** | 14% | 2% |
 | Naive | 2% | — | — |
 
-- Losses at skill 0.9 ramp up by week: 9 / 12 / 19 / 21 / 30 (of 150 runs). Boss loss rate per encounter: Strict
-  Editor 12%, Tight Deadline 9%, Black Squares 4%, Vowel Tax 4%, Pocket Edition 3%.
+- **Bosses are tiered by week** (phase 1): Early Ink Spill / Tight Margins, Mid Vowel Drought / Tight Deadline,
+  Final The Strict Grammarian. Overall win rates barely moved versus random bosses (39/14/3 → 39/14/2).
+- Losses at skill 0.9 by week: 10 / 23 / 33 / 43 / 75 (of 300 runs). Boss loss rate per encounter at 0.9:
+  **The Strict Grammarian 29% as the Week 5 finale** (was ~12% when it could appear in any week), Tight Deadline 9%,
+  Vowel Drought 4%, Ink Spill 2%, Tight Margins 2%. The finale is now a real wall: ~1 in 4 losses happen there.
 - **Skill gap is now wide** (0.9→0.8 ≈ 25 pts), so the old "narrow gap" concern was a bot/target artifact.
 - **Early weeks are punishing for weaker players:** skill 0.7 loses in Week 1 ~65% of runs. The user chose this over a
   softer early curve (e.g. 200/800/…: 45% / 17% / 5%). Revisit after human playtests.
@@ -79,13 +82,14 @@ day multipliers ×1/×1.3/×1.6.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
-Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → naming pass → new items/bosses → Stationery →
+Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
-1. User playtests a few runs at the new targets via `run_local_qa.bat` → check early-game feel (concern #1).
-2. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;
+1. User playtests a few runs via `run_local_qa.bat` → check early-game feel (concern #1) and whether a 29%
+   Strict Grammarian finale feels fair.
+2. ROADMAP phase 2: new Desk Items + Redundant Copy (Mid) and The Puzzle Master (Final) bosses.
+3. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;
    make deck edits worth buying.
-3. ROADMAP phase 1: naming pass (boss + Style Guide renames) and tiered boss pools.
 4. Save/load (resume a run) — prerequisite for meta-progression.
 5. UI polish: tile placement/score animations, sound, juice; deck viewer; tooltips for Desk Items/bosses.
 
@@ -113,6 +117,10 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+(phase 1) Rename bosses, name Style Guides, and tier bosses by week
+1dbb5f3 Trim roadmap to a working game first
+fded71c Fold infrastructure, modes, presentation, persistence and Steam into the roadmap
+24041f3 Update handoff with retuned targets and balance snapshot
 7c9f4ad Retune week targets against the evaluating shop bot
 d1f42bc Add ROADMAP.md feature design roadmap
 1737088 Update handoff with evaluating shop bot results and next steps

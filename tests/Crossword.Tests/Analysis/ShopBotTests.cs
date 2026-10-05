@@ -169,8 +169,8 @@ public class ShopBotTests
     {
         var history = History(Plays(p => p.LongestWord.Length == 3));
         var session = InShop(3, 0, [],
-            new StyleGuideOffer(7, "7+-letter", 25, 1, 3),
-            new StyleGuideOffer(3, "3-letter", 5, 1, 3));
+            new StyleGuideOffer(7, "Omnibus", "7+-letter", 25, 1, 3),
+            new StyleGuideOffer(3, "Pocket", "3-letter", 5, 1, 3));
 
         var after = EvaluatingShopBot.Shop(session, history, Bot);
 

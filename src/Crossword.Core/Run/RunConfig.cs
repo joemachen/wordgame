@@ -31,6 +31,9 @@ public sealed record RunConfig(
     ShopConfig Shop,
     decimal EndlessGrowth = 2)
 {
+    /// <summary>Boss pools by week (see <see cref="BossPoolFor"/>). Ordered by ascending <see cref="BossTier.FirstWeek"/>.</summary>
+    public ImmutableArray<BossTier> BossTiers { get; init; } = BossCatalog.DefaultTiers;
+
     public static RunConfig Default { get; } = new(
         WeekTargets: [225, 800, 2400, 6500, 16000],
         Days:
@@ -44,6 +47,15 @@ public sealed record RunConfig(
         Shop: ShopConfig.Default);
 
     public int RoundsPerWeek => Days.Length;
+
+    /// <summary>
+    /// The bosses that can appear in <paramref name="week"/>: the last tier that has started. Endless weeks (after the
+    /// final week) draw from every boss so late builds keep meeting variety.
+    /// </summary>
+    public ImmutableArray<BossModifier> BossPoolFor(int week) =>
+        week >= WeekTargets.Length || BossTiers.IsDefaultOrEmpty
+            ? BossCatalog.All
+            : BossTiers.Last(t => t.FirstWeek <= week).Bosses;
 
     public int TotalRounds => WeekTargets.Length * RoundsPerWeek;
 

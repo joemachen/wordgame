@@ -160,8 +160,9 @@ public static class ShopRules
         {
             (int t, rng) = rng.NextInt(tiers.Length);
             var tier = tiers[t];
-            offers.Add(new StyleGuideOffer(tier.MinLength, tier.Label(t == tiers.Length - 1), tier.LevelChips, tier.LevelMult,
-                config.StyleGuidePrice));
+            string label = tier.Label(t == tiers.Length - 1);
+            offers.Add(new StyleGuideOffer(tier.MinLength, StyleGuideNames.For(tier.MinLength, label), label, tier.LevelChips,
+                tier.LevelMult, config.StyleGuidePrice));
         }
 
         return (offers.ToImmutable(), rng);

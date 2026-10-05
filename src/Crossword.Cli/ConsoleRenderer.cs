@@ -128,7 +128,7 @@ public static class ConsoleRenderer
         var shop = session.Shop!;
         int next = session.Run.RoundIndex + 1;
         var nextKind = session.Config.KindOf(next);
-        string nextBoss = nextKind.IsBoss ? $" — BOSS: {RunRules.BossFor(session.Run, session.Config.WeekOf(next)).Name}" : "";
+        string nextBoss = nextKind.IsBoss ? $" — BOSS: {RunRules.BossFor(session.Config, session.Run, session.Config.WeekOf(next)).Name}" : "";
         var sb = new StringBuilder($"=== Shop ===  ${session.Run.Money}   (reroll ${shop.RerollCost})   " +
                                    $"Next: Week {session.Config.WeekOf(next) + 1} {nextKind.Name}, target {session.Config.TargetFor(next)}{nextBoss}\n");
         for (int i = 0; i < shop.Offers.Length; i++)

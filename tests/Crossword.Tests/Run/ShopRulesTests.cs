@@ -126,9 +126,28 @@ public class ShopRulesTests
     }
 
     [Fact]
+    public void Generate_NamesStyleGuides_ByTier()
+    {
+        var (shop, _) = ShopRules.Generate(RunState.New(1), Config, Rng.FromSeed(10));
+
+        var guide = Assert.Single(shop.Offers.OfType<StyleGuideOffer>());
+        Assert.Equal(StyleGuideNames.For(guide.TierMinLength, guide.TierLabel), guide.Name);
+        Assert.StartsWith(guide.Name, guide.Description);
+    }
+
+    [Fact]
+    public void StyleGuideNames_CoverDefaultTiers_AndFallBackForOthers()
+    {
+        Assert.Equal("Chicago Manual of Style", StyleGuideNames.For(4, "4-letter"));
+        Assert.Equal("The Lexicographer's Omnibus", StyleGuideNames.For(7, "7+-letter"));
+        Assert.Equal("9+-letter Style Guide", StyleGuideNames.For(9, "9+-letter"));
+        Assert.All(ScoringConfig.Default.Tiers, t => Assert.DoesNotContain("Style Guide", StyleGuideNames.For(t.MinLength, "x")));
+    }
+
+    [Fact]
     public void BuyStyleGuide_UpgradesTier_AndStacks()
     {
-        var session = InShop(10, new StyleGuideOffer(4, "4-letter", 10, 1, 3), new StyleGuideOffer(4, "4-letter", 10, 1, 3));
+        var session = InShop(10, new StyleGuideOffer(4, "Chicago", "4-letter", 10, 1, 3), new StyleGuideOffer(4, "Chicago", "4-letter", 10, 1, 3));
 
         var next = ShopRules.Buy(ShopRules.Buy(session, 0).Value, 1).Value;
 

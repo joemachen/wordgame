@@ -21,13 +21,15 @@ public static class RunRules
     }
 
     /// <summary>
-    /// The week's boss, derived from the seed and week only (no RNG consumed), so it can be previewed
-    /// from the start of the week and is identical however the week is played.
+    /// The week's boss, picked from that week's tier pool (<see cref="RunConfig.BossPoolFor"/>) using only the seed
+    /// and week (no RNG consumed), so it can be previewed from the start of the week and is identical however the
+    /// week is played.
     /// </summary>
-    public static BossModifier BossFor(RunState run, int week)
+    public static BossModifier BossFor(RunConfig config, RunState run, int week)
     {
-        var (index, _) = Rng.FromSeed(run.Seed + (ulong)(week + 1) * WeekSalt).NextInt(BossCatalog.All.Length);
-        return BossCatalog.All[index];
+        var pool = config.BossPoolFor(week);
+        var (index, _) = Rng.FromSeed(run.Seed + (ulong)(week + 1) * WeekSalt).NextInt(pool.Length);
+        return pool[index];
     }
 
     public static Result<SessionOutcome, RoundError> Submit(GameSession session, IReadOnlyList<PlacedTile> placed, IWordGraph lexicon)
@@ -81,7 +83,7 @@ public static class RunRules
 
     private static GameSession StartRound(RunConfig config, RunState run, IWordGraph lexicon)
     {
-        var boss = BossFor(run, config.WeekOf(run.RoundIndex));
+        var boss = BossFor(config, run, config.WeekOf(run.RoundIndex));
         var (round, nextRun) = RoundRules.Start(run, config.RoundConfigFor(run.RoundIndex, boss), lexicon);
         return new GameSession(config, nextRun, RunPhase.InRound, round);
     }

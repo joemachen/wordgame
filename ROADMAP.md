@@ -108,8 +108,8 @@ Balatro's Tarot cards). Needs new state (slots in `RunState`), shop offers, use 
 
 ### Style Guides (word-tier upgrades)
 
-The mechanic is ✅ implemented: each Style Guide permanently levels one word-length tier (`StyleGuideOffer`,
-`RunState.TierUpgrades`). What's 🟡 planned is giving each tier a named Style Guide:
+✅ Implemented: each Style Guide permanently levels one word-length tier (`StyleGuideOffer`,
+`RunState.TierUpgrades`), and each tier has a named guide (`StyleGuideNames`):
 
 | Style Guide | Upgrades |
 |---|---|
@@ -124,21 +124,23 @@ The mechanic is ✅ implemented: each Style Guide permanently levels one word-le
 
 ## 4. Boss Editors (tiered progression)
 
-Bosses appear in the Sunday Edition (the third round of each week). Today `RunRules.BossFor` picks from all
-bosses using only the seed and week. The plan is for it to pick from the **pool for that week's tier** instead,
-still seeded and still visible in advance.
+Bosses appear in the Sunday Edition (the third round of each week). ✅ `RunRules.BossFor` picks from the
+**pool for that week's tier** (`RunConfig.BossTiers`), still seeded and still visible in advance. Endless weeks
+draw from every boss.
 
 Week ranges don't overlap: **Early = Weeks 1–2, Mid = Weeks 3–4, Final = Week 5**. (The original draft had
-overlapping ranges, 1–2 / 2–4 / 4–5.)
+overlapping ranges, 1–2 / 2–4 / 4–5.) **Tiers follow measured difficulty** (evaluating-bot boss loss rates), so
+the easiest bosses come first and the hardest last. This moved The Strict Grammarian (hardest, ~12%) from Early to
+Final, and Tight Margins (easiest, ~3%) from Final to Early.
 
 | Tier | Boss Editor | Effect | Relation to current bosses | Status |
 |---|---|---|---|---|
-| Early | **The Strict Grammarian** | Only 3+ letter words count | Rename of *Strict Editor* | ✅ effect · 🟡 rename |
-| Early | **Ink Spill** | 6 symmetric blocked cells | Rename of *Black Squares* | ✅ effect · 🟡 rename |
-| Mid | **Vowel Drought** | Vowels score −1 chip (*option:* rework to fewer vowels in the bag) | Rename of *Vowel Tax* | ✅ effect · 🟡 rename |
+| Early | **Ink Spill** | 6 symmetric blocked cells | Rename of *Black Squares* | ✅ |
+| Early | **Tight Margins** | 5×5 board | Rename of *Pocket Edition*; moved from Final (easiest boss) | ✅ |
+| Mid | **Vowel Drought** | Vowels score −1 chip (*option:* rework to fewer vowels in the bag) | Rename of *Vowel Tax* | ✅ |
 | Mid | **Redundant Copy** | Words already formed this round score 0 chips (*proposed*) | New | 🟡 |
 | Mid | **Tight Deadline** | Only 3 submissions | Kept as is | ✅ |
-| Final | **Tight Margins** | 5×5 board | Rename of *Pocket Edition* | ✅ effect · 🟡 rename |
+| Final | **The Strict Grammarian** | Only 3+ letter words count | Rename of *Strict Editor*; moved from Early (hardest boss) | ✅ |
 | Final | **The Puzzle Master** | Applies two boss effects at once (*proposed*) | New. Renamed from "Saturday Stumper", which is already the name of the middle round of each week | 🟡 |
 
 ---
@@ -230,7 +232,7 @@ tests and a `runsim` balance check.
 | Phase | Work | Depends on |
 |---|---|---|
 | **0** ✅ | Retune week targets against the evaluating shop bot → 225/800/2400/6500/16000 (skill 0.9 wins ~39%) | — |
-| **1** | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` | — |
+| **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
 | **3** | Stationery consumable system (state, shop, actions, UI) | — |
 | **4** | In-run save/resume → profile & unlock tracking (§9) | — |

@@ -69,9 +69,27 @@ public sealed record StrikeOffer(int MaxTiles, int Price) : ShopOffer(Price)
 }
 
 /// <summary>Permanently levels up one word tier (Balatro's Planet cards).</summary>
-public sealed record StyleGuideOffer(int TierMinLength, string TierLabel, long Chips, decimal Mult, int Price) : ShopOffer(Price)
+public sealed record StyleGuideOffer(int TierMinLength, string Name, string TierLabel, long Chips, decimal Mult, int Price) : ShopOffer(Price)
 {
-    public override string Description => $"Style Guide: {TierLabel} words +{Chips} chips, +{Mult} mult (permanent)";
+    public override string Description => $"{Name}: {TierLabel} words +{Chips} chips, +{Mult} mult (permanent)";
+}
+
+/// <summary>Player-facing Style Guide names, one per word tier (keyed by the tier's minimum length).</summary>
+public static class StyleGuideNames
+{
+    private static readonly ImmutableDictionary<int, string> Names = new Dictionary<int, string>
+    {
+        [2] = "Pulp Paperbacks",
+        [3] = "The Pocket Dictionary",
+        [4] = "Chicago Manual of Style",
+        [5] = "Unabridged Dictionary",
+        [6] = "Gridiron Gazette",
+        [7] = "The Lexicographer's Omnibus",
+    }.ToImmutableDictionary();
+
+    /// <summary>The guide for a tier; tiers without a name get "{tierLabel} Style Guide".</summary>
+    public static string For(int tierMinLength, string tierLabel) =>
+        Names.TryGetValue(tierMinLength, out var name) ? name : $"{tierLabel} Style Guide";
 }
 
 /// <summary>An open shop. Bought offers become null; rerolling replaces all offers.</summary>

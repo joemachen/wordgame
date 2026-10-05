@@ -119,14 +119,39 @@ public class RunRulesTests
         Assert.Equal(sunday.WeekBoss, sunday.Round.Config.Boss);
     }
 
-    [Fact]
-    public void BossFor_IsDeterministic_AndVaries()
+    private static readonly RunConfig TieredConfig = Config with
     {
-        var run = RunState.New(3);
+        BossTiers =
+        [
+            new BossTier("Early", FirstWeek: 0, [new InkSpill(), new TightMargins()]),
+            new BossTier("Late", FirstWeek: 2, [new StrictGrammarian()]),
+        ],
+    };
 
-        Assert.Equal(RunRules.BossFor(run, 0), RunRules.BossFor(RunState.New(3), 0));
-        var bosses = Enumerable.Range(1, 30).Select(seed => RunRules.BossFor(RunState.New((ulong)seed), 0).Id).Distinct();
-        Assert.True(bosses.Count() > 1);
+    private static IEnumerable<string> BossIds(int week, int seeds = 40) =>
+        Enumerable.Range(1, seeds).Select(seed => RunRules.BossFor(TieredConfig, RunState.New((ulong)seed), week).Id).Distinct();
+
+    [Fact]
+    public void BossFor_IsDeterministic_AndVariesWithinTheTier()
+    {
+        Assert.Equal(RunRules.BossFor(TieredConfig, RunState.New(3), 0), RunRules.BossFor(TieredConfig, RunState.New(3), 0));
+        Assert.Equal(["ink-spill", "tight-margins"], BossIds(0).Order());
+    }
+
+    [Fact]
+    public void BossFor_PicksFromTheWeeksTier()
+    {
+        Assert.Equal(["ink-spill", "tight-margins"], BossIds(1).Order());
+        Assert.Equal(["strict-grammarian"], BossIds(2));
+    }
+
+    [Fact]
+    public void BossFor_EndlessWeeks_DrawFromEveryBoss()
+    {
+        var ids = BossIds(TieredConfig.WeekTargets.Length, seeds: 60).ToList();
+
+        Assert.True(ids.Count > 2);
+        Assert.All(ids, id => Assert.Contains(BossCatalog.All, b => b.Id == id));
     }
 
     [Fact]

@@ -32,7 +32,7 @@ public sealed record GameSession(
     public ScoringConfig Scoring => Config.Scoring.WithUpgrades(Run.TierUpgrades);
 
     /// <summary>The boss waiting at the end of the current week (known in advance, like Balatro).</summary>
-    public BossModifier WeekBoss => RunRules.BossFor(Run, Week);
+    public BossModifier WeekBoss => RunRules.BossFor(Config, Run, Week);
 }
 
 public sealed record SessionOutcome(GameSession Session, ScoreContext Score);

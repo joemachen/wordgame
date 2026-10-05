@@ -27,21 +27,21 @@ public class BossModifierTests
         Assert.Equal(3, new TightDeadline().Apply(Base).Submissions);
 
     [Fact]
-    public void StrictEditor_RaisesMinimumWordLength() =>
-        Assert.Equal(3, new StrictEditor().Apply(Base).MinWordLength);
+    public void StrictGrammarian_RaisesMinimumWordLength() =>
+        Assert.Equal(3, new StrictGrammarian().Apply(Base).MinWordLength);
 
     [Fact]
-    public void PocketEdition_ShrinksBoard()
+    public void TightMargins_ShrinksBoard()
     {
-        var (round, _) = RoundRules.Start(RunState.New(5), new PocketEdition().Apply(Base), LexiconLoader.Enable);
+        var (round, _) = RoundRules.Start(RunState.New(5), new TightMargins().Apply(Base), LexiconLoader.Enable);
 
         Assert.Equal(5, round.Board.Size);
     }
 
     [Fact]
-    public void BlackSquares_AddsSymmetricBlockedCells_OffPremiums()
+    public void InkSpill_AddsSymmetricBlockedCells_OffPremiums()
     {
-        var (round, _) = RoundRules.Start(RunState.New(5), new BlackSquares(Pairs: 4).Apply(Base), LexiconLoader.Enable);
+        var (round, _) = RoundRules.Start(RunState.New(5), new InkSpill(Pairs: 4).Apply(Base), LexiconLoader.Enable);
         var board = round.Board;
 
         Assert.Equal(8, board.Blocked.Count);
@@ -53,9 +53,9 @@ public class BossModifierTests
     }
 
     [Fact]
-    public void VowelTax_MakesVowelsCostChips_InEffectiveScoring()
+    public void VowelDrought_MakesVowelsCostChips_InEffectiveScoring()
     {
-        var config = new VowelTax(ValuePerVowel: -1).Apply(Base);
+        var config = new VowelDrought(ValuePerVowel: -1).Apply(Base);
 
         var scoring = config.EffectiveScoring(ScoringConfig.Default);
 
@@ -64,9 +64,9 @@ public class BossModifierTests
     }
 
     [Fact]
-    public void VowelTax_AppliesWhenSubmitting()
+    public void VowelDrought_AppliesWhenSubmitting()
     {
-        var round = new RoundState(new VowelTax(ValuePerVowel: -1).Apply(Base with { BoardSize = 5 }), Board.Empty(5),
+        var round = new RoundState(new VowelDrought(ValuePerVowel: -1).Apply(Base with { BoardSize = 5 }), Board.Empty(5),
             TileBag.Empty, HandOf("CAT"), Rng.FromSeed(1), Score: 0, SubmissionsLeft: 4, DiscardsLeft: 3);
 
         var outcome = RoundRules.Submit(round, Spell(round.Board, round.Hand, 0, 0, Direction.Across, "CAT"),
@@ -76,9 +76,9 @@ public class BossModifierTests
     }
 
     [Fact]
-    public void StrictEditor_IsEnforcedWhenSubmitting()
+    public void StrictGrammarian_IsEnforcedWhenSubmitting()
     {
-        var round = new RoundState(new StrictEditor().Apply(Base with { BoardSize = 5 }), Board.Empty(5),
+        var round = new RoundState(new StrictGrammarian().Apply(Base with { BoardSize = 5 }), Board.Empty(5),
             TileBag.Empty, HandOf("AT"), Rng.FromSeed(1), Score: 0, SubmissionsLeft: 4, DiscardsLeft: 3);
 
         var result = RoundRules.Submit(round, Spell(round.Board, round.Hand, 0, 0, Direction.Across, "AT"),
@@ -94,6 +94,17 @@ public class BossModifierTests
         var play = PlayOn(Board.Empty(5), "AE", 0, 0, Direction.Across, "AE");
 
         Assert.Equal(0, (ScoreContext.Start(play, chips: -5, mult: 3)).Total);
+    }
+
+    [Fact]
+    public void DefaultTiers_StartAtWeekZero_Ascend_AndUseCatalogBosses()
+    {
+        var tiers = BossCatalog.DefaultTiers;
+
+        Assert.Equal(0, tiers[0].FirstWeek);
+        Assert.True(tiers.Zip(tiers.Skip(1)).All(p => p.First.FirstWeek < p.Second.FirstWeek));
+        Assert.All(tiers, t => Assert.NotEmpty(t.Bosses));
+        Assert.All(tiers.SelectMany(t => t.Bosses), b => Assert.Contains(b, BossCatalog.All));
     }
 
     [Fact]
