@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `cdcf32a` (code) · 269 unit tests passing · UI self-test 19/19 passing_
+_Last updated: 2026-10-05 · HEAD `97ab47a` (code) · 292 unit tests passing · UI self-test 21/21 passing_
 
 ---
 
@@ -24,8 +24,9 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 225/800/2400/6500/16000. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
-| Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike). |
-| Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
+| Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike), **Stationery** system (2 one-shot slots) with its first item, the **Answer Key** (reveals the best play, $3). |
+| Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
+| Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
@@ -45,6 +46,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 - **Definitions come from Open English WordNet** (user's choice; CC BY 4.0 → attribution in `THIRD_PARTY_NOTICES.md`, must also appear in in-game credits before release). Wiktionary was rejected for now (CC BY-SA share-alike). Unknown words show "valid word — no definition on file". Definitions appear in the play preview only (user's choice; not in the scoring log or board tooltips).
 - **Style Guides are shown in a Run Info-style popup** (Tab / sidebar button), user's choice over an always-visible sidebar table or desk-bar badges.
+- **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Current balance snapshot (`RunSimulator`, 300 runs at 0.9, 150 at 0.8/0.7; after phase 1 boss tiers)
 
@@ -70,7 +72,24 @@ day multipliers ×1/×1.3/×1.6.
   skill-0.9 runs; Margin Notes is strong partly because the bot only discards when it has no play (+6 Mult).
 - Deck edits (enhance/strike/add tile) never pay off: buying them at any fixed estimated gain *lowered* the bot's
   win rate, so `ShopBotConfig` defaults skip them. A money reserve for interest also lowered win rate.
-- Re-run with CLI `runsim 100 0.9` (add `naive` for the old bot) or the scratch harness pattern in §7.
+- Re-run with CLI `runsim 100 0.9` (add `naive` for the old bot, `frac` for the score-fraction model) or the scratch harness pattern in §7.
+
+**Round length (2026-10-05, 150 runs each, evaluating bot)** — prompted by the user's "I only ever need 1–2 words a round":
+
+| Skill | Victory | Won in 1–2 subs | Mean subs to win, W1 → W5 (Daily) |
+|---|---|---|---|
+| 1.0 (= old Hint, best play) | 77% | 93% | 1.57 → 1.79 |
+| ScoreFraction 0.9 | 54% | 87% | 1.84 → 2.10 |
+| ScoreFraction 0.75 | 35% | 81% | 1.93 → 2.50 |
+| ScoreFraction 0.6 | 19% | 71% | 2.28 → 2.59 |
+| Percentile 0.9 (tuning reference) | 39% | 61% | 2.85 → 2.64 |
+
+- **The percentile bot is a poor human proxy.** Its 90th-percentile play is far below the best (most legal plays are
+  tiny), so targets tuned for it are soft for a human who finds *good* plays. Human-like play (ScoreFraction) clears
+  most rounds in 1–2 submissions, matching the user's experience.
+- **Difficulty is a cliff, not a curve:** even ScoreFraction 0.6 wins 71% of rounds in 1–2 submissions, yet only 19% of
+  runs — losses pile up at The Strict Grammarian (38–41 of 150 runs for every fraction model) and Saturday Stumpers.
+- Target retune not done yet — **waiting on the user's call** (see §6).
 
 ## 5. Open concerns / known gaps
 
@@ -90,6 +109,8 @@ day multipliers ×1/×1.3/×1.6.
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
+0. **Decide the round-length retune** (§4 "Round length"): steeper early/mid targets so a human needs ~2.5–3 plays,
+   probably with a gentler Strict Grammarian, and re-baseline balance on the ScoreFraction model.
 1. User playtests a few runs via `run_local_qa.bat` → check early-game feel (concern #1) and whether a 29%
    Strict Grammarian finale feels fair.
 2. ROADMAP phase 2: new Desk Items + Redundant Copy (Mid) and The Puzzle Master (Final) bosses.
@@ -125,6 +146,10 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+97ab47a Make the free hint a decent play and sell the best play as an Answer Key
+244d9e1 Measure submissions to win and add a score-fraction skill model
+535d7ae Bring handoff up to date: drag confirmed, definitions gap, builder tips
+e84ee88 Record Style Guides popup commit in handoff
 cdcf32a Add a Style Guides popup listing every word tier and its guide
 6dbf5be Record definitions commit in handoff
 ebe236e Show word definitions in the play preview
