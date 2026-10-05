@@ -202,7 +202,8 @@ modes cheap to build on the core.
 |---|---|---|
 | **Visual design system: 1950s newsroom** | Newsprint paper canvas `#F6F4EE`, Printer's Ink `#111111`, Red Pen correction marks `#C53030`, mahogany desk surround. Replaces the current dark first-pass theme. Centralize colors in `UiKit` so the whole theme can be swapped in one place. Check text contrast (WCAG AA) and keep Chips/Mult distinguishable for colorblind players. **Don't use NYT branding** (name, masthead, fonts) in the game or any marketing; "NYT-style" is internal shorthand only. | 🟡 |
 | **Audio** | Typewriter clacks on tile placement, pencil scribbles, rubber-stamp approval on round win, printing-press roll for big Mult. Sources must be CC0 or bought with a commercial license. | 🟡 |
-| **Animation** | Tile placement, score count-up driven by the existing `EffectEvent` log, stamp/press effects scaled to Mult. | 🟡 (scoring playback ✅ first pass) |
+| **Animation** | Tile placement, score count-up driven by the existing `EffectEvent` log, stamp/press effects scaled to Mult. | ✅ scoring ring-up (count-up, punches, Desk Item pops, shake/confetti/stamp escalation; `Juice.cs`), NEW-tile pop-in · 🟡 tile placement |
+| Progress & hand UX | Week pips + this week's three puzzles + puzzles until the boss; A→Z/Z→A hand sort; NEW tag on drawn tiles; drag pending tiles; Desk Item order preview on ◀ ▶. | ✅ |
 | Shop card color-coding | Distinct colors per category: Desk Items / deck edits / Style Guides / Stationery. | 🟡 |
 | Score breakdown tooltips | Hover a pending play to see its Chips × Mult math step by step (live preview ✅ already shows the totals). | 🟡 |
 | Deck View & Style Guide levels modals | Popups that keep the board uncluttered: full deck with enhancements; tier levels with chips/mult. | 🟡 |
@@ -214,7 +215,8 @@ modes cheap to build on the core.
 | Feature | Design (*proposed*) | Status |
 |---|---|---|
 | **In-run save & resume** | Save on exit, resume on launch: board, hand, bag order, deck, Desk Items (with scaling state), shop offers and every RNG state. All state is immutable records, so this is mostly serialization: `System.Text.Json` (in the BCL, so Core rules allow it) with a **type discriminator** for polymorphic Desk Items/bosses/offers, plus a save **version number** for migrations. Hand arrangement is UI-only today; save it alongside. | 🟡 |
-| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | 🟡 |
+| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | ✅ profile + player stats (`Core/Profile`, `user://profiles/<name>.json`, Stats popup: per-length word counts, top/bottom 5, newest 10, runs/wins/best play) · 🟡 unlocks, profile picker |
+| **Vocabulary grading** | Grade the player's vocabulary and estimate its size from the words they use (e.g. by how rare each word is). Needs a word-frequency list with a license we can ship (check before use; Wiktionary-derived lists are CC BY-SA). | 🟡 |
 
 ---
 

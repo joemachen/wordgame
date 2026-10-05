@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `f590c2e` (code) · 319 unit tests passing · UI self-test 27/27 passing_
+_Last updated: 2026-10-05 · HEAD `62ad429` (code) · 336 unit tests passing · UI self-test 36/36 passing_
 
 ---
 
@@ -27,7 +27,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round). Holding Scissors/White-Out keeps a stuck round alive. |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds), CLI `hint`/`sim`. `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
-| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
+| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles, drag pending tiles between squares or back to the hand. **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -48,6 +48,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Style Guides are shown in a Run Info-style popup** (Tab / sidebar button), user's choice over an always-visible sidebar table or desk-bar badges.
 - **Stationery batch (user's choice, 2026-10-05):** Margin Clip, Scissors, White-Out, Red Ink Bottle, $3 each except
   **Margin Clip $6** (user's call after it measured +13 pts at $3; per-item prices via `ShopConfig.StationeryPrices`). Red Ink is a round-level `RoundConfig.BonusMult` (scoring step 4b, before Desk Items, so ×Mult items multiply it). White-Out's tile is gone for the round (not returned); leftover fragments are only checked when a later play crosses them. **Deadlock escape** (Claude's call, flagged to the user): holding Scissors/White-Out postpones the "no play, no discards" loss, since otherwise the round would end while the player holds the way out.
+- **Playtest batch (user's choices, 2026-10-05):** only *pending* tiles can be moved (submitted tiles stay — White-Out is the way to remove one); Desk Item order is explained by a live score preview on the ◀ ▶ arrows (Stationery isn't reorderable); stats = profile + core stats now, **vocabulary grading later** (needs a licensed word-frequency list). Stats count **every word a play forms** (main + cross). QA flags (`--selftest`, `--screenshot`, `--autoplay`) never write the profile.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Current balance snapshot (after the 2026-10-05 retune + Stationery batch)
@@ -117,12 +118,14 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 6. **Hand arrangement is UI-only** (not saved); fine until save/load exists.
 7. **~38% of ENABLE has no definition** (mostly obscure words, e.g. GLEY, the user's own example; 2–5-letter words ~73% covered, every 2-letter word covered). Options if it matters: extend `supplement.txt` for words that come up often, or add a second source after a license check (Wiktionary is CC BY-SA).
 8. **The CLI has no Stationery commands** (dev `give` only covers Desk Items); the game UI is the only way to use it.
+9. **Player profile is one file per name, no picker yet** (`--profile=name`); stats aren't shown in the CLI. Vocabulary grading not started.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
+0. **Playtest the new feel:** does the ring-up escalate nicely (thresholds in `Juice.cs`: Big ≥25% / Huge ≥60% of the deadline; the stamp fires whenever one play clears the deadline, which is common in Week 1)? Is the week progress clear? Next for stats: vocabulary grading (find + license-check a frequency list), a profile picker, more fun stats.
 1. **Stationery balance:** Margin Clip raised to $6 (done). If it still dominates in playtests, give it a cost
    (e.g. −1 discard) or make it rarer — price alone stops working above ~$5. The others may need buffs (e.g. Red Ink +5,
    Answer Key $2) — check in playtests, since the bot's use is rule-based. Re-measure with the scratch harness (§7).
@@ -167,6 +170,10 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+62ad429 Track player stats in a saved profile and show them in a Stats popup
+b865f83 Make the scoring ring-up escalate and pop its sources
+07cf39a Preview Desk Item reordering on the move arrows
+2fa26a7 Show week progress, sort the hand, mark new tiles, drag pending tiles
 f590c2e Raise Margin Clip to $6 with per-item Stationery prices
 3ef83ac Teach the run simulator to buy and use Stationery
 49ade8b Use the new Stationery in the game UI
