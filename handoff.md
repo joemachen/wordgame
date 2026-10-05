@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `b469770` (code) · 269 unit tests passing · UI self-test 16/16 passing_
+_Last updated: 2026-10-05 · HEAD `ebe236e` (code) · 269 unit tests passing · UI self-test 16/16 passing_
 
 ---
 
@@ -121,6 +121,8 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+ebe236e Show word definitions in the play preview
+d6a99cd Record hand drag ghost commit in handoff
 b469770 Show a ghost slot and slide tiles apart when dragging in the hand
 458a1bf Bring handoff status and decisions up to date after phase 1
 f7b61a7 Record phase 1 commit hash in handoff
