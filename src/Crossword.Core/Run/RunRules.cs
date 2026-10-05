@@ -18,7 +18,7 @@ public static class RunRules
 
     public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon)
     {
-        var run = RunState.New(seed) with { Money = config.Economy.StartingMoney };
+        var run = RunState.New(seed) with { Money = config.Economy.StartingMoney, Deck = config.StartingTiles };
         return StartRound(config, run, lexicon);
     }
 

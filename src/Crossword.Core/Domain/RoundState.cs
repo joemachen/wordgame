@@ -4,7 +4,10 @@ using Crossword.Core.Scoring;
 
 namespace Crossword.Core.Domain;
 
-/// <summary>Rules for one round. <see cref="Boss"/> (Sunday rounds) has already been applied to the other fields.</summary>
+/// <summary>
+/// Rules for one round. <see cref="Boss"/> (Sunday rounds) has already been applied to the other fields.
+/// <see cref="Draw"/> null = plain uniform draws (runs set <see cref="Run.RunConfig.Draw"/>).
+/// </summary>
 public sealed record RoundConfig(
     long TargetScore,
     int BoardSize = 7,
@@ -15,7 +18,8 @@ public sealed record RoundConfig(
     int MinWordLength = 2,
     int BlockedPairs = 0,
     BossModifier? Boss = null,
-    decimal BonusMult = 0)
+    decimal BonusMult = 0,
+    DrawConfig? Draw = null)
 {
     public PremiumPairs PremiumPairs => Premiums ?? PremiumPairs.Default;
 

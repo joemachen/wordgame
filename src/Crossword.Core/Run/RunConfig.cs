@@ -32,6 +32,12 @@ public sealed record RunConfig(
     ShopConfig Shop,
     decimal EndlessGrowth = 2)
 {
+    /// <summary>How tiles are drawn into the hand each round (balanced by default; see <see cref="DrawConfig"/>).</summary>
+    public DrawConfig Draw { get; init; } = DrawConfig.Balanced;
+
+    /// <summary>The deck a new run starts with.</summary>
+    public ImmutableArray<Tile> StartingTiles { get; init; } = StartingDeck.Create();
+
     /// <summary>Boss pools by week (see <see cref="BossPoolFor"/>). Ordered by ascending <see cref="BossTier.FirstWeek"/>.</summary>
     public ImmutableArray<BossTier> BossTiers { get; init; } = BossCatalog.DefaultTiers;
 
@@ -78,7 +84,7 @@ public sealed record RunConfig(
     /// <summary>Round rules for a round; <paramref name="boss"/> is applied only on boss rounds.</summary>
     public RoundConfig RoundConfigFor(int roundIndex, BossModifier? boss = null)
     {
-        var config = new RoundConfig(TargetScore: TargetFor(roundIndex));
+        var config = new RoundConfig(TargetScore: TargetFor(roundIndex), Draw: Draw);
         return KindOf(roundIndex).IsBoss && boss is not null ? boss.Apply(config) : config;
     }
 }
