@@ -13,32 +13,32 @@ namespace Crossword.Core.Analysis;
 /// </summary>
 public static class MoveGenerator
 {
-    public static IEnumerable<PlayAnalysis> LegalPlays(Board board, Hand hand, IWordGraph lexicon)
+    public static IEnumerable<PlayAnalysis> LegalPlays(Board board, Hand hand, IWordGraph lexicon, int minWordLength = 2)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var candidate in Candidates(board, hand, lexicon))
+        foreach (var candidate in Candidates(board, hand, lexicon, minWordLength))
         {
             var placed = AssignTiles(hand, candidate);
             if (!seen.Add(Key(placed)))
                 continue; // single-tile plays are found once per direction
 
-            var result = PlacementValidator.Validate(board, hand, placed, lexicon);
+            var result = PlacementValidator.Validate(board, hand, placed, lexicon, minWordLength);
             if (result.IsOk)
                 yield return result.Value;
         }
     }
 
-    public static bool HasLegalPlay(Board board, Hand hand, IWordGraph lexicon) =>
-        LegalPlays(board, hand, lexicon).Any();
+    public static bool HasLegalPlay(Board board, Hand hand, IWordGraph lexicon, int minWordLength = 2) =>
+        LegalPlays(board, hand, lexicon, minWordLength).Any();
 
     private static IEnumerable<IReadOnlyList<(Position Position, char Letter)>> Candidates(
-        Board board, Hand hand, IWordGraph lexicon)
+        Board board, Hand hand, IWordGraph lexicon, int minWordLength)
     {
         var counts = new int[26];
         foreach (var tile in hand.Tiles)
             counts[tile.Letter.Char - 'A']++;
 
-        var search = new Search(board, lexicon, counts, board.IsEmpty);
+        var search = new Search(board, lexicon, counts, board.IsEmpty, minWordLength);
         foreach (var direction in new[] { Direction.Across, Direction.Down })
         {
             for (int row = 0; row < board.Size; row++)
@@ -55,7 +55,7 @@ public static class MoveGenerator
         }
     }
 
-    private sealed class Search(Board board, IWordGraph lexicon, int[] counts, bool boardEmpty)
+    private sealed class Search(Board board, IWordGraph lexicon, int[] counts, bool boardEmpty, int minWordLength)
     {
         private readonly List<(Position, char)> _placed = new();
 
@@ -80,11 +80,11 @@ public static class MoveGenerator
                 return;
             }
 
-            // pos is empty or off-board: the word may end here.
-            if (length >= 2 && _placed.Count > 0 && (touches || boardEmpty) && lexicon.IsTerminal(node))
+            // pos is empty, blocked or off-board: the word may end here.
+            if (length >= minWordLength && _placed.Count > 0 && (touches || boardEmpty) && lexicon.IsTerminal(node))
                 found.Add(_placed.ToArray());
 
-            if (!board.InBounds(pos))
+            if (!board.InBounds(pos) || board.IsBlocked(pos))
                 return;
 
             for (int i = 0; i < 26; i++)
@@ -97,7 +97,7 @@ public static class MoveGenerator
                     continue;
 
                 var cross = CrossWord(pos, dir.Perpendicular(), letter);
-                if (cross is not null && !lexicon.Contains(cross))
+                if (cross is not null && (cross.Length < minWordLength || !lexicon.Contains(cross)))
                     continue;
 
                 counts[i]--;

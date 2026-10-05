@@ -21,12 +21,16 @@ public static class ConsoleRenderer
             for (int c = 0; c < board.Size; c++)
             {
                 var p = new Position(r, c);
-                sb.Append(board.TileAt(p) is { } tile ? $" {tile} " : PremiumCell(board.PremiumAt(p)));
+                sb.Append(board.TileAt(p) is { } tile ? $" {tile} "
+                    : board.IsBlocked(p) ? "###"
+                    : PremiumCell(board.PremiumAt(p)));
             }
             sb.AppendLine();
         }
 
         sb.Append("    2L/3L = double/triple letter   2W/3W = double/triple word");
+        if (!board.Blocked.IsEmpty)
+            sb.Append("   ### = black square");
         return sb.ToString();
     }
 

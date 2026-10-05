@@ -28,6 +28,16 @@ public abstract record PlacementError
         public override string Message => $"{Position} is off the board.";
     }
 
+    public sealed record Blocked(Position Position) : PlacementError
+    {
+        public override string Message => $"{Position} is a black square.";
+    }
+
+    public sealed record WordsTooShort(ImmutableArray<string> Words, int MinLength) : PlacementError
+    {
+        public override string Message => $"Words must be at least {MinLength} letters: {string.Join(", ", Words)}.";
+    }
+
     public sealed record DuplicatePosition(Position Position) : PlacementError
     {
         public override string Message => $"Two tiles placed on {Position}.";

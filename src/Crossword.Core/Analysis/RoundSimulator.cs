@@ -33,7 +33,8 @@ public static class RoundSimulator
 
         while (round.Status == RoundStatus.InProgress)
         {
-            var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, deskItems, scoring);
+            var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, deskItems,
+                round.Config.EffectiveScoring(scoring), round.Config.MinWordLength);
             if (ranked.Count == 0)
             {
                 var discarded = RoundRules.Discard(round, round.Hand.Tiles.Select(t => t.Id).ToArray(), lexicon);

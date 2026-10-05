@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Crossword.Core.Analysis;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
@@ -12,7 +13,7 @@ public class MoveGeneratorTests
         string.Join(';', placed.Select(p => $"{p.Position}{p.Tile.Letter.Char}").Order(StringComparer.Ordinal));
 
     /// <summary>Exhaustive reference: every subset of empty cells in every line × every tile arrangement.</summary>
-    private static HashSet<string> BruteForce(Board board, Hand hand, ILexicon lexicon)
+    private static HashSet<string> BruteForce(Board board, Hand hand, ILexicon lexicon, int minWordLength = 2)
     {
         var valid = new HashSet<string>();
         foreach (var direction in new[] { Direction.Across, Direction.Down })
@@ -21,7 +22,7 @@ public class MoveGeneratorTests
             {
                 var cells = Enumerable.Range(0, board.Size)
                     .Select(i => direction == Direction.Across ? new Position(line, i) : new Position(i, line))
-                    .Where(p => !board.IsOccupied(p))
+                    .Where(p => !board.IsOccupied(p) && !board.IsBlocked(p))
                     .ToList();
 
                 for (int mask = 1; mask < 1 << cells.Count; mask++)
@@ -32,7 +33,7 @@ public class MoveGeneratorTests
                     foreach (var arrangement in Arrangements(hand.Tiles.ToList(), chosen.Count))
                     {
                         var placed = chosen.Zip(arrangement, (p, t) => new PlacedTile(p, t)).ToList();
-                        if (PlacementValidator.Validate(board, hand, placed, lexicon).IsOk)
+                        if (PlacementValidator.Validate(board, hand, placed, lexicon, minWordLength).IsOk)
                             valid.Add(Key(placed));
                     }
                 }
@@ -74,6 +75,33 @@ public class MoveGeneratorTests
 
         var generated = MoveGenerator.LegalPlays(board, hand, Words).Select(p => Key(p.Placed)).ToHashSet();
         var expected = BruteForce(board, hand, Words);
+
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected.Order(), generated.Order());
+    }
+
+    public static TheoryData<string[], string, int, int[]> ConstrainedScenarios => new()
+    {
+        // rows, hand, min word length, blocked cells as row*10+col
+        { ["....", ".CAT", "....", "...."], "SAOE", 3, [] },
+        { ["CAT.", "....", "..O.", "...."], "AERS", 3, [] },
+        { ["....", ".CAT", "....", "...."], "SAOE", 2, [0, 33] },
+        { ["....", "....", "....", "...."], "CATS", 2, [1, 32] },
+        { ["C...", "A...", "T...", "...."], "SRAE", 3, [11, 22] },
+    };
+
+    [Theory]
+    [MemberData(nameof(ConstrainedScenarios))]
+    public void LegalPlays_WithMinLengthAndBlockedCells_MatchBruteForce(string[] rows, string handLetters, int minLength, int[] blocked)
+    {
+        var board = BoardFromRows(rows) with
+        {
+            Blocked = blocked.Select(b => new Position(b / 10, b % 10)).ToImmutableHashSet(),
+        };
+        var hand = HandOf(handLetters);
+
+        var generated = MoveGenerator.LegalPlays(board, hand, Words, minLength).Select(p => Key(p.Placed)).ToHashSet();
+        var expected = BruteForce(board, hand, Words, minLength);
 
         Assert.NotEmpty(expected);
         Assert.Equal(expected.Order(), generated.Order());

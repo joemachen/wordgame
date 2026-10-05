@@ -57,9 +57,16 @@ public static class RoundRules
         var rng = Rng.FromSeed(roundSeed);
 
         (var premiums, rng) = PremiumLayout.Generate(config.BoardSize, config.PremiumPairs, rng);
+        var board = Board.Empty(config.BoardSize, premiums);
+        if (config.BlockedPairs > 0)
+        {
+            (var blocked, rng) = PremiumLayout.GenerateBlocked(config.BoardSize, config.BlockedPairs, premiums, rng);
+            board = board with { Blocked = blocked };
+        }
+
         var round = new RoundState(
             Config: config,
-            Board: Board.Empty(config.BoardSize, premiums),
+            Board: board,
             Bag: new TileBag(run.Deck),
             Hand: Hand.Empty,
             Rng: rng,
@@ -80,12 +87,12 @@ public static class RoundRules
         if (state.Status != RoundStatus.InProgress)
             return Result<SubmitOutcome, RoundError>.Fail(new RoundError.RoundOver(state.Status));
 
-        var validation = PlacementValidator.Validate(state.Board, state.Hand, placed, lexicon);
+        var validation = PlacementValidator.Validate(state.Board, state.Hand, placed, lexicon, state.Config.MinWordLength);
         if (!validation.IsOk)
             return Result<SubmitOutcome, RoundError>.Fail(new RoundError.InvalidPlacement(validation.Error));
 
         var play = validation.Value;
-        var score = ScoringEngine.Score(play, deskItems, scoring);
+        var score = ScoringEngine.Score(play, deskItems, state.Config.EffectiveScoring(scoring));
         var next = state with
         {
             Board = play.BoardAfter,
@@ -119,7 +126,7 @@ public static class RoundRules
 
     /// <summary>True if the current hand has at least one legal play on the current board.</summary>
     public static bool HasLegalPlay(RoundState state, IWordGraph lexicon) =>
-        MoveGenerator.HasLegalPlay(state.Board, state.Hand, lexicon);
+        MoveGenerator.HasLegalPlay(state.Board, state.Hand, lexicon, state.Config.MinWordLength);
 
     private static RoundState Settle(RoundState state, IWordGraph lexicon) =>
         state.Status == RoundStatus.InProgress && state.DiscardsLeft == 0 && !HasLegalPlay(state, lexicon)

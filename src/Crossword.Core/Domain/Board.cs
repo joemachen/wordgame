@@ -4,9 +4,14 @@ namespace Crossword.Core.Domain;
 
 public sealed record PlacedTile(Position Position, Tile Tile);
 
-/// <summary>Square crossword grid for one round. Cells and premiums are stored row-major.</summary>
+/// <summary>
+/// Square crossword grid for one round. Cells and premiums are stored row-major.
+/// <see cref="Blocked"/> cells (crossword "black squares") can never hold tiles and end words like the board edge.
+/// </summary>
 public sealed record Board(int Size, ImmutableArray<Tile?> Cells, ImmutableArray<Premium> Premiums)
 {
+    public ImmutableHashSet<Position> Blocked { get; init; } = ImmutableHashSet<Position>.Empty;
+
     public static Board Empty(int size, ImmutableArray<Premium>? premiums = null)
     {
         if (size <= 0)
@@ -27,6 +32,8 @@ public sealed record Board(int Size, ImmutableArray<Tile?> Cells, ImmutableArray
 
     public bool IsOccupied(Position p) => TileAt(p) is not null;
 
+    public bool IsBlocked(Position p) => Blocked.Contains(p);
+
     public Premium PremiumAt(Position p) => Premiums[Index(p)];
 
     public Board Place(IEnumerable<PlacedTile> tiles)
@@ -36,6 +43,8 @@ public sealed record Board(int Size, ImmutableArray<Tile?> Cells, ImmutableArray
         {
             if (!InBounds(placed.Position))
                 throw new ArgumentOutOfRangeException(nameof(tiles), placed.Position, "Position is off the board.");
+            if (IsBlocked(placed.Position))
+                throw new InvalidOperationException($"Cell {placed.Position} is blocked.");
             if (cells[Index(placed.Position)] is not null)
                 throw new InvalidOperationException($"Cell {placed.Position} is already occupied.");
             cells[Index(placed.Position)] = placed.Tile;

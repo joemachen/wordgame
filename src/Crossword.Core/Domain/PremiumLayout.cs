@@ -41,4 +41,28 @@ public static class PremiumLayout
         }
         return (ImmutableArray.Create(layout), next);
     }
+
+    /// <summary>
+    /// Seeded, rotationally symmetric blocked cells ("black squares"), placed only on cells without premiums.
+    /// </summary>
+    public static (ImmutableHashSet<Position> Blocked, Rng Next) GenerateBlocked(
+        int size, int pairs, ImmutableArray<Premium> premiums, Rng rng)
+    {
+        int cellCount = size * size;
+        var candidates = Enumerable.Range(0, cellCount)
+            .Where(i => i < cellCount - 1 - i && premiums[i] == Premium.None && premiums[cellCount - 1 - i] == Premium.None)
+            .ToList();
+        if (pairs > candidates.Count)
+            throw new ArgumentException($"Only {candidates.Count} blocked pairs fit on this board.", nameof(pairs));
+
+        var (shuffled, next) = rng.Shuffle(candidates);
+        var blocked = ImmutableHashSet.CreateBuilder<Position>();
+        foreach (int index in shuffled.Take(pairs))
+        {
+            blocked.Add(new Position(index / size, index % size));
+            int mirror = cellCount - 1 - index;
+            blocked.Add(new Position(mirror / size, mirror % size));
+        }
+        return (blocked.ToImmutable(), next);
+    }
 }

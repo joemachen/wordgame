@@ -9,6 +9,8 @@ public class PlacementValidatorTests
     private static Result<PlayAnalysis, PlacementError> Validate(Board board, Hand hand, IReadOnlyList<PlacedTile> placed) =>
         PlacementValidator.Validate(board, hand, placed, Words);
 
+    private static PlacedTile PlacementTileAt(int row, int col, Tile tile) => new(new Position(row, col), tile);
+
     private static T AssertFails<T>(Result<PlayAnalysis, PlacementError> result) where T : PlacementError
     {
         Assert.False(result.IsOk, "Expected placement to be rejected.");
@@ -184,6 +186,49 @@ public class PlacementValidatorTests
 
         var error = AssertFails<PlacementError.InvalidWords>(Validate(board, hand, Spell(board, hand, 1, 1, Direction.Across, "ZA")));
         Assert.Equal(["AZ"], error.Words);
+    }
+
+    [Fact]
+    public void PlacingOnBlockedCell_IsRejected()
+    {
+        var board = Board.Empty(5) with { Blocked = [new Position(0, 1)] };
+        var hand = HandOf("AT");
+
+        AssertFails<PlacementError.Blocked>(Validate(board, hand,
+            [PlacementTileAt(0, 0, hand.Tiles[0]), PlacementTileAt(0, 1, hand.Tiles[1])]));
+    }
+
+    [Fact]
+    public void CannotExtendWordIntoBlockedCell()
+    {
+        var board = BoardFromRows(".....", "CAT..", ".....", ".....", ".....") with { Blocked = [new Position(1, 3)] };
+        var hand = HandOf("S");
+
+        AssertFails<PlacementError.Blocked>(Validate(board, hand, [PlacementTileAt(1, 3, hand.Tiles[0])]));
+    }
+
+    [Fact]
+    public void BlockedCellInsideSpan_IsAGap()
+    {
+        var board = Board.Empty(5) with { Blocked = [new Position(0, 1)] };
+        var hand = HandOf("CT");
+
+        AssertFails<PlacementError.Gap>(Validate(board, hand,
+            [PlacementTileAt(0, 0, hand.Tiles[0]), PlacementTileAt(0, 2, hand.Tiles[1])]));
+    }
+
+    [Fact]
+    public void MinWordLength_RejectsShortCrossWords()
+    {
+        //   row0: C A T
+        //   row1: . T O   → TO, AT, TO are all 2 letters
+        var board = BoardFromRows("CAT..", ".....", ".....", ".....", ".....");
+        var hand = HandOf("TO");
+
+        var result = PlacementValidator.Validate(board, hand, Spell(board, hand, 1, 1, Direction.Across, "TO"), Words, minWordLength: 3);
+
+        var error = AssertFails<PlacementError.WordsTooShort>(result);
+        Assert.Equal(["TO", "AT"], error.Words);
     }
 
     [Fact]

@@ -7,12 +7,13 @@ namespace Crossword.Core.Rules;
 /// <summary>
 /// Validates a set of tiles placed from the hand onto the board and extracts every word formed.
 /// Rules: all new tiles in one row/column; the span between them filled (by new or existing tiles);
-/// connected to existing tiles unless the board is empty; at least one 2+ letter word; all words valid.
+/// connected to existing tiles unless the board is empty; at least one 2+ letter word; every formed word at least
+/// <c>minWordLength</c> letters (boss rule) and in the lexicon. Blocked cells cannot be played on.
 /// </summary>
 public static class PlacementValidator
 {
     public static Result<PlayAnalysis, PlacementError> Validate(
-        Board board, Hand hand, IReadOnlyList<PlacedTile> placed, ILexicon lexicon)
+        Board board, Hand hand, IReadOnlyList<PlacedTile> placed, ILexicon lexicon, int minWordLength = 2)
     {
         if (StructuralError(board, hand, placed) is { } error)
             return Result<PlayAnalysis, PlacementError>.Fail(error);
@@ -23,6 +24,10 @@ public static class PlacementValidator
 
         if (words.IsEmpty)
             return Result<PlayAnalysis, PlacementError>.Fail(new PlacementError.NoWordFormed());
+
+        var tooShort = words.Where(w => w.Length < minWordLength).Select(w => w.Text).Distinct().ToImmutableArray();
+        if (!tooShort.IsEmpty)
+            return Result<PlayAnalysis, PlacementError>.Fail(new PlacementError.WordsTooShort(tooShort, minWordLength));
 
         var invalid = words.Select(w => w.Text).Where(t => !lexicon.Contains(t)).Distinct().ToImmutableArray();
         if (!invalid.IsEmpty)
@@ -47,6 +52,8 @@ public static class PlacementValidator
                 return new PlacementError.DuplicateTile(tile);
             if (!board.InBounds(position))
                 return new PlacementError.OutOfBounds(position);
+            if (board.IsBlocked(position))
+                return new PlacementError.Blocked(position);
             if (!seenPositions.Add(position))
                 return new PlacementError.DuplicatePosition(position);
             if (board.IsOccupied(position))
