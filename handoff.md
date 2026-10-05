@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `b3df7b7` (code) · 344 unit tests passing · UI self-test 38/38 passing_
+_Last updated: 2026-10-05 · HEAD `fd41f74` (code) · 362 unit tests passing · UI self-test 40/40 passing_
 
 ---
 
@@ -183,6 +183,7 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+fd41f74 Add wild tiles: deck blanks, shop offers, Fountain Pen, wild edit
 b3df7b7 Raise week targets x1.3 after balanced draws
 ab45824 Balance tile draws and raise the deck's vowel share
 08ab013 Fade NEW tile tags after a few seconds or on first touch
