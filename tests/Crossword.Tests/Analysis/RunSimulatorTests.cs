@@ -70,4 +70,16 @@ public class RunSimulatorTests
         Assert.Single(run.Rounds);
         Assert.Equal(0, run.RoundsCleared);
     }
+
+    [Fact]
+    public void PlayRun_AccountsForEveryDollar()
+    {
+        var run = RunSimulator.PlayRun(21, ShortRun, LexiconLoader.Enable, skill: 0.9);
+
+        int income = run.Rounds.Sum(r => (r.Payout?.Total ?? 0) + r.InRoundMoney);
+        int spent = run.Rounds.Sum(r => r.Shop?.Net ?? 0);
+        Assert.Equal(run.FinalMoney - ShortRun.Economy.StartingMoney, income - spent);
+        Assert.All(run.Rounds.Where(r => r.Won), r => Assert.NotNull(r.Payout));
+        Assert.All(run.Rounds.Select(r => r.Shop).OfType<ShopSpend>(), s => Assert.True(s.DeckEdits >= 0));
+    }
 }

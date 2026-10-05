@@ -22,7 +22,8 @@ public enum ShopStrategy
 /// (−6 pts), and so did buying deck edits at any fixed estimated gain (−4 pts), so both are off by default;
 /// rerolling with a full desk is neutral but spends money that would otherwise end the run unused.
 /// Stationery is valued like deck edits, by a fixed estimated gain per item (<see cref="StationeryGain"/>), and
-/// used in rounds by <see cref="StationeryBot"/>.
+/// used in rounds by <see cref="StationeryBot"/>. Wild tiles too: <see cref="WildTileGain"/> for a new wild tile,
+/// <see cref="WildEditGain"/> for making the deck's most awkward tile wild (<see cref="NaiveShopBot.WildTarget"/>).
 /// </summary>
 public sealed record ShopBotConfig(
     int CandidatePlays = 20,
@@ -37,9 +38,13 @@ public sealed record ShopBotConfig(
     double EnhanceGain = 0,
     double EnhancedTileGain = 0,
     double StrikeGain = 0,
-    IReadOnlyDictionary<string, double>? StationeryGain = null)
+    IReadOnlyDictionary<string, double>? StationeryGain = null,
+    double WildTileGain = 0,
+    double WildEditGain = 0)
 {
     /// <summary>
+    /// Wild buying is off: measured at ScoreFraction 0.75 (200 paired runs), a wild tile or wild edit at gain 0.05/0.15
+    /// changed wins by ±0.5 pts, the Fountain Pen by −1.5 and all three together by −5 — never worth the money.
     /// Buys only the Margin Clip: measured alone at $3 (200 runs, ScoreFraction 0.75) it added +13 pts of win rate,
     /// while Answer Key (−3), Red Ink Bottle (−2.5) and Scissors (−8, cutting Q/Z/X/J) cost the bot more than they
     /// returned. White-Out is only used to escape a stuck hand, which almost never happens.
@@ -195,6 +200,17 @@ public static class EvaluatingShopBot
                 case StationeryOffer stationery when run.Money >= offer.Price && run.Stationery.Length < RunState.MaxStationerySlots:
                     if (config.GainOf(stationery.Item) is var stationeryGain and > 0)
                         yield return new Candidate(index, stationeryGain, offer.Price, offer.Price, s => ShopRules.Buy(s, index));
+                    break;
+
+                case AddTileOffer { Wild: true } when run.Money >= offer.Price:
+                    if (config.WildTileGain > 0)
+                        yield return new Candidate(index, config.WildTileGain, offer.Price, offer.Price, s => ShopRules.Buy(s, index));
+                    break;
+
+                case WildOffer when run.Money >= offer.Price:
+                    if (config.WildEditGain > 0 && NaiveShopBot.WildTarget(run.Deck) is { } wildTarget)
+                        yield return new Candidate(index, config.WildEditGain, offer.Price, offer.Price,
+                            s => ShopRules.Buy(s, index, [wildTarget.Id]));
                     break;
 
                 case EnhanceOffer or StrikeOffer or AddTileOffer when run.Money >= offer.Price:
@@ -398,6 +414,22 @@ public static class NaiveShopBot
         AddTileOffer { Enhancement: not TileEnhancement.None } => 4,
         _ => 9,
     };
+
+    /// <summary>
+    /// The tile a wild edit should convert: the most awkward letter (Q, Z, X, J, V, K) first, otherwise a copy of the
+    /// deck's most common letter; plain tiles before enhanced ones. Null when every tile is already wild.
+    /// </summary>
+    public static Tile? WildTarget(IReadOnlyList<Tile> deck)
+    {
+        var candidates = deck.Where(t => !t.IsWild).ToList();
+        var counts = candidates.GroupBy(t => t.Letter.Char).ToDictionary(g => g.Key, g => g.Count());
+        return candidates
+            .OrderByDescending(t => AwkwardLetters.IndexOf(t.Letter.Char) is var i and >= 0 ? AwkwardLetters.Length - i : 0)
+            .ThenByDescending(t => counts[t.Letter.Char])
+            .ThenBy(t => t.Enhancement == TileEnhancement.None ? 0 : 1)
+            .ThenBy(t => t.Id)
+            .FirstOrDefault();
+    }
 
     /// <summary>Tile choice for edits, or null to skip the offer.</summary>
     internal static IReadOnlyCollection<int>? TilesFor(ShopOffer offer, GameSession session)

@@ -194,6 +194,32 @@ public class ShopBotTests
     }
 
     [Fact]
+    public void BuysWildOffers_OnlyWhenTheirGainIsConfigured()
+    {
+        var wildTile = new AddTileOffer(Tile.WildPlaceholder, TileEnhancement.None, 6, Wild: true);
+        var history = History(Plays());
+        var valued = Bot with { WildTileGain = 0.2, WildEditGain = 0.2 };
+
+        var ignored = EvaluatingShopBot.Shop(InShop(20, 0, [], wildTile, new WildOffer(5)), history, Bot);
+        var bought = EvaluatingShopBot.Shop(InShop(20, 0, [], wildTile, new WildOffer(5)), history, valued);
+
+        Assert.Equal(ignored.Run.Deck.Count(t => t.IsWild), RunState.New(1).Deck.Count(t => t.IsWild));
+        Assert.Equal(RunState.New(1).Deck.Count(t => t.IsWild) + 2, bought.Run.Deck.Count(t => t.IsWild));
+        Assert.Equal(9, bought.Run.Money);
+    }
+
+    [Fact]
+    public void WildTarget_PicksTheMostAwkwardLetter_ThenTheMostCommon()
+    {
+        var awkward = new[] { new Tile(1, Letter.From('E')), new Tile(2, Letter.From('K')), new Tile(3, Letter.From('Q')) };
+        var plain = new[] { new Tile(1, Letter.From('E')), new Tile(2, Letter.From('E')), new Tile(3, Letter.From('T')) };
+
+        Assert.Equal(3, NaiveShopBot.WildTarget(awkward)!.Id);
+        Assert.Equal('E', NaiveShopBot.WildTarget(plain)!.Letter.Char);
+        Assert.Null(NaiveShopBot.WildTarget([Tile.Wild(1)]));
+    }
+
+    [Fact]
     public void History_KeepsOnlyTheMostRecentWindow()
     {
         var plays = Plays();

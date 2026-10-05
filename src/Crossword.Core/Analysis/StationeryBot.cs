@@ -14,6 +14,7 @@ namespace Crossword.Core.Analysis;
 /// <item>Red Ink Bottle: on the first play of a boss round, or on the last submission when short of the target.</item>
 /// <item>Margin Clip: on the last submission when the chosen play falls short of the target.</item>
 /// <item>Scissors: to cut hard letters (Q, Z, X, J) the chosen play doesn't use, or to escape a stuck hand.</item>
+/// <item>Fountain Pen: to turn such a hard letter wild (checked before Scissors), or to escape a stuck hand.</item>
 /// <item>White-Out: only to escape a stuck hand (no legal play, no discards left).</item>
 /// </list>
 /// </summary>
@@ -47,10 +48,16 @@ public static class StationeryBot
         if ((bossOpener || (fallsShort && lastSubmission)) && Use<RedInkBottle>(session, lexicon) is { } ink)
             return (ink.Session, null);
 
+        var playing = choice.Play.Placed.Select(p => p.Tile.Id).ToHashSet();
+        int penSlot = SlotOf<FountainPen>(held);
+        if (penSlot >= 0
+            && round.Hand.Tiles.FirstOrDefault(t => !t.IsWild && HardLetters.Contains(t.Letter.Char) && !playing.Contains(t.Id)) is { } stuck
+            && RunRules.UseStationery(session, penSlot, lexicon, tileIds: [stuck.Id]) is { IsOk: true } inked)
+            return (inked.Value.Session, null);
+
         int scissorsSlot = SlotOf<Scissors>(held);
         if (scissorsSlot >= 0 && !round.Bag.IsEmpty)
         {
-            var playing = choice.Play.Placed.Select(p => p.Tile.Id).ToHashSet();
             var dead = round.Hand.Tiles
                 .Where(t => !t.IsWild && HardLetters.Contains(t.Letter.Char) && !playing.Contains(t.Id))
                 .Take(((Scissors)held[scissorsSlot]).MaxTiles)

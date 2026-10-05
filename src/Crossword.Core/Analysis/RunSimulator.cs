@@ -6,7 +6,30 @@ using Crossword.Core.Run;
 
 namespace Crossword.Core.Analysis;
 
-public sealed record SimulatedRunRound(int RoundIndex, string Kind, string? Boss, long Target, long Score, bool Won, int Submissions);
+public sealed record SimulatedRunRound(int RoundIndex, string Kind, string? Boss, long Target, long Score, bool Won, int Submissions)
+{
+    /// <summary>The paycheck for this round (null if it was lost).</summary>
+    public Payout? Payout { get; init; }
+
+    /// <summary>Money earned during the round's plays (Gilded tiles, Syndication, …).</summary>
+    public int InRoundMoney { get; init; }
+
+    /// <summary>What the shop after this round cost (null when no shop followed).</summary>
+    public ShopSpend? Shop { get; init; }
+}
+
+/// <summary>
+/// One shop visit's spending by category. Desk Items, Style Guides and Stationery are priced from what was added;
+/// <see cref="DeckEdits"/> is the rest of the net spend. <see cref="Sold"/> is money back from selling.
+/// </summary>
+public sealed record ShopSpend(int MoneyBefore, int MoneyAfter, int DeskItems, int StyleGuides, int Stationery, int Rerolls, int Sold)
+{
+    public int Net => MoneyBefore - MoneyAfter;
+
+    public int DeckEdits => Net + Sold - DeskItems - StyleGuides - Stationery - Rerolls;
+
+    public bool BoughtNothing => Net + Sold == 0;
+}
 
 public sealed record SimulatedRun(
     ulong Seed,
@@ -41,18 +64,27 @@ public static class RunSimulator
         {
             if (session.Phase == RunPhase.Shop)
             {
+                var before = session;
                 session = strategy == ShopStrategy.Naive ? NaiveShopBot.Shop(session) : EvaluatingShopBot.Shop(session, history, bot);
+                if (rounds.Count > 0)
+                    rounds[^1] = rounds[^1] with { Shop = Spend(before, session) };
                 session = RunRules.LeaveShop(session, lexicon).Value;
                 continue;
             }
 
             var startIndex = session.Run.RoundIndex;
+            int moneyBefore = session.Run.Money;
             int submissions;
             (session, history, submissions) = PlayRound(session, lexicon, skill, model,
                 strategy == ShopStrategy.Evaluating ? bot : null, history, stationeryUsed);
             var round = session.Round;
+            var payout = round.Status == RoundStatus.Won ? session.LastPayout : null;
             rounds.Add(new SimulatedRunRound(startIndex, config.KindOf(startIndex).Name, round.Config.Boss?.Name,
-                round.Config.TargetScore, round.Score, round.Status == RoundStatus.Won, submissions));
+                round.Config.TargetScore, round.Score, round.Status == RoundStatus.Won, submissions)
+            {
+                Payout = payout,
+                InRoundMoney = session.Run.Money - moneyBefore - (payout?.Total ?? 0),
+            });
         }
 
         return new SimulatedRun(seed, rounds.ToImmutable(), session.Phase == RunPhase.Victory, session.Run.Money,
@@ -115,6 +147,28 @@ public static class RunSimulator
             submissions++;
         }
         return (session, history, submissions);
+    }
+
+    /// <summary>Prices a shop visit from the state before and after it (see <see cref="ShopSpend"/>).</summary>
+    private static ShopSpend Spend(GameSession before, GameSession after)
+    {
+        var shop = before.Config.Shop;
+        var oldItems = before.Run.DeskItems.Select(d => d.Id).ToHashSet();
+        var newItems = after.Run.DeskItems.Select(d => d.Id).ToHashSet();
+        int desk = after.Run.DeskItems.Where(d => !oldItems.Contains(d.Id)).Sum(shop.PriceOf);
+        int sold = before.Run.DeskItems.Where(d => !newItems.Contains(d.Id)).Sum(shop.SellValueOf);
+        int guides = (after.Run.TierUpgrades.Values.Sum() - before.Run.TierUpgrades.Values.Sum()) * shop.StyleGuidePrice;
+        var heldBefore = before.Run.Stationery.Select(s => s.Id).ToList();
+        int stationery = 0;
+        foreach (var item in after.Run.Stationery)
+        {
+            if (!heldBefore.Remove(item.Id))
+                stationery += shop.PriceOf(item);
+        }
+        int rerolls = 0;
+        for (int cost = before.Shop!.RerollCost; cost < after.Shop!.RerollCost; cost += shop.RerollStep)
+            rerolls += cost;
+        return new ShopSpend(before.Run.Money, after.Run.Money, desk, guides, stationery, rerolls, sold);
     }
 
     /// <summary>Records which Stationery item a transition used up (the one no longer held).</summary>

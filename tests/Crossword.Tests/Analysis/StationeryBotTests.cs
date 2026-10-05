@@ -82,6 +82,21 @@ public class StationeryBotTests
     }
 
     [Fact]
+    public void FountainPen_TurnsAnUnusedHardLetterWild_BeforeScissors()
+    {
+        var session = Round(target: 100_000, submissionsLeft: 4, new Scissors(), new FountainPen());
+        session = session with { Round = session.Round with { Hand = HandOf("ATOQZXE") } };
+        var ranked = Ranked(session);
+
+        var (after, play) = StationeryBot.BeforePlay(session, ranked, ranked[0], Words);
+
+        Assert.Null(play);
+        Assert.IsType<Scissors>(Assert.Single(after.Run.Stationery));
+        Assert.Equal(1, after.Round.Hand.Tiles.Count(t => t.IsWild));
+        Assert.Contains(after.Round.Hand.Tiles, t => t.IsWild && t.Id is 3 or 4 or 5); // one of Q, Z, X
+    }
+
+    [Fact]
     public void Escape_CutsTheAwkwardTiles_WithScissors()
     {
         var session = Round(target: 1000, submissionsLeft: 4, new Scissors(MaxTiles: 2));
