@@ -1,0 +1,17 @@
+<Project Sdk="Godot.NET.Sdk/4.7.1">
+
+  <!--
+    Godot front-end. Thin presentation layer only: game rules stay in Crossword.Core (engine-agnostic).
+    Build output goes to .godot/mono/temp/bin, where the Godot runtime loads it.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>Wordgame.Godot</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Crossword.Core\Crossword.Core.csproj" />
+  </ItemGroup>
+
+</Project>

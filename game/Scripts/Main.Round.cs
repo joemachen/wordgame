@@ -1,0 +1,334 @@
+using Crossword.Core.Analysis;
+using Crossword.Core.Domain;
+using Crossword.Core.Effects;
+using Crossword.Core.Rules;
+using Crossword.Core.Run;
+using Crossword.Core.Scoring;
+using Godot;
+using GridPos = Crossword.Core.Domain.Position;
+
+namespace Wordgame.Godot;
+
+public partial class Main
+{
+    private const float CellSize = 66;
+    private const float HandTileSize = 72;
+    private const double StepSeconds = 0.32;
+
+    private ScoringConfig RoundScoring => Round.Config.EffectiveScoring(_session.Scoring);
+
+    private Control BuildRoundArea()
+    {
+        var box = UiKit.VBox(16);
+
+        _boardHolder = new CenterContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
+        box.AddChild(_boardHolder);
+
+        var handHolder = new CenterContainer();
+        _handRow = UiKit.HBox(10);
+        handHolder.AddChild(_handRow);
+        box.AddChild(handHolder);
+
+        var buttonsHolder = new CenterContainer();
+        var buttons = UiKit.HBox(12);
+        _submitButton = UiKit.MakeButton("Submit  ⏎", UiKit.Good.Darkened(0.25f), 20);
+        _submitButton.Pressed += Submit;
+        _recallButton = UiKit.MakeButton("Recall  Esc", UiKit.PanelRaised, 18);
+        _recallButton.Pressed += Recall;
+        _discardButton = UiKit.MakeButton("Discard selected", UiKit.Mult.Darkened(0.3f), 18);
+        _discardButton.Pressed += Discard;
+        _hintButton = UiKit.MakeButton("Hint", UiKit.PanelRaised, 18);
+        _hintButton.Pressed += Hint;
+        foreach (var b in new[] { _submitButton, _recallButton, _discardButton, _hintButton })
+            buttons.AddChild(b);
+        buttonsHolder.AddChild(buttons);
+        box.AddChild(buttonsHolder);
+        return box;
+    }
+
+    // ---------------------------------------------------------------- board & hand
+
+    private void RefreshBoard()
+    {
+        UiKit.ClearChildren(_boardHolder);
+        var frame = UiKit.MakePanel(UiKit.Panel, padding: 10, radius: 12);
+        var grid = new GridContainer { Columns = Round.Board.Size };
+        grid.AddThemeConstantOverride("h_separation", 4);
+        grid.AddThemeConstantOverride("v_separation", 4);
+        frame.AddChild(grid);
+        _boardHolder.AddChild(frame);
+
+        var scoring = RoundScoring;
+        for (int r = 0; r < Round.Board.Size; r++)
+        {
+            for (int c = 0; c < Round.Board.Size; c++)
+            {
+                var pos = new GridPos(r, c);
+                grid.AddChild(MakeCell(pos, scoring));
+            }
+        }
+    }
+
+    private Control MakeCell(GridPos pos, ScoringConfig scoring)
+    {
+        var board = Round.Board;
+        if (board.TileAt(pos) is { } placed)
+        {
+            var tile = UiKit.MakeTile(placed, scoring.ValueOf(placed.Letter), CellSize, UiKit.Newsprint);
+            tile.Disabled = true;
+            return tile;
+        }
+
+        if (_pending.TryGetValue(pos, out var pending))
+        {
+            var tile = UiKit.MakeTile(pending, scoring.ValueOf(pending.Letter), CellSize, UiKit.Pending, raised: true);
+            tile.TooltipText = "Click to take back";
+            tile.Pressed += () => ReturnPending(pos);
+            return tile;
+        }
+
+        var cell = new Button { CustomMinimumSize = new Vector2(CellSize, CellSize), FocusMode = FocusModeEnum.None };
+        if (board.IsBlocked(pos))
+        {
+            cell.AddThemeStyleboxOverride("normal", UiKit.Box(UiKit.Blocked, 4));
+            cell.AddThemeStyleboxOverride("disabled", UiKit.Box(UiKit.Blocked, 4));
+            cell.Disabled = true;
+            return cell;
+        }
+
+        var premium = board.PremiumAt(pos);
+        var color = UiKit.PremiumColor(premium);
+        cell.Text = UiKit.PremiumText(premium);
+        cell.AddThemeFontSizeOverride("font_size", 18);
+        cell.AddThemeColorOverride("font_color", new Color(1, 1, 1, 0.85f));
+        cell.AddThemeColorOverride("font_hover_color", Colors.White);
+        cell.AddThemeStyleboxOverride("normal", UiKit.Box(color, 4));
+        cell.AddThemeStyleboxOverride("hover", UiKit.Box(color.Lightened(0.25f), 4, UiKit.Selected, 2));
+        cell.AddThemeStyleboxOverride("pressed", UiKit.Box(color.Darkened(0.1f), 4));
+        cell.Pressed += () => PlaceSelected(pos);
+        return cell;
+    }
+
+    private void RefreshHand()
+    {
+        UiKit.ClearChildren(_handRow);
+        var scoring = RoundScoring;
+        foreach (var tile in Round.Hand.Tiles.Where(t => !_pending.ContainsValue(t)))
+        {
+            bool selected = _selected.Contains(tile);
+            var button = UiKit.MakeTile(tile, scoring.ValueOf(tile.Letter), HandTileSize,
+                selected ? UiKit.Selected : UiKit.Newsprint, raised: selected);
+            button.Pressed += () => ToggleSelected(tile);
+            _handRow.AddChild(button);
+        }
+    }
+
+    private void RefreshButtons()
+    {
+        bool idle = !_animating && _session.Phase == RunPhase.InRound;
+        _submitButton.Disabled = !idle || _pending.Count == 0;
+        _recallButton.Disabled = !idle || _pending.Count == 0;
+        _discardButton.Disabled = !idle || _selected.Count == 0 || Round.DiscardsLeft == 0;
+        _discardButton.Text = _selected.Count > 0 ? $"Discard {_selected.Count}" : "Discard selected";
+        _hintButton.Disabled = !idle;
+    }
+
+    // ---------------------------------------------------------------- interaction
+
+    private void ToggleSelected(Tile tile)
+    {
+        if (_animating)
+            return;
+        if (!_selected.Remove(tile))
+            _selected.Add(tile);
+        Refresh();
+    }
+
+    private void PlaceSelected(GridPos pos)
+    {
+        if (_animating)
+            return;
+        if (_selected.Count == 0)
+        {
+            SetMessage("Pick a tile from your hand first (click it or type its letter).", UiKit.TextMuted);
+            return;
+        }
+        var tile = _selected[0];
+        _selected.RemoveAt(0);
+        _pending[pos] = tile;
+        Refresh();
+    }
+
+    private void ReturnPending(GridPos pos)
+    {
+        if (_animating)
+            return;
+        _pending.Remove(pos);
+        Refresh();
+    }
+
+    private void Recall()
+    {
+        _pending.Clear();
+        Refresh();
+    }
+
+    private IReadOnlyList<PlacedTile> PendingPlacement() =>
+        _pending.Select(kv => new PlacedTile(kv.Key, kv.Value)).ToList();
+
+    /// <summary>Validates and scores the pending placement without committing it.</summary>
+    private void UpdatePreview()
+    {
+        if (_pending.Count == 0)
+        {
+            _chipsLabel.Text = "0";
+            _multLabel.Text = "0";
+            return;
+        }
+
+        var validation = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength);
+        if (!validation.IsOk)
+        {
+            _chipsLabel.Text = "–";
+            _multLabel.Text = "–";
+            SetMessage(validation.Error.Message, UiKit.Bad);
+            return;
+        }
+
+        var score = ScoringEngine.Score(validation.Value, Run.DeskItems, RoundScoring, RoundRules.Environment(Round, Run.Money));
+        _chipsLabel.Text = score.Chips.ToString("N0");
+        _multLabel.Text = score.Mult.ToString("0.##");
+        SetMessage($"{string.Join(" + ", validation.Value.Words.Select(w => w.Text))}  →  {score.Total:N0} points", UiKit.Good);
+    }
+
+    private RankedPlay? BestPlay() =>
+        MoveRanker.Rank(Round.Board, Round.Hand, _lexicon, Run.DeskItems, RoundScoring, Round.Config.MinWordLength,
+            RoundRules.Environment(Round, Run.Money)).FirstOrDefault();
+
+    private void Hint()
+    {
+        if (BestPlay() is not { } best)
+        {
+            SetMessage("No legal play with this hand — discard some tiles.", UiKit.Bad);
+            return;
+        }
+        _pending.Clear();
+        _selected.Clear();
+        foreach (var placed in best.Play.Placed)
+            _pending[placed.Position] = placed.Tile;
+        Refresh();
+    }
+
+    private void Discard()
+    {
+        var result = RunRules.Discard(_session, _selected.Select(t => t.Id).ToArray(), _lexicon);
+        if (!result.IsOk)
+        {
+            SetMessage(result.Error.Message, UiKit.Bad);
+            return;
+        }
+        _session = result.Value;
+        _selected.Clear();
+        SetMessage("Discarded.", UiKit.TextMuted);
+        AfterAction();
+    }
+
+    private void Submit()
+    {
+        if (_animating || _pending.Count == 0)
+            return;
+
+        var result = RunRules.Submit(_session, PendingPlacement(), _lexicon);
+        if (!result.IsOk)
+        {
+            SetMessage(result.Error.Message, UiKit.Bad);
+            return;
+        }
+
+        long scoreBefore = Round.Score;
+        _session = result.Value.Session;
+        _pending.Clear();
+        _selected.Clear();
+        _animating = true;
+        ClearLog();
+        Refresh();
+        AnimateScore(result.Value.Score, scoreBefore);
+    }
+
+    /// <summary>Plays back the scoring event log step by step, Balatro-style.</summary>
+    private void AnimateScore(ScoreContext score, long scoreBefore)
+    {
+        _scoreLabel.Text = scoreBefore.ToString("N0");
+        var tween = CreateTween();
+        foreach (var evt in score.Log)
+        {
+            var e = evt;
+            tween.TweenCallback(Callable.From(() =>
+            {
+                _chipsLabel.Text = e.ChipsAfter.ToString("N0");
+                _multLabel.Text = e.MultAfter.ToString("0.##");
+                AddLog(e.Description, ColorFor(e.SourceId));
+            }));
+            tween.TweenInterval(StepSeconds);
+        }
+        tween.TweenCallback(Callable.From(() =>
+        {
+            AddLog($"= {score.Total:N0} points" + (score.Money > 0 ? $"  (+${score.Money})" : ""), UiKit.Text);
+            _scoreLabel.Text = (scoreBefore + score.Total).ToString("N0");
+            SetMessage($"+{score.Total:N0}", UiKit.Good);
+        }));
+        tween.TweenInterval(_session.Phase == RunPhase.InRound ? 0.2 : 1.1);
+        tween.TweenCallback(Callable.From(() =>
+        {
+            _animating = false;
+            if (_session.Phase == RunPhase.Shop)
+                SetMessage("Paycheck in. Spend it in the shop, then start the next round.", UiKit.Money);
+            AfterAction();
+        }));
+    }
+
+    private static Color ColorFor(string source) => source switch
+    {
+        ScoringEngine.Sources.Tier => UiKit.Text,
+        ScoringEngine.Sources.Word => UiKit.Chips.Lightened(0.3f),
+        ScoringEngine.Sources.Intersection => UiKit.Mult.Lightened(0.3f),
+        ScoringEngine.Sources.Enhancement => UiKit.Money,
+        _ => new Color("c9a6ff"), // desk items
+    };
+
+    /// <summary>Common follow-up after any action: warn about dead hands, then redraw.</summary>
+    private void AfterAction()
+    {
+        if (_session.Phase == RunPhase.InRound && !RoundRules.HasLegalPlay(Round, _lexicon))
+            SetMessage("No legal play with this hand — select tiles and discard.", UiKit.Bad);
+        Refresh();
+    }
+
+    // ---------------------------------------------------------------- keyboard
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (_session.Phase != RunPhase.InRound || _animating || @event is not InputEventKey { Pressed: true, Echo: false } key)
+            return;
+
+        switch (key.Keycode)
+        {
+            case Key.Enter or Key.KpEnter:
+                Submit();
+                break;
+            case Key.Escape:
+                Recall();
+                break;
+            case Key.Backspace when _pending.Count > 0:
+                ReturnPending(_pending.Keys.Last());
+                break;
+            default:
+                char typed = char.ToUpperInvariant((char)key.Unicode);
+                if (typed is >= 'A' and <= 'Z'
+                    && Round.Hand.Tiles.FirstOrDefault(t => t.Letter.Char == typed && !_selected.Contains(t) && !_pending.ContainsValue(t)) is { } tile)
+                    ToggleSelected(tile);
+                break;
+        }
+        GetViewport().SetInputAsHandled();
+    }
+}

@@ -43,15 +43,17 @@ All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item
 
 ## Layout
 - `src/Crossword.Core` — `Domain/` (state records, board, premium layout), `Rules/` (placement validation, round/draw transitions), `Scoring/`, `Effects/` (Desk Item pipeline), `DeskItems/` (concrete items + catalog), `Analysis/` (move generator, ranker, round + run simulators), `Run/` (run config, economy, bosses, shop, `GameSession`/`RunRules`), `Lexicon/` (DAWG + embedded ENABLE, `IWordGraph` traversal), `Random/`
-- `src/Crossword.Cli` — developer QA console (parser, renderer, simulation report, REPL); references Core only
+- `game/` — **Godot 4.7 (.NET) UI** (`Wordgame.Godot.csproj`, `project.godot`, `Scenes/Main.tscn`). UI is built in code in `Scripts/Main*.cs` + `UiKit.cs`; it only renders `GameSession` and calls `RunRules`/`ShopRules` — no rules in the UI. Visual-only state (selected/pending tiles) lives in `Main`. Compatibility renderer.
+- `src/Crossword.Cli` — developer text console (parser, renderer, simulation report, REPL); references Core only
 - `tests/Crossword.Tests` — xUnit tests, mirroring Core folder structure (+ `Cli/` parser tests, `TestSupport/Fixtures`)
-- `run_local_qa.bat [--ci] [seed]` — build → test → launch CLI (double-click; `--ci` skips pauses). Keep it working as the project evolves.
+- `run_local_qa.bat [--cli] [--ci] [seed]` — build → test → launch the **Godot game window** (double-click). `--cli` uses the text console, `--ci` skips pauses. Godot path comes from `GODOT` in gitignored `qa.local.bat` (see `qa.local.bat.example`); falls back to the console if missing. Keep it working as the project evolves.
 
 ## Commands
 - Full QA loop: `run_local_qa.bat`
 - Run all tests: `dotnet test`
 - Run scoring tests only: `dotnet test --filter Category=Scoring`
-- Play a specific seed: `run_local_qa.bat 42` or `dotnet run --project src/Crossword.Cli -- 42`
+- Play a specific seed: `run_local_qa.bat 42` (game) or `run_local_qa.bat --cli 42` (console)
+- Game dev flags (after `--`): `"%GODOT%" --path game -- --seed=42 --give=red-pen,pulitzer --autoplay=3 --hint --screenshot=out.png` (screenshot saves and quits — use it to visually verify UI changes).
 - Other categories: `Lexicon`, `Determinism`, `Architecture`
 
 ## Code Conventions

@@ -1,0 +1,27 @@
+; Engine configuration file.
+; Godot 4 project for the wordgame UI. All game rules live in src/Crossword.Core;
+; this project only renders GameSession state and forwards player input to RunRules/ShopRules.
+
+config_version=5
+
+[application]
+
+config/name="wordgame"
+run/main_scene="res://Scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=1440
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[dotnet]
+
+project/assembly_name="Wordgame.Godot"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

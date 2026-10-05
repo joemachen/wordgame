@@ -26,3 +26,6 @@ mono_crash.*.json
 # OS
 Thumbs.db
 .DS_Store
+
+# Machine-specific QA settings (e.g. Godot path)
+qa.local.bat

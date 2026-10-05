@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{851FD4BB
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crossword.Tests", "tests\Crossword.Tests\Crossword.Tests.csproj", "{32A59061-B05F-4F8C-B575-C2A445B28DA2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wordgame.Godot", "game\Wordgame.Godot.csproj", "{5BB3E6C7-6F2F-4EA0-A1B9-32C4F68091EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +36,10 @@ Global
 		{32A59061-B05F-4F8C-B575-C2A445B28DA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{32A59061-B05F-4F8C-B575-C2A445B28DA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{32A59061-B05F-4F8C-B575-C2A445B28DA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BB3E6C7-6F2F-4EA0-A1B9-32C4F68091EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BB3E6C7-6F2F-4EA0-A1B9-32C4F68091EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BB3E6C7-6F2F-4EA0-A1B9-32C4F68091EA}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BB3E6C7-6F2F-4EA0-A1B9-32C4F68091EA}.Release|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{07975ED8-BA8C-4336-A1FA-7920F00DE3C5} = {A26E46E5-A3A1-436A-BDF5-AE55F6E31095}

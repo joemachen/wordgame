@@ -1,0 +1,2 @@
+@rem Copy to qa.local.bat (gitignored) and point GODOT at your Godot 4.7 .NET editor executable.
+set "GODOT=C:\path\to\Godot_v4.7.1-stable_mono_win64.exe"
