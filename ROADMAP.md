@@ -104,7 +104,7 @@ Stationery at a fixed estimated gain per item and `StationeryBot` uses it in sim
 | **Answer Key** ✅ | Reveals the best play for your current hand. The free Hint only shows a decent play (never the best), so solving the board for you costs money. |
 | **White-Out** ✅ | Remove one tile from the board for the rest of the round. Holding it (or Scissors) keeps a stuck round alive. |
 | **Highlighter** | One tile's letter value ×3 on your next play |
-| **Fountain Pen** | Rewrite one hand tile as any letter |
+| **Fountain Pen** ✅ | The selected hand tile becomes wild (any letter, 0 chips) for the round |
 | **Scissors** ✅ | Swap up to 2 hand tiles for new draws without spending a discard |
 | **Correction Tape** | Undo your last submission this round; its tiles return to your hand and you get the submission back |
 | **Red Ink Bottle** ✅ | +3 Mult on every play for the rest of the round (stacks) |
@@ -241,10 +241,11 @@ tests and a `runsim` balance check.
 | **0** ✅ | Retune week targets → 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75 (ScoreFraction model), then ×1.3 → 440/1560/4680/12680/20800 after balanced draws (reference skill 0.75 wins ~36%) | — |
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
-| **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 5 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle) + bot support. Later: Highlighter, Fountain Pen, Correction Tape | — |
+| **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
 | **4** | In-run save/resume → profile & unlock tracking (§9) | — |
 | **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |
 | **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
+| **Wild tiles** ✅ | Play as any letter (chosen when placed), 0 letter chips. 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5), Fountain Pen Stationery. Bots don't buy the wild offers or the Fountain Pen yet. | done 2026-10-05 |
 | **Letter mix** ✅ | Balanced draws (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) + starting deck at ~42% vowels. Rough hands at play time 29.5% → 10%. | done 2026-10-05 |
 
 | Parallel track | Work | Best time |
