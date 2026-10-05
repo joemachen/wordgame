@@ -9,4 +9,9 @@
     <RootNamespace>Crossword.Core</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- ENABLE word list (public domain). -->
+    <EmbeddedResource Include="Lexicon\Data\enable1.txt" LogicalName="Crossword.Core.Lexicon.enable1.txt" />
+  </ItemGroup>
+
 </Project>
