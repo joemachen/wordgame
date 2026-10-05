@@ -65,6 +65,7 @@ public partial class Main : Control
 
     // Centre
     private HBoxContainer _deskRow = null!;
+    private Label _deskCaption = null!;
     private Control _roundArea = null!;
     private CenterContainer _boardHolder = null!;
     private HandRow _handRow = null!;
@@ -185,6 +186,10 @@ public partial class Main : Control
 
         _deskRow = UiKit.HBox(10);
         centre.AddChild(_deskRow);
+        _deskCaption = UiKit.MakeLabel(
+            "Desk Items apply left to right: put +Chips and +Mult items before ×Mult ones. Hover ◀ ▶ to compare scores.",
+            13, UiKit.TextMuted);
+        centre.AddChild(_deskCaption);
 
         var content = new Control { SizeFlagsVertical = SizeFlags.ExpandFill };
         centre.AddChild(content);

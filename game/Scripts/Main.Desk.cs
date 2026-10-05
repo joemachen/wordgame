@@ -1,6 +1,8 @@
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Rules;
 using Crossword.Core.Run;
+using Crossword.Core.Scoring;
 using Crossword.Core.Stationery;
 using Godot;
 using GridPos = Crossword.Core.Domain.Position;
@@ -29,6 +31,9 @@ public partial class Main
             && (_session.Phase != RunPhase.InRound || targeting >= Run.Stationery.Length || Run.Stationery[targeting] is not WhiteOut))
             _whiteOutSlot = null;
         bool canEdit = _session.Phase is RunPhase.InRound or RunPhase.Shop && !_animating;
+        _deskCaption.Visible = Run.DeskItems.Length >= 2;
+        var play = _session.Phase == RunPhase.InRound ? PendingPlay() : null;
+        long current = play is null ? 0 : ScoreWith(play, Run.DeskItems);
 
         for (int slot = 0; slot < RunState.MaxDeskSlots; slot++)
         {
@@ -61,6 +66,8 @@ public partial class Main
             var right = UiKit.MakeButton("▶", UiKit.Panel, 12);
             right.Disabled = !canEdit || index == Run.DeskItems.Length - 1;
             right.Pressed += () => MoveDeskItem(index, index + 1);
+            SetMoveHint(left, index, index - 1, "left", play, current);
+            SetMoveHint(right, index, index + 1, "right", play, current);
             var sell = UiKit.MakeButton($"Sell ${_config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money);
             sell.Disabled = !canEdit;
             sell.Pressed += () => SellDeskItem(index);
@@ -204,6 +211,43 @@ public partial class Main
             _session = sold.Value;
         Refresh();
     }
+
+    /// <summary>
+    /// Tooltip (and tint) for a Desk Item move arrow: with a pending play, what that play would score after the move;
+    /// otherwise the ordering rule.
+    /// </summary>
+    private void SetMoveHint(Button arrow, int from, int to, string direction, PlayAnalysis? play, long current)
+    {
+        if (arrow.Disabled)
+            return;
+        if (play is null)
+        {
+            arrow.TooltipText = $"Move {direction}. Desk Items apply left to right, so put +Chips and +Mult items before ×Mult ones. "
+                + "Place a play on the board to compare scores.";
+            return;
+        }
+        long moved = ScoreWith(play, Run.MoveDeskItem(from, to).Value.DeskItems);
+        long change = moved - current;
+        arrow.TooltipText = change == 0
+            ? $"Move {direction}: no change for this play ({current:N0})"
+            : $"Move {direction}: {current:N0} → {moved:N0} ({change:+#,0;-#,0}) for this play";
+        if (change != 0)
+        {
+            var color = change > 0 ? UiKit.Good : UiKit.Bad;
+            arrow.AddThemeColorOverride("font_color", color);
+            arrow.AddThemeColorOverride("font_hover_color", color);
+        }
+    }
+
+    /// <summary>The pending placement as a validated play, or null when there is none or it is illegal.</summary>
+    private PlayAnalysis? PendingPlay() =>
+        _pending.Count > 0 && PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength)
+            is { IsOk: true } valid
+            ? valid.Value
+            : null;
+
+    private long ScoreWith(PlayAnalysis play, IReadOnlyList<IDeskItem> items) =>
+        ScoringEngine.Score(play, items, RoundScoring, RoundRules.Environment(Round, Run.Money)).Total;
 
     private void MoveDeskItem(int from, int to)
     {

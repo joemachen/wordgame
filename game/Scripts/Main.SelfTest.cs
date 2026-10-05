@@ -136,6 +136,22 @@ public partial class Main
         await PressKey(global::Godot.Key.Escape);
         Check("esc closes style guides, keeps the play", !_styleGuidesOverlay.Visible && _pending.Count == pendingBefore);
 
+        // 7b. With ×Mult before +Mult, the +Mult item's ◀ arrow previews a higher score for the pending play (green).
+        _session = _session with
+        {
+            Run = Run with
+            {
+                DeskItems = [Crossword.Core.DeskItems.DeskItemCatalog.Find("pulitzer")!, Crossword.Core.DeskItems.DeskItemCatalog.Find("red-pen")!],
+            },
+        };
+        Refresh();
+        await Frames(2);
+        var moveLeft = _deskRow.GetChild(1).FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "◀");
+        Check("desk arrow previews a better order", _deskCaption.Visible && moveLeft.TooltipText.StartsWith("Move left:")
+            && moveLeft.TooltipText.Contains("(+") && moveLeft.GetThemeColor("font_color") == UiKit.Good);
+        _session = _session with { Run = Run with { DeskItems = [] } };
+        Refresh();
+
         // 8. Using an Answer Key places the best play and empties its Stationery slot.
         _session = _session with { Run = Run.AddStationery(new Crossword.Core.Stationery.AnswerKey()).Value };
         Refresh();
