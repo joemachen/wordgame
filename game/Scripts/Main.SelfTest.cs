@@ -110,6 +110,18 @@ public partial class Main
         var tagged = _handRow.GetChildren().OfType<TileButton>().Where(b => b.FindChild("NewTag", owned: false) is not null)
             .Select(b => b.TileId).ToHashSet();
         Check("new tiles are highlighted after a discard", drawn.Count == 2 && tagged.SetEquals(drawn));
+        await Click(Centre(HandButton(0)));
+        Check("touching the hand clears NEW tags", NewTagNodes().Count == 0 && _newTileIds.Count == 0);
+        await Click(Centre(HandButton(0))); // deselect
+
+        // 5e. Untouched, NEW tags fade away on their own.
+        await Click(Centre(HandButton(0)));
+        await Click(Centre(_discardButton));
+        bool taggedAgain = NewTagNodes().Count > 0;
+        await Seconds(Juice.NewTagSeconds + Juice.NewTagFadeSeconds + 0.3);
+        Refresh();
+        await Frames(2);
+        Check("NEW tags fade after a few seconds", taggedAgain && NewTagNodes().Count == 0 && _newTileIds.Count == 0);
 
         // 6. Hint places a play; the preview defines every word it forms.
         await Click(Centre(_hintButton));

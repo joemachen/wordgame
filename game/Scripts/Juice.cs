@@ -34,6 +34,10 @@ public static class Juice
     public const int ConfettiAmount = 90;
     public const string StampText = "STOP THE PRESSES!";
 
+    // NEW tags on freshly drawn tiles: shown this long (unless the hand is touched first), then faded out.
+    public const double NewTagSeconds = 3.0;
+    public const double NewTagFadeSeconds = 0.5;
+
     public enum Level { Normal, Big, Huge }
 
     public static Level LevelFor(long playTotal, long target) =>

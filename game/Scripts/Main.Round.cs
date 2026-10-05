@@ -184,6 +184,7 @@ public partial class Main
     {
         if (_animating || TileButton.RecentlyDragged)
             return;
+        DismissNewTags();
         if (!_selected.Remove(tile))
             _selected.Add(tile);
         Refresh();
@@ -198,6 +199,7 @@ public partial class Main
             SetMessage("Pick a tile from your hand first (click it or type its letter).", UiKit.TextMuted);
             return;
         }
+        DismissNewTags();
         var tile = _selected[0];
         _selected.RemoveAt(0);
         _pending[pos] = tile;
@@ -209,6 +211,7 @@ public partial class Main
     {
         if (_animating || Round.Hand.Tiles.FirstOrDefault(t => t.Id == tileId) is not { } tile)
             return;
+        DismissNewTags();
         foreach (var moved in _pending.Where(kv => kv.Value == tile).Select(kv => kv.Key).ToList())
             _pending.Remove(moved);
         _selected.Remove(tile);
@@ -240,6 +243,7 @@ public partial class Main
     {
         if (_animating || HandTileButton(tileId) is not { } ghost)
             return;
+        DismissNewTags();
         _handDragId = tileId;
         _ghostHome = ghost.GetIndex();
         ghost.SetGhost(true);
@@ -319,6 +323,7 @@ public partial class Main
     {
         if (_animating)
             return;
+        DismissNewTags();
         (_handOrder, _arrangementRng) = HandArrangement.Shuffle(HandArrangement.Reconcile(_handOrder, Round.Hand), _arrangementRng);
         Refresh();
     }
@@ -327,6 +332,7 @@ public partial class Main
     {
         if (_animating)
             return;
+        DismissNewTags();
         _handOrder = HandArrangement.Sort(Round.Hand, _sortDescending);
         _sortDescending = !_sortDescending;
         _sortButton.Text = _sortDescending ? "Z→A" : "A→Z";

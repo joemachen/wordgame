@@ -43,6 +43,7 @@ public partial class Main : Control
     private readonly HashSet<int> _newTileIds = new();
     private readonly HashSet<int> _animatedNewTiles = new();
     private int _newTilesRound = -1;
+    private int _newTagGeneration;
 
     // Next alphabetical sort direction.
     private bool _sortDescending;
@@ -412,7 +413,46 @@ public partial class Main : Control
         foreach (var tile in Round.Hand.Tiles)
             if (!handBefore.Contains(tile.Id))
                 _newTileIds.Add(tile.Id);
+        int generation = ++_newTagGeneration;
+        if (_newTileIds.Count > 0)
+            GetTree().CreateTimer(Juice.NewTagSeconds).Timeout += () => FadeNewTags(generation);
     }
+
+    /// <summary>Fades out the NEW tags from <paramref name="generation"/> (unless a newer action replaced them).</summary>
+    private void FadeNewTags(int generation)
+    {
+        if (generation != _newTagGeneration)
+            return;
+        var marks = NewTagNodes();
+        if (marks.Count == 0)
+        {
+            _newTileIds.Clear();
+            return;
+        }
+        var tween = CreateTween().SetParallel();
+        foreach (var mark in marks)
+            tween.TweenProperty(mark, "modulate:a", 0f, Juice.NewTagFadeSeconds);
+        tween.Chain().TweenCallback(Callable.From(() =>
+        {
+            if (generation == _newTagGeneration)
+                _newTileIds.Clear();
+        }));
+    }
+
+    /// <summary>The first touch of the hand (select, drag, place, sort, shuffle) clears the NEW tags at once.</summary>
+    private void DismissNewTags()
+    {
+        if (_newTileIds.Count == 0)
+            return;
+        _newTileIds.Clear();
+        _newTagGeneration++;
+        foreach (var mark in NewTagNodes())
+            mark.QueueFree();
+    }
+
+    private List<Control> NewTagNodes() => _handRow.GetChildren().OfType<TileButton>()
+        .SelectMany(b => b.GetChildren().OfType<Control>().Where(c => c.Name == "NewTag" || c.Name == "NewOutline"))
+        .ToList();
 
     private int[] HandIds() => Round.Hand.Tiles.Select(t => t.Id).ToArray();
 
