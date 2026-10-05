@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD (see §9) · 294 unit tests passing · UI self-test 21/21 passing_
+_Last updated: 2026-10-05 · HEAD `e928808` (code) · 294 unit tests passing · UI self-test 21/21 passing_
 
 ---
 
@@ -152,6 +152,8 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+e928808 Retune week targets and soften The Strict Grammarian's deadline
+c4fd76d Record hint rework and round-length measurements in handoff
 97ab47a Make the free hint a decent play and sell the best play as an Answer Key
 244d9e1 Measure submissions to win and add a score-fraction skill model
 535d7ae Bring handoff up to date: drag confirmed, definitions gap, builder tips
