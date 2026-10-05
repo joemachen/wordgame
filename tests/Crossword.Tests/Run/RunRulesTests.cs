@@ -19,7 +19,7 @@ public class RunRulesTests
             new RoundKind("Saturday Stumper", 1.5m, BasePay: 4, IsBoss: false),
             new RoundKind("Sunday Edition", 2m, BasePay: 5, IsBoss: true),
         ],
-        Economy = new EconomyConfig(StartingMoney: 4),
+        Economy = new EconomyConfig(StartingMoney: 4, PerUnusedSubmission: 1, OverkillStep: 0.5m, OverkillCap: 3, InterestPer: 5, InterestCap: 5),
     };
 
     private static GameSession NewGame(ulong seed = 1) => RunRules.NewGame(seed, Config, LexiconLoader.Enable);

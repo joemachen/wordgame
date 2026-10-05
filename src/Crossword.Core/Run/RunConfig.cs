@@ -7,13 +7,17 @@ namespace Crossword.Core.Run;
 /// <summary>One slot in the week, e.g. "Daily" or the "Sunday Edition" boss.</summary>
 public sealed record RoundKind(string Name, decimal TargetMultiplier, int BasePay, bool IsBoss);
 
-/// <summary>Money rules. Overkill rewards a big finishing play; both bonuses are capped to limit snowballing.</summary>
+/// <summary>
+/// Money rules. Overkill rewards a big finishing play; both bonuses are capped to limit snowballing. Since 2026-10-05
+/// overkill pays every 25% over the deadline (was 50%) and interest is $1 per $4 held (was $5): the bot earned only
+/// $0.16/round of interest and money felt tight after the ×1.3 target raise.
+/// </summary>
 public sealed record EconomyConfig(
     int StartingMoney = 4,
     int PerUnusedSubmission = 1,
-    decimal OverkillStep = 0.5m,
+    decimal OverkillStep = 0.25m,
     int OverkillCap = 3,
-    int InterestPer = 5,
+    int InterestPer = 4,
     int InterestCap = 5);
 
 /// <summary>
@@ -21,8 +25,9 @@ public sealed record EconomyConfig(
 /// run is won; endless play continues with targets growing by <see cref="EndlessGrowth"/> per week.
 /// Default targets tuned with <see cref="Analysis.RunSimulator"/>'s evaluating shop bot and the ScoreFraction skill
 /// model (a human-like player; 150–200 runs per cell): raised ×1.3 on 2026-10-05 after balanced draws made hands
-/// fairer — skill 0.9 / 0.75 / 0.6 wins ~59% / 36% / 15%, won rounds take ~2.6 submissions (55% in 1–2). Retune with
-/// 'runsim [runs] [skill] frac' whenever scaling content changes.
+/// fairer, then ×1.15 after the richer economy (overkill every 25%, interest per $4) — the reference skill 0.75 wins
+/// ~36%, won rounds take ~2.6 submissions (55% in 1–2). Retune with 'runsim [runs] [skill] frac' whenever scaling
+/// content changes.
 /// </summary>
 public sealed record RunConfig(
     ImmutableArray<long> WeekTargets,
@@ -42,7 +47,7 @@ public sealed record RunConfig(
     public ImmutableArray<BossTier> BossTiers { get; init; } = BossCatalog.DefaultTiers;
 
     public static RunConfig Default { get; } = new(
-        WeekTargets: [440, 1560, 4680, 12680, 20800],
+        WeekTargets: [510, 1790, 5380, 14580, 23920],
         Days:
         [
             new RoundKind("Daily", 1m, BasePay: 3, IsBoss: false),

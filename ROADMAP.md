@@ -200,9 +200,10 @@ modes cheap to build on the core.
 
 | Feature | Design (*proposed*) | Status |
 |---|---|---|
-| **Visual design system: 1950s newsroom** | Newsprint paper canvas `#F6F4EE`, Printer's Ink `#111111`, Red Pen correction marks `#C53030`, mahogany desk surround. Replaces the current dark first-pass theme. Centralize colors in `UiKit` so the whole theme can be swapped in one place. Check text contrast (WCAG AA) and keep Chips/Mult distinguishable for colorblind players. **Don't use NYT branding** (name, masthead, fonts) in the game or any marketing; "NYT-style" is internal shorthand only. | 🟡 |
+| **Visual design system: 1950s newsroom** | Reference: `art/art-direction.jpg` (user's mock, 2026-10-05 — mood only; its clue text is AI gibberish). Newspaper grid on a mahogany desk with the clue columns either side, taped newsprint sidebar, Desk Items as physical objects in green-felt trays, wooden tile rack, rubber-stamp money. Needs: open-license fonts (e.g. Special Elite / Courier Prime for type, Libre Baskerville for headlines), premium squares that stay legible (labels, not just tint), item illustrations commissioned or CC0/licensed. Newsprint paper canvas `#F6F4EE`, Printer's Ink `#111111`, Red Pen correction marks `#C53030`, mahogany desk surround. Replaces the current dark first-pass theme. Centralize colors in `UiKit` so the whole theme can be swapped in one place. Check text contrast (WCAG AA) and keep Chips/Mult distinguishable for colorblind players. **Don't use NYT branding** (name, masthead, fonts) in the game or any marketing; "NYT-style" is internal shorthand only. | 🟡 |
 | **Audio** | Typewriter clacks on tile placement, pencil scribbles, rubber-stamp approval on round win, printing-press roll for big Mult. Sources must be CC0 or bought with a commercial license. | 🟡 |
 | **Animation** | Tile placement, score count-up driven by the existing `EffectEvent` log, stamp/press effects scaled to Mult. | ✅ scoring ring-up (count-up, punches, Desk Item pops, shake/confetti/stamp escalation; `Juice.cs`), NEW-tile pop-in · 🟡 tile placement |
+| **Margin clue columns** | ACROSS/DOWN columns beside the board: the board's words numbered like a printed crossword with their definitions, then lifetime records ("From the morgue"), then newsroom tips ("Editor's notes") that teach mechanics on a fresh profile. | ✅ built · hidden (`Main.ShowClueColumns`) until the visual overhaul — they read as foreground, should be background |
 | Progress & hand UX | Week pips + this week's three puzzles + puzzles until the boss; A→Z/Z→A hand sort; NEW tag on drawn tiles; drag pending tiles; Desk Item order preview on ◀ ▶. | ✅ |
 | Shop card color-coding | Distinct colors per category: Desk Items / deck edits / Style Guides / Stationery. | 🟡 |
 | Score breakdown tooltips | Hover a pending play to see its Chips × Mult math step by step (live preview ✅ already shows the totals). | 🟡 |
@@ -238,7 +239,7 @@ tests and a `runsim` balance check.
 
 | Phase | Work | Depends on |
 |---|---|---|
-| **0** ✅ | Retune week targets → 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75 (ScoreFraction model), then ×1.3 → 440/1560/4680/12680/20800 after balanced draws (reference skill 0.75 wins ~36%) | — |
+| **0** ✅ | Retune week targets → 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75 (ScoreFraction model), then ×1.3 after balanced draws, then ×1.15 → 510/1790/5380/14580/23920 after the richer economy (overkill every 25%, interest per $4); reference skill 0.75 wins ~37% | — |
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
 | **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
