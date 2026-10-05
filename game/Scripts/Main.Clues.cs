@@ -13,6 +13,12 @@ namespace Wordgame.Godot;
 /// </summary>
 public partial class Main
 {
+    /// <summary>
+    /// Off for now (user's call, 2026-10-05): the columns were distracting; they come back with the visual overhaul.
+    /// When off, the columns and tile clue numbers are hidden; the clue engine and stats keep running in Core.
+    /// </summary>
+    private static readonly bool ShowClueColumns = false;
+
     private const int ClueSlots = 12;
     private const float ClueColumnWidth = 230;
 
@@ -28,6 +34,7 @@ public partial class Main
     private Control BuildClueColumn(out VBoxContainer box)
     {
         var panel = UiKit.MakePanel(UiKit.Newsprint, padding: 10, radius: 4, border: new Color("cfc4a8"), borderWidth: 1);
+        panel.Visible = ShowClueColumns;
         panel.CustomMinimumSize = new Vector2(ClueColumnWidth, 0);
         panel.SizeFlagsVertical = SizeFlags.ExpandFill;
         var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
@@ -40,6 +47,8 @@ public partial class Main
 
     private void RefreshClues()
     {
+        if (!ShowClueColumns)
+            return;
         var sheet = MarginClues.For(Round.Board, _profile.Profile.Stats, w => DefinitionLoader.Default.Define(w)?.Summary, ClueSlots);
         FillClueColumn(_acrossBox, "ACROSS", sheet.Across);
         FillClueColumn(_downBox, "DOWN", sheet.Down);

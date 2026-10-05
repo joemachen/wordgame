@@ -67,7 +67,9 @@ public partial class Main
     private void RefreshBoard()
     {
         UiKit.ClearChildren(_boardHolder);
-        _clueNumbers = BoardWords.Numbered(Round.Board).GroupBy(w => w.Start).ToDictionary(g => g.Key, g => g.First().Number);
+        _clueNumbers = ShowClueColumns
+            ? BoardWords.Numbered(Round.Board).GroupBy(w => w.Start).ToDictionary(g => g.Key, g => g.First().Number)
+            : new();
         var frame = UiKit.MakePanel(UiKit.Panel, padding: 10, radius: 12);
         var grid = new GridContainer { Columns = Round.Board.Size };
         grid.AddThemeConstantOverride("h_separation", 4);

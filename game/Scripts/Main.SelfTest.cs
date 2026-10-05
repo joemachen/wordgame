@@ -24,8 +24,11 @@ public partial class Main
             && _dayStrip.GetChildCount() == 3 && _bossLabel.Text.StartsWith("2 puzzles until the Sunday Edition"));
 
         // 0b. A fresh profile fills the clue columns with newsroom tips.
-        Check("fresh profile shows editor's notes", ClueText(_acrossBox).Contains("EDITOR'S NOTES") && ClueText(_acrossBox).Contains("DEADLINE")
-            && ClueText(_downBox).StartsWith("DOWN"));
+        if (ShowClueColumns)
+            Check("fresh profile shows editor's notes", ClueText(_acrossBox).Contains("EDITOR'S NOTES") && ClueText(_acrossBox).Contains("DEADLINE")
+                && ClueText(_downBox).StartsWith("DOWN"));
+        else
+            Check("clue columns are hidden", !_acrossBox.IsVisibleInTree() && !_downBox.IsVisibleInTree());
 
         // 1. Click selects a hand tile.
         var first = HandButton(0);
@@ -261,7 +264,8 @@ public partial class Main
 
         // 13b. The submitted words appear in the clue columns, numbered like a crossword, and their record clues too.
         var numbered = BoardWords.Numbered(Round.Board);
-        Check("clue columns list the board's words", numbered.Length > 0
+        if (ShowClueColumns)
+            Check("clue columns list the board's words", numbered.Length > 0
             && numbered.All(w => ClueText(w.Direction == Crossword.Core.Domain.Direction.Across ? _acrossBox : _downBox).Contains($"{w.Number}  {w.Text}"))
             && ClueText(_downBox).Contains("FROM THE MORGUE"));
 
