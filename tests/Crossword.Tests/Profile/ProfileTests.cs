@@ -103,15 +103,49 @@ public class ProfileTests
     // ---------------------------------------------------------------- json
 
     [Fact]
-    public void Json_RoundTripsAProfile()
+    public void StatsSerialization_RoundTrip()
     {
-        var profile = PlayerProfile.New("Joe") with { Stats = StatsRules.RecordRunStart(Played("CAT", "TO", "CAT")) };
+        var stats = StatsRules.RecordRunStart(Played("CAT", "TO", "CAT")) with
+        {
+            TotalIntersections = 7,
+            CloseCalls = 2,
+            BossesBeaten = new Dictionary<string, int> { ["Ink Spill"] = 2 }.ToImmutableDictionary(),
+            FullSpreadRounds = 1,
+        };
+        var profile = PlayerProfile.New("Joe") with { Stats = stats };
 
         var loaded = ProfileJson.Deserialize(ProfileJson.Serialize(profile)).Value;
 
         Assert.Equal("Joe", loaded.Name);
         Assert.Equal(profile.Stats.Words.OrderBy(kv => kv.Key), loaded.Stats.Words.OrderBy(kv => kv.Key));
-        Assert.Equal(profile.Stats with { Words = loaded.Stats.Words }, loaded.Stats);
+        Assert.Equal(profile.Stats.BossesBeaten.OrderBy(kv => kv.Key), loaded.Stats.BossesBeaten.OrderBy(kv => kv.Key));
+        Assert.Equal(profile.Stats with { Words = loaded.Stats.Words, BossesBeaten = loaded.Stats.BossesBeaten }, loaded.Stats);
+    }
+
+    [Fact]
+    public void RecordPlay_AddsIntersections()
+    {
+        var board = BoardFromRows("CAT..", ".....", ".....", ".....", ".....");
+        var play = PlayOn(board, "TO", 1, 1, Direction.Across, "TO");
+
+        Assert.Equal(play.Intersections.Length, StatsRules.RecordPlay(PlayerStats.Empty, play, 10).TotalIntersections);
+        Assert.True(play.Intersections.Length > 0);
+    }
+
+    [Fact]
+    public void RecordRoundWon_CountsCloseCalls_Bosses_AndFullSpreads()
+    {
+        RoundState Won(string topRow, int submissionsLeft, Crossword.Core.Run.BossModifier? boss) =>
+            new(new RoundConfig(TargetScore: 1, Boss: boss), BoardFromRows(topRow, ".....", ".....", ".....", "....."),
+                TileBag.Empty, Hand.Empty, Crossword.Core.Random.Rng.FromSeed(1), Score: 5, SubmissionsLeft: submissionsLeft, DiscardsLeft: 0);
+
+        var stats = StatsRules.RecordRoundWon(PlayerStats.Empty, Won("CAT..", 0, new Crossword.Core.Run.InkSpill()));
+        stats = StatsRules.RecordRoundWon(stats, Won("AEIOU", 2, new Crossword.Core.Run.InkSpill()));
+        stats = StatsRules.RecordRoundWon(stats, Won("TO...", 1, null));
+
+        Assert.Equal(1, stats.CloseCalls);
+        Assert.Equal(2, stats.BossesBeaten[new Crossword.Core.Run.InkSpill().Name]);
+        Assert.Equal(1, stats.FullSpreadRounds);
     }
 
     [Fact]

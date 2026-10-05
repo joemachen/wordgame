@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Crossword.Core.Domain;
 using Crossword.Core.Rules;
 
 namespace Crossword.Core.Profile;
@@ -31,6 +32,18 @@ public sealed record PlayerStats
     public string? BestPlayWords { get; init; }
 
     public string? LongestWord { get; init; }
+
+    /// <summary>New tiles that sat in both an Across and a Down word, summed over every play.</summary>
+    public long TotalIntersections { get; init; }
+
+    /// <summary>Rounds won on the last submission.</summary>
+    public int CloseCalls { get; init; }
+
+    /// <summary>Boss rounds won, by boss name.</summary>
+    public ImmutableDictionary<string, int> BossesBeaten { get; init; } = ImmutableDictionary<string, int>.Empty;
+
+    /// <summary>Rounds won whose final board used all five vowels or ten or more distinct letters.</summary>
+    public int FullSpreadRounds { get; init; }
 }
 
 /// <summary>A named player profile. <see cref="Version"/> lets later releases migrate old files.</summary>
@@ -66,6 +79,25 @@ public static class StatsRules
             BestPlayScore = best ? score : stats.BestPlayScore,
             BestPlayWords = best ? string.Join(" + ", play.Words.Select(w => w.Text)) : stats.BestPlayWords,
             LongestWord = stats.LongestWord is null || longest.Length > stats.LongestWord.Length ? longest : stats.LongestWord,
+            TotalIntersections = stats.TotalIntersections + play.Intersections.Length,
+        };
+    }
+
+    /// <summary>
+    /// Records a won round: a close call when no submissions were left, the boss beaten, and a full spread when the
+    /// final board shows all five vowels or ten or more distinct letters (wild tiles count as the letter they play).
+    /// </summary>
+    public static PlayerStats RecordRoundWon(PlayerStats stats, RoundState round)
+    {
+        var letters = round.Board.Cells.OfType<Tile>().Select(t => t.Letter.Char).ToHashSet();
+        bool fullSpread = "AEIOU".All(letters.Contains) || letters.Count >= 10;
+        return stats with
+        {
+            CloseCalls = stats.CloseCalls + (round.SubmissionsLeft == 0 ? 1 : 0),
+            BossesBeaten = round.Config.Boss is { } boss
+                ? stats.BossesBeaten.SetItem(boss.Name, stats.BossesBeaten.GetValueOrDefault(boss.Name) + 1)
+                : stats.BossesBeaten,
+            FullSpreadRounds = stats.FullSpreadRounds + (fullSpread ? 1 : 0),
         };
     }
 

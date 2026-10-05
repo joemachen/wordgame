@@ -1,3 +1,4 @@
+using Crossword.Core.Clues;
 using Crossword.Core.Analysis;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
@@ -24,8 +25,14 @@ public partial class Main
     {
         var box = UiKit.VBox(16);
 
-        _boardHolder = new CenterContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
-        box.AddChild(_boardHolder);
+        // The board sits between its ACROSS and DOWN clue columns, like a printed crossword.
+        var boardRow = UiKit.HBox(12);
+        boardRow.SizeFlagsVertical = SizeFlags.ExpandFill;
+        boardRow.AddChild(BuildClueColumn(out _acrossBox));
+        _boardHolder = new CenterContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        boardRow.AddChild(_boardHolder);
+        boardRow.AddChild(BuildClueColumn(out _downBox));
+        box.AddChild(boardRow);
 
         var handHolder = new CenterContainer();
         _handRow = new HandRow { CanAcceptDrop = () => _handDragId is not null || _boardDragId is not null, Dropped = DropOnHand };
@@ -60,6 +67,7 @@ public partial class Main
     private void RefreshBoard()
     {
         UiKit.ClearChildren(_boardHolder);
+        _clueNumbers = BoardWords.Numbered(Round.Board).GroupBy(w => w.Start).ToDictionary(g => g.Key, g => g.First().Number);
         var frame = UiKit.MakePanel(UiKit.Panel, padding: 10, radius: 12);
         var grid = new GridContainer { Columns = Round.Board.Size };
         grid.AddThemeConstantOverride("h_separation", 4);
@@ -87,6 +95,16 @@ public partial class Main
             var tile = UiKit.MakeTile(placed, scoring.ValueOf(placed), CellSize, target ? StationeryColor.Lightened(0.55f) : UiKit.Newsprint,
                 raised: target);
             tile.Disabled = !target;
+            if (_clueNumbers.TryGetValue(pos, out int number))
+            {
+                var label = UiKit.MakeLabel(number.ToString(), 11, new Color("5b5545"), HorizontalAlignment.Right);
+                label.Name = "ClueNumber";
+                label.SetAnchorsPreset(LayoutPreset.FullRect);
+                label.OffsetRight = -4;
+                label.OffsetTop = 1;
+                label.MouseFilter = MouseFilterEnum.Ignore;
+                tile.AddChild(label);
+            }
             if (target)
             {
                 tile.TooltipText = "Click to white out";

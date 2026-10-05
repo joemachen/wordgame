@@ -58,7 +58,9 @@ public partial class Main
         string best = stats.BestPlayWords is null ? "—" : $"{stats.BestPlayScore:N0} ({stats.BestPlayWords})";
         var overview = UiKit.MakeLabel(
             $"Runs {stats.RunsStarted}   ·   Wins {stats.RunsWon}   ·   Furthest week {(stats.BestWeekReached == 0 ? "—" : stats.BestWeekReached)}\n"
-            + $"Distinct words {stats.Words.Count:N0}   ·   Plays {stats.PlaysRecorded:N0}   ·   Longest word {stats.LongestWord ?? "—"}   ·   Best play {best}",
+            + $"Distinct words {stats.Words.Count:N0}   ·   Plays {stats.PlaysRecorded:N0}   ·   Longest word {stats.LongestWord ?? "—"}   ·   Best play {best}\n"
+            + $"Intersections {stats.TotalIntersections:N0}   ·   Close calls {stats.CloseCalls:N0}   ·   Full spreads {stats.FullSpreadRounds:N0}"
+            + (stats.BossesBeaten.Count == 0 ? "" : $"   ·   Most-beaten boss {stats.BossesBeaten.MaxBy(kv => kv.Value).Key} ({stats.BossesBeaten.Values.Max()}×)"),
             15, UiKit.TextMuted, wrap: true);
         overview.CustomMinimumSize = new Vector2(860, 0);
         _statsBox.AddChild(overview);

@@ -1,3 +1,4 @@
+using Crossword.Core.Clues;
 using System.Collections.Immutable;
 using Crossword.Core.Rules;
 using Godot;
@@ -21,6 +22,10 @@ public partial class Main
         // 0. The sidebar shows the week, its three puzzles and how far away the boss is.
         Check("progress shows week and boss distance", _titleLabel.Text == "WEEK 1 OF 5" && _weekPips.GetChildCount() == 5
             && _dayStrip.GetChildCount() == 3 && _bossLabel.Text.StartsWith("2 puzzles until the Sunday Edition"));
+
+        // 0b. A fresh profile fills the clue columns with newsroom tips.
+        Check("fresh profile shows editor's notes", ClueText(_acrossBox).Contains("EDITOR'S NOTES") && ClueText(_acrossBox).Contains("DEADLINE")
+            && ClueText(_downBox).StartsWith("DOWN"));
 
         // 1. Click selects a hand tile.
         var first = HandButton(0);
@@ -253,6 +258,12 @@ public partial class Main
             await Seconds(0.1);
         Check("scoring pops the desk item and finishes", animatingAfterSubmit && _deskPops > popsBefore
             && _lastCelebration is not null && !_animating);
+
+        // 13b. The submitted words appear in the clue columns, numbered like a crossword, and their record clues too.
+        var numbered = BoardWords.Numbered(Round.Board);
+        Check("clue columns list the board's words", numbered.Length > 0
+            && numbered.All(w => ClueText(w.Direction == Crossword.Core.Domain.Direction.Across ? _acrossBox : _downBox).Contains($"{w.Number}  {w.Text}"))
+            && ClueText(_downBox).Contains("FROM THE MORGUE"));
 
         // 14. The play lands in the (in-memory) profile, and the Stats popup lists its words; Esc closes it.
         var playedWords = submitted.Play.Words.Select(w => w.Text).ToList();

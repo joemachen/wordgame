@@ -174,6 +174,7 @@ public partial class Main : Control
         _handOrder = Array.Empty<int>();
         _profile.Update(StatsRules.RecordRunStart);
         _runEndRecorded = false;
+        _roundWonRecorded = -1;
         ClearLog();
         SetMessage("New run. Click or drag a tile onto a square. Drag tiles in your hand to reorder; Space shuffles.", UiKit.TextMuted);
         Refresh();
@@ -321,6 +322,7 @@ public partial class Main : Control
     /// <summary>Redraws everything from the current session and visual state.</summary>
     private void Refresh()
     {
+        RecordRoundWonIfDone();
         RecordRunEndIfOver();
         RefreshSidebar();
         RefreshDesk();
@@ -333,6 +335,7 @@ public partial class Main : Control
         if (inRound)
         {
             RefreshBoard();
+            RefreshClues();
             RefreshHand();
             RefreshButtons();
             if (!_animating)

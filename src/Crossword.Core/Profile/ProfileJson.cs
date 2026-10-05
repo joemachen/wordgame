@@ -37,6 +37,11 @@ public static class ProfileJson
                 BestPlayScore = stats.BestPlayScore,
                 BestPlayWords = stats.BestPlayWords,
                 LongestWord = stats.LongestWord,
+                TotalIntersections = stats.TotalIntersections,
+                CloseCalls = stats.CloseCalls,
+                BossesBeaten = stats.BossesBeaten.Count == 0 ? null : stats.BossesBeaten.OrderBy(kv => kv.Key, StringComparer.Ordinal)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value),
+                FullSpreadRounds = stats.FullSpreadRounds,
             },
         };
         return JsonSerializer.Serialize(dto, Options);
@@ -70,6 +75,10 @@ public static class ProfileJson
             BestPlayScore = s.BestPlayScore,
             BestPlayWords = s.BestPlayWords,
             LongestWord = s.LongestWord,
+            TotalIntersections = s.TotalIntersections,
+            CloseCalls = s.CloseCalls,
+            BossesBeaten = (s.BossesBeaten ?? new Dictionary<string, int>()).ToImmutableDictionary(),
+            FullSpreadRounds = s.FullSpreadRounds,
         };
         return Result<PlayerProfile, string>.Ok(new PlayerProfile(dto.Name ?? "Player", stats) { Version = PlayerProfile.CurrentVersion });
     }
@@ -91,6 +100,10 @@ public static class ProfileJson
         public long BestPlayScore { get; set; }
         public string? BestPlayWords { get; set; }
         public string? LongestWord { get; set; }
+        public long TotalIntersections { get; set; }
+        public int CloseCalls { get; set; }
+        public Dictionary<string, int>? BossesBeaten { get; set; }
+        public int FullSpreadRounds { get; set; }
     }
 
     private sealed class WordUseDto
