@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Lexicon;
 using Crossword.Core.Random;
 using Crossword.Core.Stationery;
 
@@ -57,8 +58,11 @@ public static class ShopRules
         return Result<GameSession, string>.Ok(session with { Run = removed with { Money = removed.Money + value } });
     }
 
-    /// <summary>Sells the Stationery in <paramref name="slot"/> for half its price. Allowed during rounds and in the shop.</summary>
-    public static Result<GameSession, string> SellStationery(GameSession session, int slot)
+    /// <summary>
+    /// Sells the Stationery in <paramref name="slot"/> for half its price. Allowed during rounds and in the shop; in a
+    /// round, selling the last item that could break a deadlock (Scissors, White-Out) can end the round.
+    /// </summary>
+    public static Result<GameSession, string> SellStationery(GameSession session, int slot, IWordGraph lexicon)
     {
         if (session.Phase is not (RunPhase.InRound or RunPhase.Shop))
             return Fail("Nothing to sell now.");
@@ -67,7 +71,7 @@ public static class ShopRules
 
         int value = session.Config.Shop.SellValueOf(session.Run.Stationery[slot]);
         var removed = session.Run.RemoveStationery(slot).Value;
-        return Result<GameSession, string>.Ok(session with { Run = removed with { Money = removed.Money + value } });
+        return Result<GameSession, string>.Ok(RunRules.Recheck(session with { Run = removed with { Money = removed.Money + value } }, lexicon));
     }
 
     public static Result<GameSession, string> Reroll(GameSession session)
@@ -182,8 +186,10 @@ public static class ShopRules
                 tier.LevelMult, config.StyleGuidePrice));
         }
 
-        // A single-entry catalog consumes no RNG, so adding Stationery left every other shop roll unchanged.
-        var stationery = StationeryCatalog.All;
+        // Rolled last so the Stationery pool never shifts the other offers. A single-entry pool consumes no RNG.
+        var stationery = config.StationeryIds is { } ids
+            ? StationeryCatalog.All.Where(s => ids.Contains(s.Id)).ToImmutableArray()
+            : StationeryCatalog.All;
         for (int i = 0; i < config.StationeryOffers && stationery.Length > 0; i++)
         {
             int pick = 0;

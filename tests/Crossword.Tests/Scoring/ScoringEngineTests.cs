@@ -165,6 +165,31 @@ public class ScoringEngineTests
     }
 
     [Fact]
+    public void BonusMult_AddsAfterIntersections_BeforeDeskItems()
+    {
+        var board = BoardFromRows("CAT..", ".....", ".....", ".....", ".....");
+        var play = Play(board, "TO", 1, 1, Direction.Across, "TO");
+
+        var plain = ScoringEngine.Score(play, [new TimesMult("desk-1", 2)], Config);
+        var bonus = ScoringEngine.Score(play, [new TimesMult("desk-1", 2)], Config with { BonusMult = 3 });
+
+        Assert.Equal((plain.Mult / 2 + 3) * 2, bonus.Mult); // the ×2 Desk Item multiplies the bonus too
+        Assert.Equal(
+            [ScoringEngine.Sources.Intersection, ScoringEngine.Sources.Bonus, "desk-1"],
+            bonus.Log.Select(e => e.SourceId).TakeLast(3));
+    }
+
+    [Fact]
+    public void RoundConfig_BonusMult_StacksOnTheEffectiveScoring()
+    {
+        var round = new RoundConfig(TargetScore: 1, BonusMult: 3);
+
+        Assert.Equal(0m, new RoundConfig(TargetScore: 1).EffectiveScoring(Config).BonusMult);
+        Assert.Equal(3m, round.EffectiveScoring(Config).BonusMult);
+        Assert.Equal(5m, round.EffectiveScoring(Config with { BonusMult = 2 }).BonusMult);
+    }
+
+    [Fact]
     public void DefaultConfig_TiersAscendAndCoverTwoLetterWords()
     {
         var tiers = ScoringConfig.Default.Tiers;

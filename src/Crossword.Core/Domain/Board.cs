@@ -52,5 +52,13 @@ public sealed record Board(int Size, ImmutableArray<Tile?> Cells, ImmutableArray
         return this with { Cells = cells.MoveToImmutable() };
     }
 
+    /// <summary>Empties an occupied cell (its premium becomes usable again).</summary>
+    public Board Remove(Position position)
+    {
+        if (!IsOccupied(position))
+            throw new InvalidOperationException($"Cell {position} has no tile to remove.");
+        return this with { Cells = Cells.SetItem(Index(position), null) };
+    }
+
     private int Index(Position p) => p.Row * Size + p.Col;
 }

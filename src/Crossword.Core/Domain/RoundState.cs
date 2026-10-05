@@ -14,12 +14,17 @@ public sealed record RoundConfig(
     PremiumPairs? Premiums = null,
     int MinWordLength = 2,
     int BlockedPairs = 0,
-    BossModifier? Boss = null)
+    BossModifier? Boss = null,
+    decimal BonusMult = 0)
 {
     public PremiumPairs PremiumPairs => Premiums ?? PremiumPairs.Default;
 
-    /// <summary>The scoring rules in effect this round (the boss may alter them).</summary>
-    public ScoringConfig EffectiveScoring(ScoringConfig scoring) => Boss?.ModifyScoring(scoring) ?? scoring;
+    /// <summary>The scoring rules in effect this round (the boss may alter them; Red Ink Bottle adds <see cref="BonusMult"/>).</summary>
+    public ScoringConfig EffectiveScoring(ScoringConfig scoring)
+    {
+        var effective = Boss?.ModifyScoring(scoring) ?? scoring;
+        return BonusMult == 0 ? effective : effective with { BonusMult = effective.BonusMult + BonusMult };
+    }
 }
 
 public enum RoundStatus

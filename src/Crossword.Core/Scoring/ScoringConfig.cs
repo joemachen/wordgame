@@ -17,6 +17,8 @@ public sealed record WordTier(int MinLength, long BaseChips, decimal BaseMult, l
 /// <see cref="Default"/> was tuned with greedy simulations (CLI 'sim'): flat-ish tier Mult (1→3) plus +3 Mult per
 /// intersection makes building onto the grid outscore isolated long words (~77% of non-opening greedy plays
 /// intersect). Still provisional pending human playtests.
+/// <see cref="BonusMult"/> is a flat per-play Mult added before Desk Items; it is only set for a round in progress
+/// (Red Ink Bottle, via <see cref="Domain.RoundConfig.EffectiveScoring"/>).
 /// </summary>
 public sealed record ScoringConfig(
     ImmutableArray<WordTier> Tiers,
@@ -24,7 +26,8 @@ public sealed record ScoringConfig(
     decimal IntersectionMult,
     long BoldChips = 10,
     decimal ItalicMult = 2,
-    int GildedMoney = 1)
+    int GildedMoney = 1,
+    decimal BonusMult = 0)
 {
     public static ScoringConfig Default { get; } = new(
         Tiers:

@@ -122,7 +122,7 @@ public partial class Main
 
     private void SellStationery(int slot)
     {
-        var sold = ShopRules.SellStationery(_session, slot);
+        var sold = ShopRules.SellStationery(_session, slot, _lexicon);
         if (sold.IsOk)
             _session = sold.Value;
         Refresh();

@@ -6,7 +6,10 @@ using Crossword.Core.Stationery;
 
 namespace Crossword.Core.Run;
 
-/// <summary>Shop prices and offer mix. PLACEHOLDER numbers pending run simulation.</summary>
+/// <summary>
+/// Shop prices and offer mix. PLACEHOLDER numbers pending run simulation.
+/// <see cref="StationeryIds"/> limits the Stationery pool to those ids (null = the whole catalog).
+/// </summary>
 public sealed record ShopConfig(
     int DeskItemOffers = 2,
     int EditOffers = 2,
@@ -28,7 +31,8 @@ public sealed record ShopConfig(
     int UncommonWeight = 30,
     int RareWeight = 10,
     int StationeryOffers = 1,
-    int StationeryPrice = 3)
+    int StationeryPrice = 3,
+    IReadOnlySet<string>? StationeryIds = null)
 {
     public static ShopConfig Default { get; } = new();
 
