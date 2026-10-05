@@ -54,18 +54,17 @@ public sealed record TileBag(ImmutableArray<Tile> Tiles)
         while (drawn.Count < count && remaining.Count > 0)
         {
             int slotsLeft = count - drawn.Count;
-            int vowels = held.Count(t => DrawConfig.IsVowel(t.Letter));
-            int needVowels = Math.Max(0, config.MinVowels - vowels);
-            int needConsonants = Math.Max(0, config.MinConsonants - (held.Count - vowels));
+            int needVowels = Math.Max(0, config.MinVowels - held.Count(DrawConfig.IsVowel));
+            int needConsonants = Math.Max(0, config.MinConsonants - held.Count(DrawConfig.IsConsonant));
 
             var candidates = remaining
-                .Where(t => config.MaxCopiesPerVowel <= 0 || !DrawConfig.IsVowel(t.Letter)
-                    || held.Count(h => h.Letter == t.Letter) < config.MaxCopiesPerVowel)
+                .Where(t => config.MaxCopiesPerVowel <= 0 || !DrawConfig.IsVowel(t)
+                    || held.Count(h => DrawConfig.IsVowel(h) && h.Letter == t.Letter) < config.MaxCopiesPerVowel)
                 .ToList();
-            if (needVowels >= slotsLeft && candidates.Any(t => DrawConfig.IsVowel(t.Letter)))
-                candidates = candidates.Where(t => DrawConfig.IsVowel(t.Letter)).ToList();
-            else if (needConsonants >= slotsLeft && candidates.Any(t => !DrawConfig.IsVowel(t.Letter)))
-                candidates = candidates.Where(t => !DrawConfig.IsVowel(t.Letter)).ToList();
+            if (needVowels >= slotsLeft && candidates.Any(DrawConfig.IsVowel))
+                candidates = candidates.Where(DrawConfig.IsVowel).ToList();
+            else if (needConsonants >= slotsLeft && candidates.Any(DrawConfig.IsConsonant))
+                candidates = candidates.Where(DrawConfig.IsConsonant).ToList();
             if (candidates.Count == 0)
                 candidates = remaining;
 

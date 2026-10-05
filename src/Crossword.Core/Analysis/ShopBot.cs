@@ -406,7 +406,7 @@ public static class NaiveShopBot
         switch (offer)
         {
             case EnhanceOffer:
-                var target = deck.Where(t => t.Enhancement == TileEnhancement.None)
+                var target = deck.Where(t => t.Enhancement == TileEnhancement.None && !t.IsWild)
                     .GroupBy(t => t.Letter.Char)
                     .OrderByDescending(g => g.Count())
                     .FirstOrDefault()?.First();
@@ -421,6 +421,8 @@ public static class NaiveShopBot
                 return null; // the bot rarely scores with 2-letter words as its longest
             case StationeryOffer:
                 return null; // bots don't use Stationery yet
+            case WildOffer:
+                return null; // not valued yet (like other deck edits)
             default:
                 return [];
         }

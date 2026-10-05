@@ -13,6 +13,11 @@ public abstract record PlacementError
         public override string Message => "Place at least one tile.";
     }
 
+    public sealed record TileChanged(Tile Tile) : PlacementError
+    {
+        public override string Message => "Only a wild tile can be played as a different letter.";
+    }
+
     public sealed record TileNotInHand(Tile Tile) : PlacementError
     {
         public override string Message => $"Tile {Tile} is not in your hand.";

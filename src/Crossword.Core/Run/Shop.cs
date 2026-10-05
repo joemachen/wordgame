@@ -10,6 +10,8 @@ namespace Crossword.Core.Run;
 /// Shop prices and offer mix. PLACEHOLDER numbers pending run simulation.
 /// <see cref="StationeryIds"/> limits the Stationery pool to those ids (null = the whole catalog);
 /// <see cref="StationeryPrices"/> overrides <see cref="StationeryPrice"/> per item id.
+/// Wild tiles: <see cref="WildTilePercent"/> of add-tile offers add a wild tile; <see cref="WildEditPercent"/> of all
+/// edit offers make a chosen deck tile wild.
 /// </summary>
 public sealed record ShopConfig(
     int DeskItemOffers = 2,
@@ -34,7 +36,11 @@ public sealed record ShopConfig(
     int StationeryOffers = 1,
     int StationeryPrice = 3,
     IReadOnlySet<string>? StationeryIds = null,
-    IReadOnlyDictionary<string, int>? StationeryPrices = null)
+    IReadOnlyDictionary<string, int>? StationeryPrices = null,
+    int WildTilePercent = 12,
+    int WildTilePrice = 6,
+    int WildEditPercent = 10,
+    int WildEditPrice = 5)
 {
     /// <summary>
     /// Margin Clip costs $6: at the flat $3 it alone added +13 pts of win rate (ScoreFraction 0.75). Price is a weak lever
@@ -67,11 +73,18 @@ public sealed record DeskItemOffer(IDeskItem Item, int Price) : ShopOffer(Price)
     public override string Description => $"{Item.Name} ({Item.Rarity}) — {Item.Description}";
 }
 
-/// <summary>Adds a new tile to the deck.</summary>
-public sealed record AddTileOffer(Letter Letter, TileEnhancement Enhancement, int Price) : ShopOffer(Price)
+/// <summary>Adds a new tile to the deck (a wild tile when <see cref="Wild"/>; its letter is then ignored).</summary>
+public sealed record AddTileOffer(Letter Letter, TileEnhancement Enhancement, int Price, bool Wild = false) : ShopOffer(Price)
 {
     public override string Description =>
-        Enhancement == TileEnhancement.None ? $"Add tile {Letter} to your deck" : $"Add {Enhancement} tile {Letter} to your deck";
+        Wild ? "Add a wild tile (plays as any letter, 0 chips) to your deck"
+        : Enhancement == TileEnhancement.None ? $"Add tile {Letter} to your deck" : $"Add {Enhancement} tile {Letter} to your deck";
+}
+
+/// <summary>Makes one tile of the player's choice wild (it keeps its enhancement).</summary>
+public sealed record WildOffer(int Price) : ShopOffer(Price)
+{
+    public override string Description => "Make one of your tiles wild (plays as any letter, 0 chips)";
 }
 
 /// <summary>Enhances one tile of the player's choice.</summary>

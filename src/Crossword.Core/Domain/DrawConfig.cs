@@ -19,4 +19,10 @@ public sealed record DrawConfig(int MinVowels = 0, int MinConsonants = 0, int Ma
     public bool IsOff => MinVowels <= 0 && MinConsonants <= 0 && MaxCopiesPerVowel <= 0;
 
     public static bool IsVowel(Letter letter) => letter.Char is 'A' or 'E' or 'I' or 'O' or 'U';
+
+    /// <summary>A non-wild vowel tile (wild tiles count as neither vowel nor consonant).</summary>
+    public static bool IsVowel(Tile tile) => !tile.IsWild && IsVowel(tile.Letter);
+
+    /// <summary>A non-wild consonant tile.</summary>
+    public static bool IsConsonant(Tile tile) => !tile.IsWild && !IsVowel(tile.Letter);
 }

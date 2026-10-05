@@ -231,6 +231,8 @@ public partial class Main : Control
         AddChild(_styleGuidesOverlay);
         _statsOverlay = BuildStatsOverlay();
         AddChild(_statsOverlay);
+        _wildOverlay = BuildWildOverlay();
+        AddChild(_wildOverlay);
     }
 
     private Control BuildSidebar()

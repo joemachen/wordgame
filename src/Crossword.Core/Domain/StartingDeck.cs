@@ -3,8 +3,9 @@ using System.Collections.Immutable;
 namespace Crossword.Core.Domain;
 
 /// <summary>
-/// The default starting tile set: 98 tiles, 41 vowels (~42%, close to Scrabble's share; was 38 before 2026-10-05,
-/// which dealt a hand with at most one vowel 16.5% of the time). Loosely based on English letter frequency.
+/// The default starting tile set: 98 lettered tiles with 41 vowels (~42%, close to Scrabble's share; was 38 before
+/// 2026-10-05, which dealt a hand with at most one vowel 16.5% of the time) plus <see cref="Wilds"/> wild tiles, like
+/// Scrabble's blanks. Loosely based on English letter frequency.
 /// </summary>
 public static class StartingDeck
 {
@@ -16,6 +17,8 @@ public static class StartingDeck
         ('Y', 2), ('Z', 1),
     ];
 
+    public const int Wilds = 2;
+
     public static ImmutableArray<Tile> Create()
     {
         var builder = ImmutableArray.CreateBuilder<Tile>();
@@ -25,6 +28,8 @@ public static class StartingDeck
             for (int i = 0; i < count; i++)
                 builder.Add(new Tile(nextId++, Letter.From(letter)));
         }
+        for (int i = 0; i < Wilds; i++)
+            builder.Add(Tile.Wild(nextId++));
         return builder.ToImmutable();
     }
 }

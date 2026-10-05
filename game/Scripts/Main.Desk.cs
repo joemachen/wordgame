@@ -161,6 +161,10 @@ public partial class Main
                 SetMessage($"Select up to {scissors.MaxTiles} hand tiles, then use the {item.Name}.", UiKit.TextMuted);
                 return;
 
+            case FountainPen when _selected.Count != 1:
+                SetMessage($"Select one hand tile, then use the {item.Name} to make it wild.", UiKit.TextMuted);
+                return;
+
             case { Target: StationeryTarget.HandTiles }:
                 ApplyStationery(slot, tileIds: _selected.Select(t => t.Id).ToArray());
                 return;
@@ -207,6 +211,7 @@ public partial class Main
             RedInkBottle ink => $"{item.Name}: +{ink.Mult} mult on every play this round.",
             Scissors => $"{item.Name}: {tileIds?.Count ?? 0} tile(s) cut and redrawn.",
             WhiteOut => $"{item.Name}: tile removed.",
+            FountainPen => $"{item.Name}: that tile is wild this round — place it and pick its letter.",
             _ => $"{item.Name} used.",
         }, StationeryColor);
         AfterAction();

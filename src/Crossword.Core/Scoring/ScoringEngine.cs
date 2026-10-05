@@ -64,7 +64,7 @@ public static class ScoringEngine
                 Premium.TripleWord => 3,
                 _ => 1,
             };
-            letters += config.ValueOf(cell.Tile.Letter) * letterMultiplier;
+            letters += config.ValueOf(cell.Tile) * letterMultiplier;
         }
         return (letters * wordMultiplier, wordMultiplier);
     }

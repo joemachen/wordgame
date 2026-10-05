@@ -87,7 +87,7 @@ public sealed record RareInk(decimal MultPerTile = 6) : IDeskItem
 
     public ScoreContext Apply(ScoreContext c)
     {
-        int count = c.Play.Placed.Count(p => RareLetters.Contains(p.Tile.Letter.Char));
+        int count = c.Play.Placed.Count(p => !p.Tile.IsWild && RareLetters.Contains(p.Tile.Letter.Char));
         if (count == 0)
             return c;
         decimal mult = count * MultPerTile;

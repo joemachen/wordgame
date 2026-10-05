@@ -54,6 +54,9 @@ public sealed record ScoringConfig(
 
     public int ValueOf(Letter letter) => LetterValues.GetValueOrDefault(letter.Char);
 
+    /// <summary>A tile's letter chips: wild tiles are worth 0 whatever letter they play as.</summary>
+    public int ValueOf(Tile tile) => tile.IsWild ? 0 : ValueOf(tile.Letter);
+
     /// <summary>Applies Style Guide upgrades (keyed by tier MinLength → number of upgrades).</summary>
     public ScoringConfig WithUpgrades(IReadOnlyDictionary<int, int> upgrades) =>
         upgrades.Count == 0

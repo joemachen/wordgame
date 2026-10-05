@@ -84,7 +84,7 @@ public partial class Main
         if (board.TileAt(pos) is { } placed)
         {
             bool target = _whiteOutSlot is not null;
-            var tile = UiKit.MakeTile(placed, scoring.ValueOf(placed.Letter), CellSize, target ? StationeryColor.Lightened(0.55f) : UiKit.Newsprint,
+            var tile = UiKit.MakeTile(placed, scoring.ValueOf(placed), CellSize, target ? StationeryColor.Lightened(0.55f) : UiKit.Newsprint,
                 raised: target);
             tile.Disabled = !target;
             if (target)
@@ -97,7 +97,7 @@ public partial class Main
 
         if (_pending.TryGetValue(pos, out var pending))
         {
-            int value = scoring.ValueOf(pending.Letter);
+            int value = scoring.ValueOf(pending);
             var tile = UiKit.MakeTile(pending, value, CellSize, UiKit.Pending, raised: true);
             tile.TooltipText = "Click to take back · drag to another square or back to your hand";
             tile.Pressed += () => ReturnPending(pos);
@@ -138,20 +138,21 @@ public partial class Main
         var scoring = RoundScoring;
         _handOrder = HandArrangement.Reconcile(_handOrder, Round.Hand);
         var byId = Round.Hand.Tiles.ToDictionary(t => t.Id);
+        var pendingIds = _pending.Values.Select(t => t.Id).ToHashSet();
         foreach (int id in _handOrder)
         {
             var tile = byId[id];
-            if (_pending.ContainsValue(tile))
+            if (pendingIds.Contains(id))
                 continue;
 
             bool selected = _selected.Contains(tile);
-            int value = scoring.ValueOf(tile.Letter);
-            var button = UiKit.MakeTile(tile, value, HandTileSize, selected ? UiKit.Selected : UiKit.Newsprint, raised: selected);
+            int value = scoring.ValueOf(tile);
+            var button = UiKit.MakeTile(tile, value, HandTileSize, selected ? UiKit.Selected : UiKit.Newsprint, raised: selected, blankWild: true);
             button.TooltipText = "Click to select · drag to reorder or onto the board";
             button.Pressed += () => ToggleSelected(tile);
             if (!_animating)
             {
-                button.DragPreviewFactory = () => UiKit.MakeTile(tile, value, HandTileSize, UiKit.Selected, raised: true);
+                button.DragPreviewFactory = () => UiKit.MakeTile(tile, value, HandTileSize, UiKit.Selected, raised: true, blankWild: true);
                 button.DragStarted = BeginHandDrag;
                 button.CanAcceptDrop = () => _handDragId is not null || _boardDragId is not null;
                 button.Dropped = DropOnHand;
@@ -201,6 +202,11 @@ public partial class Main
         }
         DismissNewTags();
         var tile = _selected[0];
+        if (tile.IsWild)
+        {
+            AskWildLetter(pos, tile);
+            return;
+        }
         _selected.RemoveAt(0);
         _pending[pos] = tile;
         Refresh();
@@ -209,10 +215,17 @@ public partial class Main
     /// <summary>Drag-and-drop placement: puts a hand tile, or a pending tile from another square, on an empty square.</summary>
     private void PlaceTile(GridPos pos, int tileId)
     {
-        if (_animating || Round.Hand.Tiles.FirstOrDefault(t => t.Id == tileId) is not { } tile)
+        if (_animating || Round.Hand.Tiles.FirstOrDefault(t => t.Id == tileId) is not { } held)
             return;
         DismissNewTags();
-        foreach (var moved in _pending.Where(kv => kv.Value == tile).Select(kv => kv.Key).ToList())
+        // A pending tile keeps its face when moved (a wild keeps its letter); a wild from the hand asks for one.
+        var tile = _pending.Values.FirstOrDefault(t => t.Id == tileId) ?? held;
+        if (tile.IsWild && !_pending.Values.Any(t => t.Id == tileId))
+        {
+            AskWildLetter(pos, tile);
+            return;
+        }
+        foreach (var moved in _pending.Where(kv => kv.Value.Id == tileId).Select(kv => kv.Key).ToList())
             _pending.Remove(moved);
         _selected.Remove(tile);
         _pending[pos] = tile;
@@ -599,6 +612,11 @@ public partial class Main
             return;
 
         // Stats popup: while it's open, Esc closes it and nothing else reacts.
+        if (HandleWildKey(key))
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (_statsOverlay.Visible)
         {
             if (key.Keycode == Key.Escape)
@@ -639,7 +657,8 @@ public partial class Main
             default:
                 char typed = char.ToUpperInvariant((char)key.Unicode);
                 if (typed is >= 'A' and <= 'Z'
-                    && Round.Hand.Tiles.FirstOrDefault(t => t.Letter.Char == typed && !_selected.Contains(t) && !_pending.ContainsValue(t)) is { } tile)
+                    && Round.Hand.Tiles.FirstOrDefault(t => !t.IsWild && t.Letter.Char == typed && !_selected.Contains(t)
+                        && !_pending.Values.Any(p => p.Id == t.Id)) is { } tile)
                     ToggleSelected(tile);
                 break;
         }

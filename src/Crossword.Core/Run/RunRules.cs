@@ -116,6 +116,14 @@ public static class RunRules
                     ? Done(used with { Round = redrawn.Value })
                     : Result<StationeryUse, string>.Fail(redrawn.Error.Message);
 
+            case FountainPen:
+                if (tileIds is not { Count: 1 } || round.Hand.Tiles.FirstOrDefault(t => t.Id == tileIds.First()) is not { } inked)
+                    return Result<StationeryUse, string>.Fail("Select one hand tile to turn wild.");
+                if (inked.IsWild)
+                    return Result<StationeryUse, string>.Fail("That tile is already wild.");
+                var hand = new Hand(round.Hand.Tiles.Replace(inked, Tile.Wild(inked.Id, inked.Enhancement)));
+                return Done(used with { Round = round with { Hand = hand } });
+
             case WhiteOut:
                 if (cell is not { } position)
                     return Result<StationeryUse, string>.Fail("Choose a board tile to white out.");

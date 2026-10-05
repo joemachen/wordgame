@@ -14,7 +14,7 @@ public class BalancedDrawTests
     private static TileBag BagOf(string letters, int firstId = 100) =>
         new(letters.Select((c, i) => new Tile(firstId + i, Letter.From(c))).ToImmutableArray());
 
-    private static int Vowels(IEnumerable<Tile> tiles) => tiles.Count(t => DrawConfig.IsVowel(t.Letter));
+    private static int Vowels(IEnumerable<Tile> tiles) => tiles.Count(DrawConfig.IsVowel);
 
     private static RoundState Deal(ulong seed, DrawConfig? draw) =>
         DrawRules.DrawToHandSize(new RoundState(new RoundConfig(TargetScore: 100, Draw: draw), Board.Empty(7),
@@ -29,7 +29,8 @@ public class BalancedDrawTests
 
             Assert.Equal(7, hand.Length);
             Assert.InRange(Vowels(hand), 2, 5);
-            Assert.All(hand.Where(t => DrawConfig.IsVowel(t.Letter)).GroupBy(t => t.Letter), g => Assert.True(g.Count() <= 2));
+            Assert.True(hand.Count(DrawConfig.IsConsonant) >= 2);
+            Assert.All(hand.Where(DrawConfig.IsVowel).GroupBy(t => t.Letter), g => Assert.True(g.Count() <= 2));
         }
     }
 
@@ -91,11 +92,12 @@ public class BalancedDrawTests
     }
 
     [Fact]
-    public void StartingDeck_Has98Tiles_41Vowels()
+    public void StartingDeck_Has98Letters_41Vowels_AndTwoWilds()
     {
         var deck = StartingDeck.Create();
 
-        Assert.Equal(98, deck.Length);
+        Assert.Equal(100, deck.Length);
         Assert.Equal(41, Vowels(deck));
+        Assert.Equal(2, deck.Count(t => t.IsWild));
     }
 }

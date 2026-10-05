@@ -56,8 +56,8 @@ public static class ConsoleRenderer
 
     private static string TileLabel(Tile tile, ScoringConfig scoring) =>
         tile.Enhancement == TileEnhancement.None
-            ? $"{tile}({scoring.ValueOf(tile.Letter)})"
-            : $"{tile}({scoring.ValueOf(tile.Letter)}){tile.Enhancement}";
+            ? $"{tile}({scoring.ValueOf(tile)})"
+            : $"{tile}({scoring.ValueOf(tile)}){tile.Enhancement}";
 
     public static string Hand(Hand hand, ScoringConfig scoring) =>
         "Hand: " + string.Join("  ", hand.Tiles.Select(t => TileLabel(t, scoring)));
@@ -83,7 +83,7 @@ public static class ConsoleRenderer
 
     public static string Deck(RunState run)
     {
-        var counts = run.Deck.GroupBy(t => t.Letter.Char).OrderBy(g => g.Key).Select(g => $"{g.Key}×{g.Count()}");
+        var counts = run.Deck.GroupBy(t => t.IsWild ? '?' : t.Letter.Char).OrderBy(g => g.Key).Select(g => $"{g.Key}×{g.Count()}");
         var enhanced = run.Deck.Where(t => t.Enhancement != TileEnhancement.None)
             .Select(t => $"{t}:{t.Enhancement}").ToList();
         return $"Deck ({run.Deck.Length} tiles): {string.Join(" ", counts)}" +

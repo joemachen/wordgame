@@ -52,7 +52,7 @@ public static class StationeryBot
         {
             var playing = choice.Play.Placed.Select(p => p.Tile.Id).ToHashSet();
             var dead = round.Hand.Tiles
-                .Where(t => HardLetters.Contains(t.Letter.Char) && !playing.Contains(t.Id))
+                .Where(t => !t.IsWild && HardLetters.Contains(t.Letter.Char) && !playing.Contains(t.Id))
                 .Take(((Scissors)held[scissorsSlot]).MaxTiles)
                 .Select(t => t.Id)
                 .ToArray();
@@ -77,12 +77,26 @@ public static class StationeryBot
         {
             var scoring = round.Config.EffectiveScoring(session.Scoring);
             var cut = round.Hand.Tiles
+                .Where(t => !t.IsWild)
                 .OrderByDescending(t => AwkwardLetters.Contains(t.Letter.Char))
-                .ThenByDescending(t => scoring.ValueOf(t.Letter))
+                .ThenByDescending(t => scoring.ValueOf(t))
                 .Take(((Scissors)held[scissorsSlot]).MaxTiles)
                 .Select(t => t.Id)
                 .ToArray();
             var used = RunRules.UseStationery(session, scissorsSlot, lexicon, tileIds: cut);
+            if (used.IsOk)
+                return used.Value.Session;
+        }
+
+        int penSlot = SlotOf<FountainPen>(held);
+        if (penSlot >= 0 && round.Hand.Tiles.FirstOrDefault(t => !t.IsWild) is not null)
+        {
+            var scoring = round.Config.EffectiveScoring(session.Scoring);
+            var ink = round.Hand.Tiles.Where(t => !t.IsWild)
+                .OrderByDescending(t => AwkwardLetters.Contains(t.Letter.Char))
+                .ThenByDescending(t => scoring.ValueOf(t))
+                .First();
+            var used = RunRules.UseStationery(session, penSlot, lexicon, tileIds: [ink.Id]);
             if (used.IsOk)
                 return used.Value.Session;
         }

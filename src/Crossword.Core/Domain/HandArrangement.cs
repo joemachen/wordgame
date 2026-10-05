@@ -33,12 +33,16 @@ public static class HandArrangement
         return list.ToImmutableArray();
     }
 
-    /// <summary>Alphabetical order of the hand (A→Z, or Z→A when <paramref name="descending"/>); ties keep tile-id order.</summary>
+    /// <summary>
+    /// Alphabetical order of the hand (A→Z, or Z→A when <paramref name="descending"/>), wild tiles last; ties keep
+    /// tile-id order.
+    /// </summary>
     public static ImmutableArray<int> Sort(Hand hand, bool descending = false)
     {
+        var wildsLast = hand.Tiles.OrderBy(t => t.IsWild);
         var byLetter = descending
-            ? hand.Tiles.OrderByDescending(t => t.Letter.Char)
-            : hand.Tiles.OrderBy(t => t.Letter.Char);
+            ? wildsLast.ThenByDescending(t => t.Letter.Char)
+            : wildsLast.ThenBy(t => t.Letter.Char);
         return byLetter.ThenBy(t => t.Id).Select(t => t.Id).ToImmutableArray();
     }
 

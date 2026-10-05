@@ -98,7 +98,21 @@ public static class ShopRules
 
             case AddTileOffer add:
                 int id = run.Deck.IsEmpty ? 0 : run.Deck.Max(t => t.Id) + 1;
-                return Result<RunState, string>.Ok(run with { Deck = run.Deck.Add(new Tile(id, add.Letter, add.Enhancement)) });
+                var added = add.Wild ? Tile.Wild(id, add.Enhancement) : new Tile(id, add.Letter, add.Enhancement);
+                return Result<RunState, string>.Ok(run with { Deck = run.Deck.Add(added) });
+
+            case WildOffer:
+                if (tileIds.Count != 1)
+                    return Result<RunState, string>.Fail("Choose exactly one tile to make wild.");
+                int wildIndex = run.Deck.ToList().FindIndex(t => t.Id == tileIds.First());
+                if (wildIndex < 0)
+                    return Result<RunState, string>.Fail("That tile isn't in your deck.");
+                if (run.Deck[wildIndex].IsWild)
+                    return Result<RunState, string>.Fail("That tile is already wild.");
+                return Result<RunState, string>.Ok(run with
+                {
+                    Deck = run.Deck.SetItem(wildIndex, Tile.Wild(run.Deck[wildIndex].Id, run.Deck[wildIndex].Enhancement)),
+                });
 
             case EnhanceOffer enhance:
                 if (tileIds.Count != 1)
@@ -151,12 +165,18 @@ public static class ShopRules
             unowned.Remove(pool[pick]);
         }
 
-        var letterPool = StartingDeck.Create();
+        var letterPool = StartingDeck.Create().Where(t => !t.IsWild).ToImmutableArray();
         for (int i = 0; i < config.EditOffers; i++)
         {
             (int roll, rng) = rng.NextInt(100);
             if (roll < 50)
             {
+                (int wildRoll, rng) = rng.NextInt(100);
+                if (wildRoll < config.WildTilePercent)
+                {
+                    offers.Add(new AddTileOffer(Tile.WildPlaceholder, TileEnhancement.None, config.WildTilePrice, Wild: true));
+                    continue;
+                }
                 (int pick, rng) = rng.NextInt(letterPool.Length);
                 (int enhancedRoll, rng) = rng.NextInt(100);
                 var enhancement = TileEnhancement.None;
@@ -164,6 +184,10 @@ public static class ShopRules
                     (enhancement, rng) = PickEnhancement(rng);
                 offers.Add(new AddTileOffer(letterPool[pick].Letter, enhancement,
                     enhancement == TileEnhancement.None ? config.PlainTilePrice : config.EnhancedTilePrice));
+            }
+            else if (roll < 50 + config.WildEditPercent)
+            {
+                offers.Add(new WildOffer(config.WildEditPrice));
             }
             else if (roll < 80)
             {

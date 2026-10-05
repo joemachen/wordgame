@@ -64,11 +64,12 @@ public static class PlayCommandParser
             }
             else
             {
-                var tile = available.FirstOrDefault(t => t.Letter.Char == letter);
+                // A real tile of that letter first; otherwise a wild tile plays as it.
+                var tile = available.FirstOrDefault(t => !t.IsWild && t.Letter.Char == letter) ?? available.FirstOrDefault(t => t.IsWild);
                 if (tile is null)
                     return Result<IReadOnlyList<PlacedTile>, string>.Fail($"No '{letter}' left in your hand.");
                 available.Remove(tile);
-                placed.Add(new PlacedTile(position, tile));
+                placed.Add(new PlacedTile(position, tile.IsWild ? tile.As(Letter.From(letter)) : tile));
             }
 
             position = position.Step(command.Direction);
@@ -89,7 +90,7 @@ public static class PlayCommandParser
         var ids = new List<int>();
         foreach (char raw in letters.ToUpperInvariant())
         {
-            var tile = available.FirstOrDefault(t => t.Letter.Char == raw);
+            var tile = available.FirstOrDefault(t => raw == '?' ? t.IsWild : !t.IsWild && t.Letter.Char == raw);
             if (tile is null)
                 return Result<IReadOnlyList<int>, string>.Fail($"No '{raw}' tile left in your deck.");
             available.Remove(tile);
@@ -105,7 +106,7 @@ public static class PlayCommandParser
         var ids = new List<int>();
         foreach (char raw in letters.ToUpperInvariant())
         {
-            var tile = available.FirstOrDefault(t => t.Letter.Char == raw);
+            var tile = available.FirstOrDefault(t => raw == '?' ? t.IsWild : !t.IsWild && t.Letter.Char == raw);
             if (tile is null)
                 return Result<IReadOnlyList<int>, string>.Fail($"No '{raw}' left in your hand to discard.");
             available.Remove(tile);

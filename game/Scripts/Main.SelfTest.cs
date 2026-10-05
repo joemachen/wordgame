@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Crossword.Core.Rules;
 using Godot;
 using GridPos = Crossword.Core.Domain.Position;
@@ -123,6 +124,28 @@ public partial class Main
         await Frames(2);
         Check("NEW tags fade after a few seconds", taggedAgain && NewTagNodes().Count == 0 && _newTileIds.Count == 0);
 
+        // 5f. A wild tile shows "?" in the hand; placing it asks for a letter, and the pending tile plays as that letter.
+        var wildId = HandButton(0).TileId;
+        _session = _session with
+        {
+            Round = Round with
+            {
+                Hand = new Crossword.Core.Domain.Hand(Round.Hand.Tiles.Select(t => t.Id == wildId ? Crossword.Core.Domain.Tile.Wild(t.Id) : t).ToImmutableArray()),
+            },
+        };
+        Refresh();
+        await Frames(2);
+        var wildButton = _handRow.GetChildren().OfType<TileButton>().First(b => b.TileId == wildId);
+        bool showsBlank = wildButton.GetChildren().OfType<Label>().Any(l => l.Text == "?");
+        await Click(Centre(wildButton));
+        await Click(Centre(BoardCell(new GridPos(3, 3))));
+        bool asked = _wildOverlay.Visible;
+        await PressKey(global::Godot.Key.E);
+        Check("a wild tile asks for its letter when placed", showsBlank && asked && !_wildOverlay.Visible
+            && _pending.TryGetValue(new GridPos(3, 3), out var wildPlaced) && wildPlaced.Id == wildId && wildPlaced.IsWild
+            && wildPlaced.Letter.Char == 'E');
+        await PressKey(global::Godot.Key.Escape);
+
         // 6. Hint places a play; the preview defines every word it forms.
         await Click(Centre(_hintButton));
         var words = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength)
@@ -197,6 +220,12 @@ public partial class Main
         Check("scissors redraw the selected tiles",
             cut.All(id => !Round.Hand.Contains(id)) && Round.Hand.Count == Round.Config.HandSize && Round.DiscardsLeft == discardsBefore
             && Run.Stationery.IsEmpty && _selected.Count == 0);
+
+        // 11b. The Fountain Pen turns the selected hand tile wild.
+        var inkId = Round.Hand.Tiles.First(t => !t.IsWild).Id;
+        await Click(Centre(_handRow.GetChildren().OfType<TileButton>().First(b => b.TileId == inkId)));
+        await GiveAndUse(new Crossword.Core.Stationery.FountainPen());
+        Check("fountain pen makes the selected tile wild", Round.Hand.Tiles.First(t => t.Id == inkId).IsWild && Run.Stationery.IsEmpty);
 
         // 12. White-Out: Use arms board targeting, Esc cancels, clicking a board tile removes it.
         var spot = new GridPos(3, 3);

@@ -5,7 +5,8 @@ using Crossword.Core.Lexicon;
 namespace Crossword.Core.Rules;
 
 /// <summary>
-/// Validates a set of tiles placed from the hand onto the board and extracts every word formed.
+/// Validates a set of tiles placed from the hand onto the board and extracts every word formed. A wild hand tile is
+/// placed as itself with its chosen letter (<see cref="Tile.As"/>); any other tile must be placed unchanged.
 /// Rules: all new tiles in one row/column; the span between them filled (by new or existing tiles);
 /// connected to existing tiles unless the board is empty; at least one 2+ letter word; every formed word at least
 /// <c>minWordLength</c> letters (boss rule) and in the lexicon. Blocked cells cannot be played on.
@@ -41,13 +42,15 @@ public static class PlacementValidator
         if (placed.Count == 0)
             return new PlacementError.NoTiles();
 
-        var handIds = hand.Tiles.Select(t => t.Id).ToHashSet();
+        var handById = hand.Tiles.ToDictionary(t => t.Id);
         var seenTiles = new HashSet<int>();
         var seenPositions = new HashSet<Position>();
         foreach (var (position, tile) in placed)
         {
-            if (!handIds.Contains(tile.Id))
+            if (!handById.TryGetValue(tile.Id, out var held))
                 return new PlacementError.TileNotInHand(tile);
+            if (held.IsWild ? tile != held.As(tile.Letter) : tile != held)
+                return new PlacementError.TileChanged(tile);
             if (!seenTiles.Add(tile.Id))
                 return new PlacementError.DuplicateTile(tile);
             if (!board.InBounds(position))

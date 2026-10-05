@@ -115,7 +115,9 @@ public partial class Main
             DeskItemOffer d => ($"DESK ITEM · {d.Item.Rarity.ToString().ToUpperInvariant()}", d.Item.Name, d.Item.Description),
             StationeryOffer st => ("STATIONERY · ONE USE", st.Item.Name, st.Item.Description),
             StyleGuideOffer g => ("STYLE GUIDE", g.Name, $"{g.TierLabel} words: +{g.Chips} chips, +{g.Mult} mult for every play whose longest word is this length. Permanent."),
+            AddTileOffer { Wild: true } => ("NEW TILE", "Wild tile", "Plays as any letter you choose (0 chips). Added to your deck."),
             AddTileOffer a => ("NEW TILE", a.Enhancement == TileEnhancement.None ? $"Tile {a.Letter}" : $"{a.Enhancement} {a.Letter}", "Added to your deck."),
+            WildOffer => ("EDIT", "Make a tile wild", "It plays as any letter you choose (0 chips) and keeps its enhancement. You choose the tile."),
             EnhanceOffer e => ("EDIT", $"Make a tile {e.Enhancement}", EnhancementBlurb(e.Enhancement) + " You choose the tile."),
             StrikeOffer s => ("EDIT", "Strike tiles", $"Remove up to {s.MaxTiles} tiles from your deck."),
             _ => ("", offer.Description, ""),
@@ -144,14 +146,14 @@ public partial class Main
 
     private string DeckSummary()
     {
-        var counts = Run.Deck.GroupBy(t => t.Letter.Char).OrderBy(g => g.Key).Select(g => $"{g.Key}{g.Count()}");
+        var counts = Run.Deck.GroupBy(t => t.IsWild ? '?' : t.Letter.Char).OrderBy(g => g.Key).Select(g => $"{g.Key}{g.Count()}");
         int enhanced = Run.Deck.Count(t => t.Enhancement != TileEnhancement.None);
         return $"Deck ({Run.Deck.Length} tiles, {enhanced} enhanced)   {string.Join(" ", counts)}";
     }
 
     private void BuyOffer(int index, ShopOffer offer)
     {
-        if (offer is EnhanceOffer or StrikeOffer)
+        if (offer is EnhanceOffer or StrikeOffer or WildOffer)
         {
             _pickerOffer = index;
             _pickerSelection.Clear();
@@ -195,7 +197,12 @@ public partial class Main
     {
         var offer = _session.Shop!.Offers[offerIndex]!;
         int maxTiles = offer is StrikeOffer strike ? strike.MaxTiles : 1;
-        string verb = offer is EnhanceOffer enhance ? $"make {enhance.Enhancement}" : "strike";
+        string verb = offer switch
+        {
+            EnhanceOffer enhance => $"make {enhance.Enhancement}",
+            WildOffer => "make wild",
+            _ => "strike",
+        };
 
         _shopContent.AddChild(UiKit.MakeLabel($"Choose {(maxTiles == 1 ? "a tile" : $"up to {maxTiles} tiles")} to {verb}", 26, UiKit.Text));
         _shopContent.AddChild(UiKit.MakeLabel($"{offer.Description} — ${offer.Price}", 16, UiKit.TextMuted));
@@ -203,10 +210,10 @@ public partial class Main
         var grid = new HFlowContainer();
         grid.AddThemeConstantOverride("h_separation", 6);
         grid.AddThemeConstantOverride("v_separation", 6);
-        foreach (var tile in Run.Deck.OrderBy(t => t.Letter.Char).ThenBy(t => t.Enhancement))
+        foreach (var tile in Run.Deck.OrderBy(t => t.IsWild).ThenBy(t => t.Letter.Char).ThenBy(t => t.Enhancement))
         {
             bool chosen = _pickerSelection.Contains(tile.Id);
-            var button = UiKit.MakeTile(tile, _session.Scoring.ValueOf(tile.Letter), 48, chosen ? UiKit.Selected : UiKit.Newsprint, chosen);
+            var button = UiKit.MakeTile(tile, _session.Scoring.ValueOf(tile), 48, chosen ? UiKit.Selected : UiKit.Newsprint, chosen, blankWild: true);
             button.Pressed += () =>
             {
                 if (!_pickerSelection.Remove(tile.Id))

@@ -110,7 +110,8 @@ public static class UiKit
     }
 
     /// <summary>A clickable tile: big letter, small value in the corner, coloured border for enhancements.</summary>
-    public static TileButton MakeTile(Tile tile, int value, float size, Color background, bool raised = false)
+    /// <param name="blankWild">Show a wild tile as "?" (in the hand or deck); otherwise it shows the letter it plays as.</param>
+    public static TileButton MakeTile(Tile tile, int value, float size, Color background, bool raised = false, bool blankWild = false)
     {
         var button = new TileButton { TileId = tile.Id, CustomMinimumSize = new Vector2(size, size), FocusMode = Control.FocusModeEnum.None };
         int borderWidth = tile.Enhancement == TileEnhancement.None ? 2 : 4;
@@ -120,7 +121,8 @@ public static class UiKit
         button.AddThemeStyleboxOverride("pressed", Box(background.Darkened(0.1f), 6, border, borderWidth, 0, 2));
         button.AddThemeStyleboxOverride("disabled", Box(background, 6, border, borderWidth, 0, 0));
 
-        var letter = MakeLabel(tile.Letter.ToString(), (int)(size * 0.5f), Ink, HorizontalAlignment.Center);
+        string face = tile.IsWild && blankWild ? "?" : tile.Letter.ToString();
+        var letter = MakeLabel(face, (int)(size * 0.5f), tile.IsWild ? Chips.Darkened(0.25f) : Ink, HorizontalAlignment.Center);
         letter.VerticalAlignment = VerticalAlignment.Center;
         letter.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         button.AddChild(letter);
@@ -131,6 +133,17 @@ public static class UiKit
         points.OffsetRight = -5;
         points.OffsetBottom = -2;
         button.AddChild(points);
+
+        if (tile.IsWild)
+        {
+            var wild = MakeLabel("wild", (int)(size * 0.17f), Chips.Darkened(0.25f), HorizontalAlignment.Left);
+            wild.VerticalAlignment = VerticalAlignment.Bottom;
+            wild.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            wild.OffsetLeft = 5;
+            wild.OffsetBottom = -2;
+            wild.MouseFilter = Control.MouseFilterEnum.Ignore;
+            button.AddChild(wild);
+        }
 
         if (tile.Enhancement != TileEnhancement.None)
         {

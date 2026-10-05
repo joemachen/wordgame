@@ -64,6 +64,15 @@ public sealed record WhiteOut : IStationery
     public StationeryTarget Target => StationeryTarget.BoardTile;
 }
 
+/// <summary>Turns one hand tile wild for the rest of the round (the deck copy is unchanged).</summary>
+public sealed record FountainPen : IStationery
+{
+    public string Id => "fountain-pen";
+    public string Name => "Fountain Pen";
+    public string Description => "Select a hand tile, then use: it becomes a wild tile (any letter, 0 chips) this round.";
+    public StationeryTarget Target => StationeryTarget.HandTiles;
+}
+
 /// <summary>Flat Mult on every play for the rest of the round; uses stack.</summary>
 public sealed record RedInkBottle(int Mult = 3) : IStationery
 {
@@ -76,7 +85,7 @@ public sealed record RedInkBottle(int Mult = 3) : IStationery
 public static class StationeryCatalog
 {
     public static ImmutableArray<IStationery> All { get; } =
-        [new AnswerKey(), new MarginClip(), new Scissors(), new WhiteOut(), new RedInkBottle()];
+        [new AnswerKey(), new MarginClip(), new Scissors(), new WhiteOut(), new RedInkBottle(), new FountainPen()];
 
     public static IStationery? Find(string id) => All.FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
@@ -89,6 +98,7 @@ public static class StationeryCatalog
         {
             Scissors => !round.Bag.IsEmpty,
             WhiteOut => !round.Board.IsEmpty,
+            FountainPen => round.Hand.Tiles.Any(t => !t.IsWild),
             _ => false,
         });
 }
