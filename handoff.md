@@ -39,6 +39,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Economy:** Balatro-style payouts **plus capped overkill bonus** (user's choice). **Run length:** 5 Weeks × 3 rounds (user's choice). **Newspaper theme** (Week / Daily / Saturday Stumper / Sunday Edition, Desk Items, deadlines).
 - **Balance is data-driven:** all numbers live in config records (`ScoringConfig`, `RunConfig`, `ShopConfig`, `EconomyConfig`, Desk Item constructor defaults) and are tuned with simulations, not by hand. Unit tests pin their own numbers so retuning never breaks them.
 - **Roadmap decisions (ROADMAP.md):** new boss names *merge* with existing bosses (renames + additions; "Saturday Stumper" boss → "The Puzzle Master", "Tight Deadline" stake → "Rush Job"); every roadmap entry carries a *proposed* effect + status; "Scrabble Board" → "Tile Rack" and the Trademarks dictionary is parked pending legal review; **dictionaries are per-run choices with tradeoffs**, not permanent global unlocks.
+- **Focus: a working game first.** Steam/launch work (Steamworks, store page, demo, Next Fest) is off the roadmap for now. Simulator throughput target: ~10k runs in minutes (100k+ not needed).
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 
 ## 4. Current balance snapshot (150-run sims, `RunSimulator`)
@@ -78,8 +79,8 @@ day multipliers ×1/×1.3/×1.6.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
-Longer-term phases live in `ROADMAP.md` §12 (phase 0 retune ✅ → naming pass → new items/bosses → Stationery →
-save/load + meta → decks/dictionaries/stakes → Daily Editorial + Steamworks → demo / Next Fest), plus parallel tracks (CI, seed entry, presentation, onboarding). §6–§11 cover infra, modes, presentation, persistence, Steam and suggested additions.
+Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → naming pass → new items/bosses → Stationery →
+save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
 1. User playtests a few runs at the new targets via `run_local_qa.bat` → check early-game feel (concern #1).
 2. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;

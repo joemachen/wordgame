@@ -168,11 +168,11 @@ the effects are our own.
 |---|---|---|
 | **Headless core** (`src/Crossword.Core`) | Engine-agnostic rules, BCL only (enforced by an architecture test). Immutable state records, DAWG word graph, pooled Chips × Mult scoring with an `EffectEvent` log the UI animates from. | ✅ |
 | **Balance simulator** | `RoundSimulator` / `RunSimulator` + CLI `sim` / `runsim`. Evaluating shop bot. Reports win rate, week reached, boss loss rates, unspent money. | ✅ |
-| Simulator throughput | **Reality check:** today a run takes ~0.5 s (move generation dominates), so 100 runs take ~1 minute on all cores and 100,000 runs would take **~15 hours**, not seconds. Realistic target: **~10k runs in minutes** via profiling + optimizing `MoveGenerator`/scoring (caching anchors and cross-checks, cutting allocations), and a `--fast` bot that only examines the top-N moves. 1k runs per tuning question is already enough statistically (±3 pts). | 🟡 |
+| Simulator throughput | Target: **~10k runs in minutes** (agreed). Today a run takes ~0.5 s (move generation dominates), so 100 runs take ~1 minute on all cores. Get there by profiling + optimizing `MoveGenerator`/scoring (caching anchors and cross-checks, cutting allocations) and a `--fast` bot that only examines the top-N moves. 1k runs per tuning question is already enough statistically (±3 pts). | 🟡 |
 | Simulator coverage | Per-deck and per-stake win rates, item pick/win rates, shop economy reports, target-curve sweeps across Weeks 1–5 (needs decks/stakes first). | 🟡 |
 | **Local QA runner** | `run_local_qa.bat`: build → tests → game window (`--cli`, `--ci`, seed). UI self-test (`--selftest`) and screenshot flags. | ✅ |
 | **Unit tests** | 251 xUnit tests incl. scoring edge cases, determinism and architecture rules. | ✅ |
-| **CI pipeline** | GitHub Actions: build (warnings as errors) + `dotnet test` on every push. Later: headless Godot `--selftest` and export builds. | 🟡 |
+| **CI pipeline** | GitHub Actions: build (warnings as errors) + `dotnet test` on every push. Later: headless Godot `--selftest`. | 🟡 |
 
 ---
 
@@ -185,7 +185,7 @@ modes cheap to build on the core.
 |---|---|---|
 | **Endless Mode** | After Week 5, targets ×2 per week (`RunConfig.EndlessGrowth`). Offered on the victory screen in the game and CLI. | ✅ |
 | **Custom / seeded runs** | Seeds already work (`--seed=` dev flag; shown in the game footer). Planned: a seed entry box on the new-run screen and a copyable seed. Note: two players get the same boards, bosses and **first** shop, but later shop offers drift once their purchases differ (offers exclude owned items), as in Balatro. | 🟡 partial |
-| **Daily Editorial** (daily seeded puzzle) | One seed per UTC date for everyone, one attempt per day, score/rounds cleared posted to a leaderboard. The deterministic core lets a server **replay a submitted action log to verify scores** (anti-cheat). Name check: distinct from the "Daily" round, but keep the UI wording clear. | 🟡 |
+| **Daily Editorial** (daily seeded puzzle) | One seed per UTC date, one attempt per day, with a **local** best score and streak. Online leaderboards are out of scope for now. Name check: distinct from the "Daily" round, but keep the UI wording clear. | 🟡 |
 
 ---
 
@@ -193,7 +193,7 @@ modes cheap to build on the core.
 
 | Feature | Design (*proposed*) | Status |
 |---|---|---|
-| **Visual design system: 1950s newsroom** | Newsprint paper canvas `#F6F4EE`, Printer's Ink `#111111`, Red Pen correction marks `#C53030`, mahogany desk surround. Replaces the current dark first-pass theme. Centralize colors in `UiKit` so the whole theme can be swapped in one place. Check text contrast (WCAG AA) and keep Chips/Mult distinguishable for colorblind players. **Don't use NYT branding** (name, masthead, fonts) in the game or store assets; "NYT-style" is internal shorthand only. | 🟡 |
+| **Visual design system: 1950s newsroom** | Newsprint paper canvas `#F6F4EE`, Printer's Ink `#111111`, Red Pen correction marks `#C53030`, mahogany desk surround. Replaces the current dark first-pass theme. Centralize colors in `UiKit` so the whole theme can be swapped in one place. Check text contrast (WCAG AA) and keep Chips/Mult distinguishable for colorblind players. **Don't use NYT branding** (name, masthead, fonts) in the game or any marketing; "NYT-style" is internal shorthand only. | 🟡 |
 | **Audio** | Typewriter clacks on tile placement, pencil scribbles, rubber-stamp approval on round win, printing-press roll for big Mult. Sources must be CC0 or bought with a commercial license. | 🟡 |
 | **Animation** | Tile placement, score count-up driven by the existing `EffectEvent` log, stamp/press effects scaled to Mult. | 🟡 (scoring playback ✅ first pass) |
 | Shop card color-coding | Distinct colors per category: Desk Items / deck edits / Style Guides / Stationery. | 🟡 |
@@ -211,27 +211,10 @@ modes cheap to build on the core.
 
 ---
 
-## 10. Steam & production
-
-Steam code lives in the Godot layer only, never in Core. Candidate bindings: Steamworks.NET or Facepunch.Steamworks
-(both MIT). Both need the Steamworks SDK, which has its own Valve terms.
-
-| Feature | Design (*proposed*) | Status |
-|---|---|---|
-| Leaderboards | Daily Editorial leaderboard (score verified by replay, see §7); optional per-seed boards. | 🟡 |
-| Achievements | e.g. **10,000+ points in a single play** (scoring is per play, not per word), clear Week 5 on Final Print Run (Gold), win with each deck, unlock every dictionary. | 🟡 |
-| Steam Cloud | Sync the profile and the run save. | 🟡 |
-| Steam Deck | **Controller navigation is real work:** today the UI is mouse/keyboard with drag-and-drop. Needs focus-based navigation (select tile → select cell), on-screen prompts, and a 1280×800 layout check. Touch comes nearly free with tap-to-select (already supported). | 🟡 |
-| Store page & press kit | Capsule art, screenshots, trailer, description (no NYT/Scrabble references), press kit page. | 🟡 |
-| Public demo | Time- or week-limited build (e.g. Weeks 1–2) with a wishlist prompt. | 🟡 |
-| Steam Next Fest | Pick a target edition; check Valve's current requirements (they typically want a Coming Soon page and a demo submitted well ahead of the event). | 🟡 |
-
----
-
-## 11. Suggested additions (not yet requested; Claude's recommendations)
+## 10. Suggested additions (not yet requested; Claude's recommendations)
 
 - **Tutorial / onboarding:** with current targets an average player (sim skill 0.7) loses in Week 1 about 65% of the
-  time, so a guided first round and better word hints would matter before a demo.
+  time, so a guided first round and better word hints would matter before external playtests.
 - **Settings & accessibility:** volume, text size, colorblind-safe palette, reduced motion, key rebinding.
 - **Localization:** UI text can be translated, but **gameplay in another language needs its own licensed word
   list and letter values**, which is a major project per language. Plan for English-only at launch.
@@ -239,7 +222,7 @@ Steam code lives in the Godot layer only, never in Core. Candidate bindings: Ste
 
 ---
 
-## 12. Build order
+## 11. Build order
 
 Core phases run in order. The **parallel tracks** can be picked up between phases. Core features come with unit
 tests and a `runsim` balance check.
@@ -252,20 +235,18 @@ tests and a `runsim` balance check.
 | **3** | Stationery consumable system (state, shop, actions, UI) | — |
 | **4** | In-run save/resume → profile & unlock tracking (§9) | — |
 | **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |
-| **6** | Daily Editorial + Steamworks (leaderboards, achievements, Cloud) | 4 |
-| **7** | Steam Deck controls, demo build, store page, press kit → Next Fest | 6 |
-| **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile); legal checklist (§11) | before shipping |
+| **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile); legal checklist (§10) | before shipping |
 
 | Parallel track | Work | Best time |
 |---|---|---|
 | Infra | CI pipeline (cheap, do early); simulator throughput work when sims become the bottleneck | anytime |
-| Modes | Seed entry box for custom runs (small) | anytime |
+| Modes | Seed entry box for custom runs (small); Daily Editorial | seed box anytime; Daily Editorial after phase 4 |
 | Presentation | Newsroom visual system → audio/animation → shop colors, tooltips, Deck View / Style Guide modals | after phases 1–3 settle the content |
-| Onboarding | Tutorial and settings (§11) | before the demo |
+| Onboarding | Tutorial and settings (§10) | before external playtests |
 
 ---
 
-## 13. Open questions
+## 12. Open questions
 
 - **Trademarks dictionary:** legal review before any work, or drop it.
 - **Slang dictionary source:** find a word list we can legally ship (or build our own), and plan how to keep slurs out of it.
@@ -273,6 +254,5 @@ tests and a `runsim` balance check.
 - **Press Run effects:** confirm after playtesting; check each tier's difficulty step with `runsim`.
 - **Early-game difficulty:** keep the harsh Week 1 (skill 0.7 loses ~65%), or soften it and let Press Runs carry
   the challenge? Decide after playtests.
-- **Simulator scale:** is ~10k runs in minutes enough, or is there a specific need for 100k+?
 - **Balance outliers** found by the evaluating shop bot: Pulitzer, Margin Notes and Word Count are picked in almost
   every run, and deck edits are never worth buying (see `handoff.md` §4).
