@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Lexicon;
 using Crossword.Core.Random;
 using Crossword.Core.Rules;
 using Crossword.Core.Scoring;
@@ -30,7 +31,7 @@ public class RoundRulesTests
     {
         var run = RunState.New(seed: 7);
 
-        var (round, nextRun) = RoundRules.Start(run, RoundConfig.ForRound(0));
+        var (round, nextRun) = RoundRules.Start(run, RoundConfig.ForRound(0), LexiconLoader.Enable);
 
         Assert.Equal(7, round.Board.Size);
         Assert.True(round.Board.IsEmpty);
@@ -43,9 +44,9 @@ public class RoundRulesTests
     [Fact]
     public void Start_IsDeterministicPerSeed()
     {
-        var (a, _) = RoundRules.Start(RunState.New(42), RoundConfig.ForRound(0));
-        var (b, _) = RoundRules.Start(RunState.New(42), RoundConfig.ForRound(0));
-        var (c, _) = RoundRules.Start(RunState.New(43), RoundConfig.ForRound(0));
+        var (a, _) = RoundRules.Start(RunState.New(42), RoundConfig.ForRound(0), LexiconLoader.Enable);
+        var (b, _) = RoundRules.Start(RunState.New(42), RoundConfig.ForRound(0), LexiconLoader.Enable);
+        var (c, _) = RoundRules.Start(RunState.New(43), RoundConfig.ForRound(0), LexiconLoader.Enable);
 
         Assert.Equal(a.Hand.Tiles.Select(t => t.Id), b.Hand.Tiles.Select(t => t.Id));
         Assert.Equal(a.Board.Premiums, b.Board.Premiums);
@@ -115,7 +116,7 @@ public class RoundRulesTests
     {
         var round = KnownRound();
 
-        var next = RoundRules.Discard(round, [0, 1]).Value;
+        var next = RoundRules.Discard(round, [0, 1], Words).Value;
 
         Assert.Equal(7, next.Hand.Count);
         Assert.False(next.Hand.Contains(0));
@@ -128,19 +129,19 @@ public class RoundRulesTests
     [Fact]
     public void Discard_WithNoneLeft_IsRejected()
     {
-        Assert.IsType<RoundError.NoDiscardsLeft>(RoundRules.Discard(KnownRound(discards: 0), [0]).Error);
+        Assert.IsType<RoundError.NoDiscardsLeft>(RoundRules.Discard(KnownRound(discards: 0), [0], Words).Error);
     }
 
     [Fact]
     public void Discard_EmptySelection_IsRejected()
     {
-        Assert.IsType<RoundError.NothingSelected>(RoundRules.Discard(KnownRound(), []).Error);
+        Assert.IsType<RoundError.NothingSelected>(RoundRules.Discard(KnownRound(), [], Words).Error);
     }
 
     [Fact]
     public void Discard_TileNotInHand_IsRejected()
     {
-        var error = Assert.IsType<RoundError.TileNotInHand>(RoundRules.Discard(KnownRound(), [0, 55]).Error);
+        var error = Assert.IsType<RoundError.TileNotInHand>(RoundRules.Discard(KnownRound(), [0, 55], Words).Error);
         Assert.Equal(55, error.TileId);
     }
 
@@ -149,8 +150,8 @@ public class RoundRulesTests
     {
         static RoundState Replay()
         {
-            var (round, _) = RoundRules.Start(RunState.New(99), RoundConfig.ForRound(0));
-            return RoundRules.Discard(round, round.Hand.Tiles.Take(3).Select(t => t.Id).ToArray()).Value;
+            var (round, _) = RoundRules.Start(RunState.New(99), RoundConfig.ForRound(0), LexiconLoader.Enable);
+            return RoundRules.Discard(round, round.Hand.Tiles.Take(3).Select(t => t.Id).ToArray(), LexiconLoader.Enable).Value;
         }
 
         var a = Replay();
@@ -158,5 +159,31 @@ public class RoundRulesTests
 
         Assert.Equal(a.Hand.Tiles.Select(t => t.Id), b.Hand.Tiles.Select(t => t.Id));
         Assert.Equal(a.Rng, b.Rng);
+    }
+
+    [Fact]
+    public void Discard_IntoUnplayableHand_WithNoDiscardsLeft_Deadlocks()
+    {
+        // Bag holds only Qs: after discarding the whole hand, nothing is playable and no discards remain.
+        var qs = new TileBag(Enumerable.Range(100, 10).Select(i => new Tile(i, Letter.From('Q'))).ToImmutableArray());
+        var round = KnownRound(discards: 1) with { Bag = qs };
+
+        var next = RoundRules.Discard(round, round.Hand.Tiles.Select(t => t.Id).ToArray(), Words).Value;
+
+        Assert.True(next.Deadlocked);
+        Assert.Equal(RoundStatus.Lost, next.Status);
+    }
+
+    [Fact]
+    public void UnplayableHand_WithDiscardsLeft_IsNotDeadlocked()
+    {
+        var qs = new TileBag(Enumerable.Range(100, 20).Select(i => new Tile(i, Letter.From('Q'))).ToImmutableArray());
+        var round = KnownRound(discards: 2) with { Bag = qs };
+
+        var next = RoundRules.Discard(round, round.Hand.Tiles.Select(t => t.Id).ToArray(), Words).Value;
+
+        Assert.False(RoundRules.HasLegalPlay(next, Words));
+        Assert.False(next.Deadlocked);
+        Assert.Equal(RoundStatus.InProgress, next.Status);
     }
 }

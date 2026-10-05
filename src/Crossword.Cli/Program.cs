@@ -12,8 +12,9 @@ namespace Crossword.Cli;
 /// </summary>
 public static class Program
 {
+    private const char Bom = (char)0xFEFF;
     private static readonly ScoringConfig Scoring = ScoringConfig.Default;
-    private static ILexicon _lexicon = null!;
+    private static IWordGraph _lexicon = null!;
     private static RunState _run = null!;
     private static RoundState _round = null!;
 
@@ -37,7 +38,7 @@ public static class Program
                 return 0; // stdin closed
 
             // TrimStart BOM: piped input from some shells (e.g. PowerShell) is prefixed with U+FEFF.
-            string[] parts = line.TrimStart('﻿').Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string[] parts = line.TrimStart(Bom).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 0)
                 continue;
 
@@ -92,7 +93,7 @@ public static class Program
 
     private static void StartRound()
     {
-        (_round, _run) = RoundRules.Start(_run, RoundConfig.ForRound(_run.RoundIndex));
+        (_round, _run) = RoundRules.Start(_run, RoundConfig.ForRound(_run.RoundIndex), _lexicon);
         Console.WriteLine($"--- Round {_run.RoundIndex + 1}: reach {_round.Config.TargetScore} points ---");
         PrintRound();
     }
@@ -151,7 +152,7 @@ public static class Program
             return;
         }
 
-        var result = RoundRules.Discard(_round, ids.Value.ToArray());
+        var result = RoundRules.Discard(_round, ids.Value.ToArray(), _lexicon);
         if (!result.IsOk)
         {
             Console.WriteLine($"Rejected: {result.Error.Message}");
@@ -176,7 +177,12 @@ public static class Program
                 Console.WriteLine("*** Round won! Type 'next' for the next round. ***");
                 break;
             case RoundStatus.Lost:
-                Console.WriteLine("*** Round lost. Type 'new' to start a new run. ***");
+                Console.WriteLine(_round.Deadlocked
+                    ? "*** No legal plays and no discards left. Round lost. Type 'new' to start a new run. ***"
+                    : "*** Round lost. Type 'new' to start a new run. ***");
+                break;
+            case RoundStatus.InProgress when !RoundRules.HasLegalPlay(_round, _lexicon):
+                Console.WriteLine("(!) No legal play with this hand - discard some tiles.");
                 break;
         }
     }

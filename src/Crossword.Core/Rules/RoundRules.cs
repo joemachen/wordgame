@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Crossword.Core.Analysis;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
 using Crossword.Core.Lexicon;
@@ -40,14 +41,17 @@ public abstract record RoundError
 
 public sealed record SubmitOutcome(RoundState State, ScoreContext Score);
 
-/// <summary>Pure round transitions: start, submit a play, discard.</summary>
+/// <summary>
+/// Pure round transitions: start, submit a play, discard. Each transition ends by checking for a deadlock:
+/// no legal play for the hand and no discards left means the round is lost.
+/// </summary>
 public static class RoundRules
 {
     /// <summary>
     /// Starts a round from the run's full deck. The round gets its own RNG stream derived from the run RNG,
     /// so the run RNG advances by exactly one step per round regardless of how the round is played.
     /// </summary>
-    public static (RoundState Round, RunState Run) Start(RunState run, RoundConfig config)
+    public static (RoundState Round, RunState Run) Start(RunState run, RoundConfig config, IWordGraph lexicon)
     {
         var (roundSeed, runRng) = run.Rng.NextUInt64();
         var rng = Rng.FromSeed(roundSeed);
@@ -63,13 +67,13 @@ public static class RoundRules
             SubmissionsLeft: config.Submissions,
             DiscardsLeft: config.Discards);
 
-        return (DrawRules.DrawToHandSize(round), run with { Rng = runRng });
+        return (Settle(DrawRules.DrawToHandSize(round), lexicon), run with { Rng = runRng });
     }
 
     public static Result<SubmitOutcome, RoundError> Submit(
         RoundState state,
         IReadOnlyList<PlacedTile> placed,
-        ILexicon lexicon,
+        IWordGraph lexicon,
         IReadOnlyList<IDeskItem> deskItems,
         ScoringConfig scoring)
     {
@@ -90,11 +94,11 @@ public static class RoundRules
             SubmissionsLeft = state.SubmissionsLeft - 1,
         };
 
-        return Result<SubmitOutcome, RoundError>.Ok(new SubmitOutcome(DrawRules.DrawToHandSize(next), score));
+        return Result<SubmitOutcome, RoundError>.Ok(new SubmitOutcome(Settle(DrawRules.DrawToHandSize(next), lexicon), score));
     }
 
     /// <summary>Removes the selected tiles from play for this round and refills the hand. Costs one discard.</summary>
-    public static Result<RoundState, RoundError> Discard(RoundState state, IReadOnlyCollection<int> tileIds)
+    public static Result<RoundState, RoundError> Discard(RoundState state, IReadOnlyCollection<int> tileIds, IWordGraph lexicon)
     {
         if (state.Status != RoundStatus.InProgress)
             return Result<RoundState, RoundError>.Fail(new RoundError.RoundOver(state.Status));
@@ -110,6 +114,15 @@ public static class RoundRules
             Hand = state.Hand.Remove(tileIds),
             DiscardsLeft = state.DiscardsLeft - 1,
         };
-        return Result<RoundState, RoundError>.Ok(DrawRules.DrawToHandSize(next));
+        return Result<RoundState, RoundError>.Ok(Settle(DrawRules.DrawToHandSize(next), lexicon));
     }
+
+    /// <summary>True if the current hand has at least one legal play on the current board.</summary>
+    public static bool HasLegalPlay(RoundState state, IWordGraph lexicon) =>
+        MoveGenerator.HasLegalPlay(state.Board, state.Hand, lexicon);
+
+    private static RoundState Settle(RoundState state, IWordGraph lexicon) =>
+        state.Status == RoundStatus.InProgress && state.DiscardsLeft == 0 && !HasLegalPlay(state, lexicon)
+            ? state with { Deadlocked = true }
+            : state;
 }

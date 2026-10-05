@@ -25,7 +25,10 @@ public enum RoundStatus
     Lost,
 }
 
-/// <summary>Immutable state of the round in progress. The board persists across submissions within it.</summary>
+/// <summary>
+/// Immutable state of the round in progress. The board persists across submissions within it.
+/// <see cref="Deadlocked"/> is set by RoundRules when no legal play exists and no discards remain.
+/// </summary>
 public sealed record RoundState(
     RoundConfig Config,
     Board Board,
@@ -34,10 +37,11 @@ public sealed record RoundState(
     Rng Rng,
     long Score,
     int SubmissionsLeft,
-    int DiscardsLeft)
+    int DiscardsLeft,
+    bool Deadlocked = false)
 {
     public RoundStatus Status =>
         Score >= Config.TargetScore ? RoundStatus.Won
-        : SubmissionsLeft <= 0 || (Hand.Count == 0 && Bag.IsEmpty) ? RoundStatus.Lost
+        : SubmissionsLeft <= 0 || Deadlocked || (Hand.Count == 0 && Bag.IsEmpty) ? RoundStatus.Lost
         : RoundStatus.InProgress;
 }
