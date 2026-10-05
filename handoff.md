@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `HEADPLACEHOLDER` (code) · 318 unit tests passing · UI self-test 27/27 passing_
+_Last updated: 2026-10-05 · HEAD `3ef83ac` (code) · 318 unit tests passing · UI self-test 27/27 passing_
 
 ---
 
@@ -161,6 +161,10 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+3ef83ac Teach the run simulator to buy and use Stationery
+49ade8b Use the new Stationery in the game UI
+cf2fb05 Add Margin Clip, Scissors, White-Out and Red Ink Bottle Stationery
+cf7ab5a Bring handoff balance snapshot, concerns and next steps up to date
 7fec654 Record retune commit in handoff
 e928808 Retune week targets and soften The Strict Grammarian's deadline
 c4fd76d Record hint rework and round-length measurements in handoff
