@@ -12,7 +12,8 @@ Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target
 - **Run → Rounds (blinds).** Each round: fresh board (default 7×7) with seeded, rotationally symmetric premium squares; full deck shuffled into the bag; hand of 7.
 - **Play (submission):** 1..N hand tiles in one row/column; gaps only if filled by existing tiles; must touch existing tiles (first play may go anywhere); must form ≥1 word of 2+ letters; every word formed (main + cross) must be in the lexicon. Placed tiles are consumed for the round; hand refills.
 - **Discard:** costs one discard; removes chosen tiles for the round and refills.
-- **Round end:** Won when Score ≥ target; Lost when submissions run out (or hand and bag are both empty).
+- **Round end:** Won when Score ≥ target; Lost when submissions run out, hand and bag are both empty, or **deadlocked** (no legal play for the hand and no discards left — checked after every transition via `MoveGenerator`).
+- **Desk Items:** up to 5 slots (`RunState.MaxDeskSlots`), no duplicates, applied left to right — slot order matters. Starter set in `Core/DeskItems/`; acquisition (shop) not built yet, CLI has a dev `give` command.
 - **Lexicon:** ENABLE, words of 2–15 letters. 2-letter words are legal (lowest tier). QI/ZA are NOT in ENABLE.
 
 ## Scoring Order (`ScoringEngine`, one pooled Chips × Mult per play)
@@ -21,11 +22,17 @@ Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target
 3. **Intersections:** +`IntersectionMult` per new tile that is in both an Across and a Down word.
 4. **Desk Items:** `EffectPipeline` in slot order (+Chips, +Mult, ×Mult).
 5. **Total:** floor(Chips × Mult). Every step appends an `EffectEvent` (with running totals) for UI playback.
-All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` — placeholders, tune there, not in code.
+All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item constructor defaults — tune there, not in code.
+
+## Balance Workflow
+- `RoundSimulator` (Core/Analysis) plays rounds automatically; `skill` 1.0 = greedy best play (upper bound), 0.9 ≈ strong human proxy.
+- CLI `sim [rounds]` prints per-submission score distribution, intersection rate and submissions-to-target; `hint [n]` lists best plays.
+- Current tuning rationale: tier Mult 1,1,2,2,3,3 + 3 Mult per intersection so grid-building beats isolated long words; round 1 target 300 (~90% clear rate at skill 0.9); starter items ~+35–55% alone.
+- Unit tests must pin their own numbers (explicit config / constructor args) so retuning defaults never breaks them.
 
 ## Layout
-- `src/Crossword.Core` — `Domain/` (state records, board, premium layout), `Rules/` (placement validation, round/draw transitions), `Scoring/`, `Effects/` (Desk Item pipeline), `Lexicon/` (DAWG + embedded ENABLE), `Random/`
-- `src/Crossword.Cli` — developer QA console (parser, renderer, REPL); references Core only
+- `src/Crossword.Core` — `Domain/` (state records, board, premium layout), `Rules/` (placement validation, round/draw transitions), `Scoring/`, `Effects/` (Desk Item pipeline), `DeskItems/` (concrete items + catalog), `Analysis/` (move generator, ranker, simulator), `Lexicon/` (DAWG + embedded ENABLE, `IWordGraph` traversal), `Random/`
+- `src/Crossword.Cli` — developer QA console (parser, renderer, simulation report, REPL); references Core only
 - `tests/Crossword.Tests` — xUnit tests, mirroring Core folder structure (+ `Cli/` parser tests, `TestSupport/Fixtures`)
 - `run_local_qa.bat [--ci] [seed]` — build → test → launch CLI (double-click; `--ci` skips pauses). Keep it working as the project evolves.
 

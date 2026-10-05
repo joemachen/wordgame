@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Crossword.Core.Analysis;
+using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
 using Crossword.Core.Rules;
@@ -64,6 +65,22 @@ public static class Program
                     break;
                 case "sim":
                     Simulate(rest.Length > 0 && int.TryParse(rest[0], out var r) ? r : 100);
+                    break;
+                case "desk":
+                    PrintDesk(showCatalog: true);
+                    break;
+                case "give":
+                    Give(rest);
+                    break;
+                case "sell":
+                    ApplyRunChange(rest.Length == 1 && int.TryParse(rest[0], out var slot)
+                        ? _run.RemoveDeskItem(slot - 1)
+                        : Result<RunState, string>.Fail("Usage: sell <slot>"));
+                    break;
+                case "move":
+                    ApplyRunChange(rest.Length == 2 && int.TryParse(rest[0], out var from) && int.TryParse(rest[1], out var to)
+                        ? _run.MoveDeskItem(from - 1, to - 1)
+                        : Result<RunState, string>.Fail("Usage: move <from-slot> <to-slot>"));
                     break;
                 case "board" or "b":
                     PrintRound();
@@ -170,6 +187,37 @@ public static class Program
         PrintRound();
     }
 
+    private static void Give(string[] args)
+    {
+        if (args.Length != 1 || DeskItemCatalog.Find(args[0]) is not { } item)
+        {
+            Console.WriteLine($"Usage: give <id>   ids: {string.Join(", ", DeskItemCatalog.All.Select(i => i.Id))}");
+            return;
+        }
+        ApplyRunChange(_run.AddDeskItem(item));
+    }
+
+    private static void ApplyRunChange(Result<RunState, string> result)
+    {
+        if (!result.IsOk)
+        {
+            Console.WriteLine(result.Error);
+            return;
+        }
+        _run = result.Value;
+        PrintDesk(showCatalog: false);
+    }
+
+    private static void PrintDesk(bool showCatalog)
+    {
+        Console.WriteLine(ConsoleRenderer.Desk(_run));
+        if (!showCatalog)
+            return;
+        Console.WriteLine("Catalog (dev: 'give <id>'):");
+        foreach (var item in DeskItemCatalog.All)
+            Console.WriteLine($"  {item.Id,-16} {item.Name,-16} {item.Description}");
+    }
+
     private static void Hint(int count)
     {
         var ranked = MoveRanker.Rank(_round.Board, _round.Hand, _lexicon, _run.DeskItems, Scoring);
@@ -208,6 +256,8 @@ public static class Program
         Console.WriteLine(ConsoleRenderer.Board(_round.Board));
         Console.WriteLine();
         Console.WriteLine(ConsoleRenderer.Status(_run, _round));
+        if (!_run.DeskItems.IsEmpty)
+            Console.WriteLine(ConsoleRenderer.Desk(_run));
         Console.WriteLine(ConsoleRenderer.Hand(_round.Hand, Scoring));
 
         switch (_round.Status)
@@ -236,6 +286,10 @@ public static class Program
               check | c <WORD...>            Look words up in the dictionary
               hint [n]                       Show the n best legal plays (dev/QA aid)
               sim [rounds]                   Greedy-play simulation for balance tuning (default 100)
+              desk                           Show your Desk Items and the catalog
+              give <id>                      (dev) Add a Desk Item to the next free slot
+              sell <slot>                    Remove the Desk Item in a slot
+              move <from> <to>               Reorder Desk Items (they apply left to right)
               board | b                      Show board, status, and hand
               status | s                     Show score and resources
               next                           Start the next round (after winning)

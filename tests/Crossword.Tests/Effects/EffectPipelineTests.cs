@@ -11,12 +11,14 @@ public class EffectPipelineTests
     internal sealed record PlusMult(string Id, decimal Amount) : IDeskItem
     {
         public string Name => $"+{Amount} Mult";
+        public string Description => Name;
         public ScoreContext Apply(ScoreContext c) => c.AddMult(Amount).Record(Id, Name);
     }
 
     internal sealed record TimesMult(string Id, decimal Factor) : IDeskItem
     {
         public string Name => $"x{Factor} Mult";
+        public string Description => Name;
         public ScoreContext Apply(ScoreContext c) => c.TimesMult(Factor).Record(Id, Name);
     }
 

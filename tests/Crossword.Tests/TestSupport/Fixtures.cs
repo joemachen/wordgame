@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
+using Crossword.Core.Rules;
 
 namespace Crossword.Tests.TestSupport;
 
@@ -54,5 +55,14 @@ internal static class Fixtures
             pos = pos.Step(dir);
         }
         return placed;
+    }
+
+    /// <summary>Validates a play spelled with <see cref="Spell"/>; fails the test if it is illegal.</summary>
+    public static PlayAnalysis PlayOn(Board board, string handLetters, int row, int col, Direction dir, string word)
+    {
+        var hand = HandOf(handLetters);
+        var result = PlacementValidator.Validate(board, hand, Spell(board, hand, row, col, dir, word), Words);
+        Xunit.Assert.True(result.IsOk, result.IsOk ? "" : result.Error.Message);
+        return result.Value;
     }
 }

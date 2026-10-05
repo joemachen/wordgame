@@ -46,6 +46,12 @@ public static class ConsoleRenderer
         $"Round {run.RoundIndex + 1} | Score {round.Score}/{round.Config.TargetScore} | " +
         $"Submissions {round.SubmissionsLeft} | Discards {round.DiscardsLeft} | Bag {round.Bag.Count}";
 
+    public static string Desk(RunState run) =>
+        run.DeskItems.IsEmpty
+            ? $"Desk: (empty, {RunState.MaxDeskSlots} slots)"
+            : $"Desk ({run.DeskItems.Length}/{RunState.MaxDeskSlots}): " +
+              string.Join("  ", run.DeskItems.Select((item, i) => $"[{i + 1}] {item.Name}: {item.Description}"));
+
     public static string ScoreBreakdown(ScoreContext score)
     {
         var sb = new StringBuilder();
