@@ -27,7 +27,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike), **Stationery** system (2 one-shot slots) with its first item, the **Answer Key** (reveals the best play, $3). |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
-| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
+| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell) + 2 Stationery slots (use/sell; Answer Key shop card), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -48,61 +48,44 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Style Guides are shown in a Run Info-style popup** (Tab / sidebar button), user's choice over an always-visible sidebar table or desk-bar badges.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
-## 4. Current balance snapshot (`RunSimulator`, 300 runs at 0.9, 150 at 0.8/0.7; after phase 1 boss tiers)
+## 4. Current balance snapshot (after the 2026-10-05 retune)
 
-Week targets **225/800/2400/6500/16000** (retuned 2026-10-05 against the evaluating bot; was 150/400/900/1900/3800),
-day multipliers ×1/×1.3/×1.6.
+Week targets **340/1200/3600/9750/16000**, day multipliers ×1/×1.3/×1.6, The Strict Grammarian's deadline ×0.75.
+**Reference player = ScoreFraction model** (`runsim 150 0.75 frac`: picks the best play worth ≤75% of the best one).
+Evaluating shop bot, 150 runs each:
 
-| Shop bot | skill 0.9 | 0.8 | 0.7 |
+| Skill (ScoreFraction) | Victory | Rounds won in 1–2 subs | Mean subs to win (Daily, W1 → W5) |
 |---|---|---|---|
-| Evaluating (default) | **39%** | 14% | 2% |
-| Naive | 2% | — | — |
+| 0.9 | 45% | 74% | 2.41 → 2.10 |
+| 0.75 (reference) | 31% | 65% | 2.50 → 2.36 |
+| 0.6 (from the sweep) | ~13% | ~54% | ~2.5 → 2.7 |
 
-- **Bosses are tiered by week** (phase 1): Early Ink Spill / Tight Margins, Mid Vowel Drought / Tight Deadline,
-  Final The Strict Grammarian. Overall win rates barely moved versus random bosses (39/14/3 → 39/14/2).
-- Losses at skill 0.9 by week: 10 / 23 / 33 / 43 / 75 (of 300 runs). Boss loss rate per encounter at 0.9:
-  **The Strict Grammarian 29% as the Week 5 finale** (was ~12% when it could appear in any week), Tight Deadline 9%,
-  Vowel Drought 4%, Ink Spill 2%, Tight Margins 2%. The finale is now a real wall: ~1 in 4 losses happen there.
-- **Skill gap is now wide** (0.9→0.8 ≈ 25 pts), so the old "narrow gap" concern was a bot/target artifact.
-- **Early weeks are punishing for weaker players:** skill 0.7 loses in Week 1 ~60% of runs (89 of 150 after phase 1). The user chose this over a
-  softer early curve (e.g. 200/800/…: 45% / 17% / 5%). Revisit after human playtests.
-- **Shopping well matters more than word-finding:** with the *old* targets the same word skill went 42% → 97% from
-  the shop bot alone.
-- Item concentration (measured on the *old* targets, re-measure): Pulitzer, Margin Notes, Word Count in >90% of
-  skill-0.9 runs; Margin Notes is strong partly because the bot only discards when it has no play (+6 Mult).
+- Losses are spread across the weeks; Dailies and Saturday Stumpers end most runs. The Strict Grammarian ends 13 (0.9) /
+  8 (0.75) of 150 runs — still the hardest boss, no longer a wall.
+- **Targets plateau at ~2.5 plays per round:** steeper curves (×1.75, ×2) only turn long rounds into lost rounds
+  (4 submissions, high per-play variance). 3+ play rounds need a structural change (e.g. 5 submissions + higher targets).
+- **The percentile skill model is a poor human proxy** (its 0.9 = the play better than 90% of legal plays, far below the
+  best, since most legal plays are tiny). It was the tuning reference before 2026-10-05, which is why rounds felt short.
+- Re-run with CLI `runsim 150 0.75 frac` (add `naive` for the old shop bot). Target sweeps: scratch harness pattern in §7.
+
+**Still true from earlier measurements (old targets — re-measure):**
+- **Shopping well matters more than word-finding:** the same word skill went 42% → 97% from the shop bot alone.
+- Item concentration: Pulitzer, Margin Notes, Word Count in >90% of strong runs; Margin Notes is strong partly because
+  the bot only discards when it has no play (+6 Mult).
 - Deck edits (enhance/strike/add tile) never pay off: buying them at any fixed estimated gain *lowered* the bot's
   win rate, so `ShopBotConfig` defaults skip them. A money reserve for interest also lowered win rate.
-- Re-run with CLI `runsim 100 0.9` (add `naive` for the old bot, `frac` for the score-fraction model) or the scratch harness pattern in §7.
+- Bots ignore Stationery, so the Answer Key's value isn't in any simulated number.
 
-**Round length (2026-10-05, 150 runs each, evaluating bot)** — prompted by the user's "I only ever need 1–2 words a round":
-
-| Skill | Victory | Won in 1–2 subs | Mean subs to win, W1 → W5 (Daily) |
-|---|---|---|---|
-| 1.0 (= old Hint, best play) | 77% | 93% | 1.57 → 1.79 |
-| ScoreFraction 0.9 | 54% | 87% | 1.84 → 2.10 |
-| ScoreFraction 0.75 | 35% | 81% | 1.93 → 2.50 |
-| ScoreFraction 0.6 | 19% | 71% | 2.28 → 2.59 |
-| Percentile 0.9 (tuning reference) | 39% | 61% | 2.85 → 2.64 |
-
-- **The percentile bot is a poor human proxy.** Its 90th-percentile play is far below the best (most legal plays are
-  tiny), so targets tuned for it are soft for a human who finds *good* plays. Human-like play (ScoreFraction) clears
-  most rounds in 1–2 submissions, matching the user's experience.
-- **Difficulty is a cliff, not a curve:** even ScoreFraction 0.6 wins 71% of rounds in 1–2 submissions, yet only 19% of
-  runs — losses pile up at The Strict Grammarian (38–41 of 150 runs for every fraction model) and Saturday Stumpers.
-- **Retuned (option B):** week targets 340/1200/3600/9750/16000, Grammarian deadline ×0.75. Verified with `runsim 150 … frac`:
-  wins 45% / 31% at 0.9 / 0.75; rounds ~2.1–2.6 submissions; 65–74% of rounds won in 1–2; losses spread across the
-  weeks (Stumpers and Dailies now kill most runs; Grammarian 13 / 8 of 150). Sweep harness: scratch console project
-  crossing curves × Grammarian scale (a `ScaledBoss` wrapper) × skills — see §7.
-- Sweep findings: targets plateau at ~2.5 plays per round (steeper curves just add losses); scaling the Grammarian's
-  deadline to 0.75 cut its finale loss rate from ~45% to ~15%. The percentile tables above are pre-retune.
+**History:** 150/400/900/1900/3800 → 225/800/2400/6500/16000 (tuned against the percentile 0.9 bot: 39% wins, but a
+human-like player won 81–87% of rounds in 1–2 submissions and runs died at a 40%+ Grammarian finale) → current.
 
 ## 5. Open concerns / known gaps
 
-1. **Harsh early game for average players** (see §4). Decide after playtests; the Press Run stakes (ROADMAP §5)
-   could carry difficulty instead if the base game should be gentler.
+1. **Overall difficulty after the retune** (see §4): the reference player wins ~31%, a weaker one ~13%. Check in
+   playtests; the Press Run stakes (ROADMAP §5) could carry difficulty if the base game should be gentler.
 2. **Possible dominant items / weak deck edits** (see §4): Pulitzer, Margin Notes, Word Count near-universal picks;
    deck edits not worth buying. The bot values items by the *best* play per decision (strong-shopper view), not
-   the play its skill level would pick.
+   the play its skill level would pick. Bots don't buy or use Stationery yet.
 3. **No save/load.** State is immutable records, so it's mostly serialization (Desk Items are polymorphic records — needs a type discriminator).
 4. **UI is first-pass:** no art, sound, or settings; only the hand-reorder slide is animated. Hand drag (ghost slot, sliding tiles, lifted preview) confirmed good by the user with a real mouse.
 5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping (the same pass should cover definitions; WordNet glosses include crude senses). "Q without U" is a dead tile (consider a "Qu" tile).
@@ -114,11 +97,11 @@ day multipliers ×1/×1.3/×1.6.
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
-0. **Playtest the retune + new Hint** — do rounds feel longer? If 3+ play rounds are wanted, try 5 submissions per
-   round with higher targets (structural; targets alone plateau at ~2.5 plays).
-1. User playtests a few runs via `run_local_qa.bat` → check early-game feel (concern #1) and whether a 29%
-   Strict Grammarian finale feels fair.
-2. ROADMAP phase 2: new Desk Items + Redundant Copy (Mid) and The Puzzle Master (Final) bosses.
+1. **Playtest the retune + new Hint** via `run_local_qa.bat` — do rounds feel longer, is the overall difficulty right
+   (concern #1), is the free Hint useful without being a crutch, is the Answer Key worth $3? If 3+ play rounds are
+   wanted, try 5 submissions per round with higher targets (targets alone plateau at ~2.5 plays).
+2. More Stationery (ROADMAP §Stationery: White-Out, Scissors, Margin Clip…) + teach the shop bot to value it.
+   ROADMAP phase 2: new Desk Items + Redundant Copy (Mid) and The Puzzle Master (Final) bosses.
 3. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;
    make deck edits worth buying.
 4. Save/load (resume a run) — prerequisite for meta-progression.
@@ -127,7 +110,7 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 7. How to work in this repo (practical tips learned the hard way)
 
 - **Verify, don't assume.** After changes: `dotnet build wordgame.sln` (warnings are errors) → `dotnet test`. For UI changes also run the screenshot and self-test flags:
-  - `"D:/Projects/Godot/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path game -- --seed=42 --screenshot=<scratchpad>/shot.png` then view the PNG. Extra flags: `--give=red-pen,pulitzer --autoplay=3 --hint`.
+  - `"D:/Projects/Godot/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path game -- --seed=42 --screenshot=<scratchpad>/shot.png` then view the PNG. Extra flags: `--give=red-pen,pulitzer,answer-key --autoplay=3 --hint --dev` (`--give` takes Desk Item or Stationery ids; `--dev` = best-play Hint button).
   - `... --path game -- --seed=42 --selftest` → PASS/FAIL lines, exit 1 on failure. Extend `game/Scripts/Main.SelfTest.cs` for new interactions.
   - Build the Godot project (`dotnet build game/Wordgame.Godot.csproj`) before launching Godot; it loads assemblies from `game/.godot/mono/temp/bin`.
 - **Desktop control (computer-use) can't target the portable Godot exe** — use `--selftest`/`--screenshot` instead.
@@ -139,7 +122,7 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 - **Batch files must be CRLF** (`.gitattributes` enforces; normalize with `sed -i 's/\r*$/\r/'` after writing).
 - Running `run_local_qa.bat` from a captured shell hangs because Godot inherits the pipe — expected; it's fine on double-click.
 - Target sweeps: wrap a boss in a harness-side `BossModifier` subclass whose `ModifyRound` calls `Inner.Apply(config) with { Boss = null }` and rescales `TargetScore` — lets you test boss deadlines without touching Core. Flatten configs × seeds into one `.AsParallel()` query (20 cores: ~0.5 s per run).
-- Balance experiments: a throwaway console project in the scratchpad referencing `src/Crossword.Core` (loop over configs, call `RunSimulator.PlayRun(seed, config, lexicon, skill, strategy, botConfig)` with `.AsParallel()`, build `-c Release`) is faster than editing defaults repeatedly. 100 runs ≈ 1 min with the evaluating bot. Note `RunConfig.Days` multipliers must be set explicitly in such harnesses. n=60 runs is too noisy (±6 pts) to compare close variants; use 150+.
+- Balance experiments: a throwaway console project in the scratchpad referencing `src/Crossword.Core` (loop over configs, call `RunSimulator.PlayRun(seed, config, lexicon, skill, strategy, botConfig, model: SkillModel.ScoreFraction)` with `.AsParallel()`, build `-c Release`) is faster than editing defaults repeatedly. 100 runs ≈ 1 min with the evaluating bot. Note `RunConfig.Days` multipliers must be set explicitly in such harnesses. n=60 runs is too noisy (±6 pts) to compare close variants; use 150+.
 - The user's machine has old Godot crash dumps; the project uses the **GL Compatibility** renderer, which has been stable.
 
 ## 8. Working with the user
@@ -152,6 +135,7 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+7fec654 Record retune commit in handoff
 e928808 Retune week targets and soften The Strict Grammarian's deadline
 c4fd76d Record hint rework and round-length measurements in handoff
 97ab47a Make the free hint a decent play and sell the best play as an Answer Key
