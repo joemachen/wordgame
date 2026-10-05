@@ -9,10 +9,10 @@ Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target
 4. Every new Desk Item or mechanics feature MUST include unit tests in `tests/Crossword.Tests`.
 
 ## Run Structure (implemented)
-- **5 Weeks × 3 rounds:** Daily (target ×1, $3) → Saturday Stumper (×1.3, $4) → **Sunday Edition** boss (×1.6, $5 + a `BossModifier`). Week targets 150/320/500/700/950 (`RunConfig.Default`); endless mode after victory (×2/week).
-- **Bosses** (`Core/Run/BossModifiers.cs`): Black Squares (symmetric blocked cells), Pocket Edition (5×5), Strict Editor (3+ letter words), Vowel Tax (vowels 0 chips), Tight Deadline (3 submissions). The week's boss is derived from seed + week (no RNG consumed) so it can be previewed.
+- **5 Weeks × 3 rounds:** Daily (target ×1, $3) → Saturday Stumper (×1.3, $4) → **Sunday Edition** boss (×1.6, $5 + a `BossModifier`). Week targets 150/400/900/1900/3800 (`RunConfig.Default`); endless mode after victory (×2/week).
+- **Bosses** (`Core/Run/BossModifiers.cs`): Black Squares (6 symmetric blocked cells), Pocket Edition (5×5), Strict Editor (3+ letter words), Vowel Tax (vowels −1 chip), Tight Deadline (3 submissions). Play totals are clamped at 0. The week's boss is derived from seed + week (no RNG consumed) so it can be previewed.
 - **Economy:** start $4; paycheck = base + $1/unused submission + overkill ($1 per full 50% over target, cap 3) + interest ($1 per $5 held, cap 5). Gilded tiles pay during play.
-- **Shop** (after each won round): 2 Desk Items (Common $4 / Uncommon $6, sell for half), 2 deck edits (add tile, enhance a chosen tile, strike up to 2 tiles; deck min 30), reroll $5 +$1 each.
+- **Shop** (after each won round): 2 Desk Items (rarity rolled 60/30/10: Common $4 / Uncommon $6 / Rare $8, sell for half), 2 deck edits (add tile, enhance a chosen tile, strike up to 2 tiles; deck min 30), 1 **Style Guide** ($3: permanently levels a word tier, +`LevelChips`/+`LevelMult`, stored in `RunState.TierUpgrades`), reroll $5 +$1 each.
 - **Tile enhancements:** Bold +10 Chips, Italic +2 Mult, Gilded +$1 — trigger once per formed word containing the tile, including tiles already on the board.
 - **State:** `GameSession` (config, `RunState`, phase, current `RoundState`, `ShopState`, last `Payout`); transitions in `RunRules` / `ShopRules`; round mechanics stay in `RoundRules`.
 
@@ -21,7 +21,7 @@ Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target
 - **Play (submission):** 1..N hand tiles in one row/column; gaps only if filled by existing tiles; must touch existing tiles (first play may go anywhere); must form ≥1 word of 2+ letters; every word formed (main + cross) must be in the lexicon. Placed tiles are consumed for the round; hand refills.
 - **Discard:** costs one discard; removes chosen tiles for the round and refills.
 - **Round end:** Won when Score ≥ target; Lost when submissions run out, hand and bag are both empty, or **deadlocked** (no legal play for the hand and no discards left — checked after every transition via `MoveGenerator`).
-- **Desk Items:** up to 5 slots (`RunState.MaxDeskSlots`), no duplicates, applied left to right — slot order matters. Starter set in `Core/DeskItems/`, bought in the shop (CLI also has a dev `give` command).
+- **Desk Items:** up to 5 slots (`RunState.MaxDeskSlots`), no duplicates, applied left to right — slot order matters. 18 items in `Core/DeskItems/` (Starter, Conditional, Scaling), bought in the shop (CLI also has a dev `give` command).
 - **Lexicon:** ENABLE, words of 2–15 letters. 2-letter words are legal (lowest tier). QI/ZA are NOT in ENABLE.
 
 ## Scoring Order (`ScoringEngine`, one pooled Chips × Mult per play)
@@ -36,8 +36,8 @@ All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item
 ## Balance Workflow
 - `RoundSimulator` (Core/Analysis) plays rounds automatically; `skill` 1.0 = greedy best play (upper bound), 0.9 ≈ strong human proxy.
 - CLI `sim [rounds]` prints per-submission score distribution, intersection rate and submissions-to-target; `hint [n]` lists best plays.
-- `RunSimulator` plays whole runs with a naive shop bot; CLI `runsim [runs] [skill]` reports victory %, week reached and what killed runs. Week targets are tuned so a skill-0.9 bot wins ~40–45%.
-- Known gap: the bot's desk fills by ~round 5 and money piles up (~$30 unspent) — late-game scaling is content-limited; retune targets when scaling content lands.
+- `RunSimulator` plays whole runs with a naive shop bot; CLI `runsim [runs] [skill]` reports victory %, week reached and what killed runs. Current tuning (100 runs each): skill 0.9 wins ~42%, 0.8 ~29%, 0.7 ~15%; boss loss rates 4–16% per encounter.
+- Watch: the gap between skill levels is narrow — build strength now dominates word-finding skill. Retune targets with `runsim` whenever scaling content changes.
 - Current tuning rationale: tier Mult 1,1,2,2,3,3 + 3 Mult per intersection so grid-building beats isolated long words; round 1 target 300 (~90% clear rate at skill 0.9); starter items ~+35–55% alone.
 - Unit tests must pin their own numbers (explicit config / constructor args) so retuning defaults never breaks them.
 
@@ -56,6 +56,7 @@ All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item
 
 ## Code Conventions
 - Use immutable C# `record` types for state objects; collections are `ImmutableArray`/`ImmutableList`. Note `ImmutableArray` compares by reference inside records — compare contents explicitly in tests.
+- Scaling Desk Items grow via `AfterPlay`/`AfterRoundWon`, which return an updated copy (applied by `RunRules`); items needing run resources read `ScoreContext.Env` (money held, submissions left incl. current, discards left).
 - Desk Items implement `IDeskItem.Apply(ScoreContext) -> ScoreContext` as pure functions and are applied strictly in slot order by `EffectPipeline`. Record each firing via `ScoreContext.Record(sourceId, description)`; the engine layer animates from that log (no observers/events in Core).
 - Tag tests with `[Trait("Category", "...")]` (e.g. `Scoring`, `Determinism`, `Architecture`).
 - Expected rule violations return `Result<TValue, TError>` (`PlacementError`, `RoundError`) — exceptions are for programmer errors only.

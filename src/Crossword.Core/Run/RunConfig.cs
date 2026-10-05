@@ -19,9 +19,8 @@ public sealed record EconomyConfig(
 /// <summary>
 /// Shape of a run: <see cref="WeekTargets"/>.Length weeks × <see cref="Days"/> rounds. After the final week the
 /// run is won; endless play continues with targets growing by <see cref="EndlessGrowth"/> per week.
-/// Default targets tuned with <see cref="Analysis.RunSimulator"/> (100 runs each): skill-0.9 bot wins ~44%,
-/// skill 0.8 usually reaches Week 4, skill 0.7 Week 2. The late curve is flat because the current Desk Item pool
-/// (6 items) stops scaling once the desk fills — steepen it as scaling content is added.
+/// Default targets tuned with <see cref="Analysis.RunSimulator"/> (100 runs per curve, 18 Desk Items + Style
+/// Guides): skill-0.9 bot wins ~40%, skill 0.8 ~30%. Retune with 'runsim' whenever scaling content changes.
 /// </summary>
 public sealed record RunConfig(
     ImmutableArray<long> WeekTargets,
@@ -32,7 +31,7 @@ public sealed record RunConfig(
     decimal EndlessGrowth = 2)
 {
     public static RunConfig Default { get; } = new(
-        WeekTargets: [150, 320, 500, 700, 950],
+        WeekTargets: [150, 400, 900, 1900, 3800],
         Days:
         [
             new RoundKind("Daily", 1m, BasePay: 3, IsBoss: false),

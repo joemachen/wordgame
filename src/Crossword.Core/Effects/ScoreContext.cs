@@ -24,8 +24,8 @@ public sealed record ScoreContext(long Chips, decimal Mult, PlayAnalysis Play, I
     /// <summary>Money earned during this play (e.g. Gilded tiles); paid into the run immediately.</summary>
     public int Money { get; init; }
 
-    /// <summary>Final play score: floor(Chips × Mult).</summary>
-    public long Total => (long)decimal.Floor(Chips * Mult);
+    /// <summary>Final play score: floor(Chips × Mult), never negative (boss rules can push Chips below zero).</summary>
+    public long Total => Math.Max(0, (long)decimal.Floor(Chips * Mult));
 
     public ScoreContext AddChips(long amount) => this with { Chips = Chips + amount };
 

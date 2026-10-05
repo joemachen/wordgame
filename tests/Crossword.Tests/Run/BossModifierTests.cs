@@ -53,26 +53,26 @@ public class BossModifierTests
     }
 
     [Fact]
-    public void VowelTax_ZeroesVowelValues_InEffectiveScoring()
+    public void VowelTax_MakesVowelsCostChips_InEffectiveScoring()
     {
-        var config = new VowelTax().Apply(Base);
+        var config = new VowelTax(ValuePerVowel: -1).Apply(Base);
 
         var scoring = config.EffectiveScoring(ScoringConfig.Default);
 
-        Assert.Equal(0, scoring.ValueOf(Letter.From('E')));
+        Assert.Equal(-1, scoring.ValueOf(Letter.From('E')));
         Assert.Equal(ScoringConfig.Default.ValueOf(Letter.From('C')), scoring.ValueOf(Letter.From('C')));
     }
 
     [Fact]
     public void VowelTax_AppliesWhenSubmitting()
     {
-        var round = new RoundState(new VowelTax().Apply(Base with { BoardSize = 5 }), Board.Empty(5),
+        var round = new RoundState(new VowelTax(ValuePerVowel: -1).Apply(Base with { BoardSize = 5 }), Board.Empty(5),
             TileBag.Empty, HandOf("CAT"), Rng.FromSeed(1), Score: 0, SubmissionsLeft: 4, DiscardsLeft: 3);
 
         var outcome = RoundRules.Submit(round, Spell(round.Board, round.Hand, 0, 0, Direction.Across, "CAT"),
             Words, ImmutableArray<IDeskItem>.Empty, ScoringConfig.Default).Value;
 
-        Assert.Equal(5 + 3 + 0 + 1, outcome.Score.Chips); // tier + C + (A taxed) + T
+        Assert.Equal(5 + 3 - 1 + 1, outcome.Score.Chips); // tier + C + (A taxed) + T
     }
 
     [Fact]
@@ -86,6 +86,14 @@ public class BossModifierTests
 
         var error = Assert.IsType<RoundError.InvalidPlacement>(result.Error);
         Assert.IsType<PlacementError.WordsTooShort>(error.Error);
+    }
+
+    [Fact]
+    public void Total_IsNeverNegative()
+    {
+        var play = PlayOn(Board.Empty(5), "AE", 0, 0, Direction.Across, "AE");
+
+        Assert.Equal(0, (ScoreContext.Start(play, chips: -5, mult: 3)).Total);
     }
 
     [Fact]

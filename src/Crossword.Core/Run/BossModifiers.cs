@@ -23,7 +23,7 @@ public abstract record BossModifier
 }
 
 /// <summary>Seeded symmetric black squares break up the grid, like a real crossword.</summary>
-public sealed record BlackSquares(int Pairs = 4) : BossModifier
+public sealed record BlackSquares(int Pairs = 3) : BossModifier
 {
     public override string Id => "black-squares";
     public override string Name => "Black Squares";
@@ -52,16 +52,17 @@ public sealed record StrictEditor(int MinLength = 3) : BossModifier
     protected override RoundConfig ModifyRound(RoundConfig config) => config with { MinWordLength = MinLength };
 }
 
-public sealed record VowelTax : BossModifier
+/// <summary>Vowels cost chips instead of earning them, in every word they appear in.</summary>
+public sealed record VowelTax(int ValuePerVowel = -1) : BossModifier
 {
     private const string Vowels = "AEIOU";
 
     public override string Id => "vowel-tax";
     public override string Name => "Vowel Tax";
-    public override string Description => "Vowels score 0 chips.";
+    public override string Description => $"Vowels are worth {ValuePerVowel} chips.";
 
     public override ScoringConfig ModifyScoring(ScoringConfig scoring) =>
-        scoring with { LetterValues = scoring.LetterValues.SetItems(Vowels.Select(v => KeyValuePair.Create(v, 0))) };
+        scoring with { LetterValues = scoring.LetterValues.SetItems(Vowels.Select(v => KeyValuePair.Create(v, ValuePerVowel))) };
 }
 
 public sealed record TightDeadline(int Submissions = 3) : BossModifier
