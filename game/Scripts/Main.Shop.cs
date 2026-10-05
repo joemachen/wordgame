@@ -42,7 +42,7 @@ public partial class Main
 
         _shopContent.AddChild(UiKit.MakeLabel("THE SHOP", 30, UiKit.Text));
         _shopContent.AddChild(UiKit.MakeLabel(
-            $"Next: Week {_config.WeekOf(next) + 1} {nextKind.Name}, deadline {_config.TargetFor(next):N0}{nextBoss}", 17,
+            $"Next: Week {_config.WeekOf(next) + 1} {nextKind.Name}, deadline {RunRules.TargetFor(_config, Run, next):N0}{nextBoss}", 17,
             nextKind.IsBoss ? UiKit.Bad : UiKit.TextMuted, wrap: true));
 
         var actions = UiKit.HBox(12);

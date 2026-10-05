@@ -139,6 +139,17 @@ public class RunRulesTests
     }
 
     [Fact]
+    public void TargetFor_AppliesTheWeeksBoss_OnlyOnBossRounds()
+    {
+        var run = RunState.New(1);
+        int sunday = 2 * TieredConfig.RoundsPerWeek + 2; // week 3 boss: The Strict Grammarian
+
+        Assert.Equal((long)(TieredConfig.TargetFor(sunday) * new StrictGrammarian().TargetScale),
+            RunRules.TargetFor(TieredConfig, run, sunday));
+        Assert.Equal(TieredConfig.TargetFor(sunday - 1), RunRules.TargetFor(TieredConfig, run, sunday - 1));
+    }
+
+    [Fact]
     public void BossFor_PicksFromTheWeeksTier()
     {
         Assert.Equal(["ink-spill", "tight-margins"], BossIds(1).Order());

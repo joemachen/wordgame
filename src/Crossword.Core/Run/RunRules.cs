@@ -34,6 +34,10 @@ public static class RunRules
         return pool[index];
     }
 
+    /// <summary>A round's deadline including its boss's adjustment (for previews before the round starts).</summary>
+    public static long TargetFor(RunConfig config, RunState run, int roundIndex) =>
+        config.RoundConfigFor(roundIndex, BossFor(config, run, config.WeekOf(roundIndex))).TargetScore;
+
     public static Result<SessionOutcome, RoundError> Submit(GameSession session, IReadOnlyList<PlacedTile> placed, IWordGraph lexicon)
     {
         if (session.Phase != RunPhase.InRound)

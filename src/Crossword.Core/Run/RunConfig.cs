@@ -19,9 +19,10 @@ public sealed record EconomyConfig(
 /// <summary>
 /// Shape of a run: <see cref="WeekTargets"/>.Length weeks × <see cref="Days"/> rounds. After the final week the
 /// run is won; endless play continues with targets growing by <see cref="EndlessGrowth"/> per week.
-/// Default targets tuned with <see cref="Analysis.RunSimulator"/>'s evaluating shop bot (150 runs per cell):
-/// skill 0.9 wins ~39%, 0.8 ~14%, 0.7 ~3% (the naive bot ~2% at 0.9). Losses ramp up through the weeks.
-/// Retune with 'runsim' whenever scaling content changes.
+/// Default targets tuned with <see cref="Analysis.RunSimulator"/>'s evaluating shop bot and the ScoreFraction skill
+/// model (a human-like player; 120–150 runs per cell): skill 0.9 / 0.75 / 0.6 wins ~45% / 34% / 13%, rounds take
+/// ~2.2–2.6 submissions, losses spread across the weeks. Retune with 'runsim [runs] [skill] frac' whenever scaling
+/// content changes.
 /// </summary>
 public sealed record RunConfig(
     ImmutableArray<long> WeekTargets,
@@ -35,7 +36,7 @@ public sealed record RunConfig(
     public ImmutableArray<BossTier> BossTiers { get; init; } = BossCatalog.DefaultTiers;
 
     public static RunConfig Default { get; } = new(
-        WeekTargets: [225, 800, 2400, 6500, 16000],
+        WeekTargets: [340, 1200, 3600, 9750, 16000],
         Days:
         [
             new RoundKind("Daily", 1m, BasePay: 3, IsBoss: false),

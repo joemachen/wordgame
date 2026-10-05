@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `97ab47a` (code) · 292 unit tests passing · UI self-test 21/21 passing_
+_Last updated: 2026-10-05 · HEAD (see §9) · 294 unit tests passing · UI self-test 21/21 passing_
 
 ---
 
@@ -23,7 +23,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
-| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 225/800/2400/6500/16000. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
+| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 340/1200/3600/9750/16000; The Strict Grammarian's deadline ×0.75. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
 | Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike), **Stationery** system (2 one-shot slots) with its first item, the **Answer Key** (reveals the best play, $3). |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
@@ -40,7 +40,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Economy:** Balatro-style payouts **plus capped overkill bonus** (user's choice). **Run length:** 5 Weeks × 3 rounds (user's choice). **Newspaper theme** (Week / Daily / Saturday Stumper / Sunday Edition, Desk Items, deadlines).
 - **Balance is data-driven:** all numbers live in config records (`ScoringConfig`, `RunConfig`, `ShopConfig`, `EconomyConfig`, Desk Item constructor defaults) and are tuned with simulations, not by hand. Unit tests pin their own numbers so retuning never breaks them.
 - **Roadmap decisions (ROADMAP.md):** new boss names *merge* with existing bosses (renames + additions; "Saturday Stumper" boss → "The Puzzle Master", "Tight Deadline" stake → "Rush Job"); every roadmap entry carries a *proposed* effect + status; "Scrabble Board" → "Tile Rack" and the Trademarks dictionary is parked pending legal review; **dictionaries are per-run choices with tradeoffs**, not permanent global unlocks.
-- **Week targets 225/800/2400/6500/16000** (user's choice over a softer early curve): skill 0.9 wins ~39%, but weaker players often lose in Week 1. Revisit after playtests.
+- **Week targets 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75** (user's choice, 2026-10-05, option "B · Medium" from a sweep; was 225/800/2400/6500/16000). Goal: rounds that take more than 1–2 plays for a human, and a difficulty ramp instead of a finale wall. Rejected: gentler ×1.3 (rounds barely longer) and steeper ×1.75 (Week 1 wall for weaker players). **Balance against the ScoreFraction model** (`runsim … frac`, reference skill 0.75) from now on.
 - **Boss tiers follow measured difficulty** (user's choice over the original roadmap tiers): easiest bosses early, The Strict Grammarian (hardest) as the Week 5 finale.
 - **Focus: a working game first.** Steam/launch work (Steamworks, store page, demo, Next Fest) is off the roadmap for now. Simulator throughput target: ~10k runs in minutes (100k+ not needed).
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
@@ -89,7 +89,12 @@ day multipliers ×1/×1.3/×1.6.
   most rounds in 1–2 submissions, matching the user's experience.
 - **Difficulty is a cliff, not a curve:** even ScoreFraction 0.6 wins 71% of rounds in 1–2 submissions, yet only 19% of
   runs — losses pile up at The Strict Grammarian (38–41 of 150 runs for every fraction model) and Saturday Stumpers.
-- Target retune not done yet — **waiting on the user's call** (see §6).
+- **Retuned (option B):** week targets 340/1200/3600/9750/16000, Grammarian deadline ×0.75. Verified with `runsim 150 … frac`:
+  wins 45% / 31% at 0.9 / 0.75; rounds ~2.1–2.6 submissions; 65–74% of rounds won in 1–2; losses spread across the
+  weeks (Stumpers and Dailies now kill most runs; Grammarian 13 / 8 of 150). Sweep harness: scratch console project
+  crossing curves × Grammarian scale (a `ScaledBoss` wrapper) × skills — see §7.
+- Sweep findings: targets plateau at ~2.5 plays per round (steeper curves just add losses); scaling the Grammarian's
+  deadline to 0.75 cut its finale loss rate from ~45% to ~15%. The percentile tables above are pre-retune.
 
 ## 5. Open concerns / known gaps
 
@@ -109,8 +114,8 @@ day multipliers ×1/×1.3/×1.6.
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
-0. **Decide the round-length retune** (§4 "Round length"): steeper early/mid targets so a human needs ~2.5–3 plays,
-   probably with a gentler Strict Grammarian, and re-baseline balance on the ScoreFraction model.
+0. **Playtest the retune + new Hint** — do rounds feel longer? If 3+ play rounds are wanted, try 5 submissions per
+   round with higher targets (structural; targets alone plateau at ~2.5 plays).
 1. User playtests a few runs via `run_local_qa.bat` → check early-game feel (concern #1) and whether a 29%
    Strict Grammarian finale feels fair.
 2. ROADMAP phase 2: new Desk Items + Redundant Copy (Mid) and The Puzzle Master (Final) bosses.
@@ -133,6 +138,7 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 - **Definitions data:** edit `tools/Crossword.DefinitionsBuilder/supplement.txt` (`WORD | pos | gloss`, replaces WordNet for that word), then `dotnet run -c Release --project tools/Crossword.DefinitionsBuilder` (needs `english-wordnet-2025.xml.gz` in gitignored `tools/data/`; download it from the OEWN GitHub 2025-edition release if missing). It prints coverage and warns about supplement words not in ENABLE.
 - **Batch files must be CRLF** (`.gitattributes` enforces; normalize with `sed -i 's/\r*$/\r/'` after writing).
 - Running `run_local_qa.bat` from a captured shell hangs because Godot inherits the pipe — expected; it's fine on double-click.
+- Target sweeps: wrap a boss in a harness-side `BossModifier` subclass whose `ModifyRound` calls `Inner.Apply(config) with { Boss = null }` and rescales `TargetScore` — lets you test boss deadlines without touching Core. Flatten configs × seeds into one `.AsParallel()` query (20 cores: ~0.5 s per run).
 - Balance experiments: a throwaway console project in the scratchpad referencing `src/Crossword.Core` (loop over configs, call `RunSimulator.PlayRun(seed, config, lexicon, skill, strategy, botConfig)` with `.AsParallel()`, build `-c Release`) is faster than editing defaults repeatedly. 100 runs ≈ 1 min with the evaluating bot. Note `RunConfig.Days` multipliers must be set explicitly in such harnesses. n=60 runs is too noisy (±6 pts) to compare close variants; use 150+.
 - The user's machine has old Godot crash dumps; the project uses the **GL Compatibility** renderer, which has been stable.
 

@@ -31,6 +31,10 @@ public class BossModifierTests
         Assert.Equal(3, new StrictGrammarian().Apply(Base).MinWordLength);
 
     [Fact]
+    public void StrictGrammarian_ScalesTheTarget() =>
+        Assert.Equal((long)(Base.TargetScore * 0.5m), new StrictGrammarian(TargetScale: 0.5m).Apply(Base).TargetScore);
+
+    [Fact]
     public void TightMargins_ShrinksBoard()
     {
         var (round, _) = RoundRules.Start(RunState.New(5), new TightMargins().Apply(Base), LexiconLoader.Enable);

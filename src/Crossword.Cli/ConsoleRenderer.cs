@@ -130,7 +130,7 @@ public static class ConsoleRenderer
         var nextKind = session.Config.KindOf(next);
         string nextBoss = nextKind.IsBoss ? $" — BOSS: {RunRules.BossFor(session.Config, session.Run, session.Config.WeekOf(next)).Name}" : "";
         var sb = new StringBuilder($"=== Shop ===  ${session.Run.Money}   (reroll ${shop.RerollCost})   " +
-                                   $"Next: Week {session.Config.WeekOf(next) + 1} {nextKind.Name}, target {session.Config.TargetFor(next)}{nextBoss}\n");
+                                   $"Next: Week {session.Config.WeekOf(next) + 1} {nextKind.Name}, target {RunRules.TargetFor(session.Config, session.Run, next)}{nextBoss}\n");
         for (int i = 0; i < shop.Offers.Length; i++)
         {
             string line = shop.Offers[i] is { } offer ? $"${offer.Price,-3} {offer.Description}" : "(sold)";

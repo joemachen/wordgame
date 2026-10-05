@@ -43,14 +43,19 @@ public sealed record TightMargins(int Size = 5) : BossModifier
         config with { BoardSize = Size, Premiums = new PremiumPairs(TripleWord: 1, DoubleWord: 1, TripleLetter: 1, DoubleLetter: 1) };
 }
 
-/// <summary>No 2-letter words — incidental short cross words become illegal, so parallel plays get hard.</summary>
-public sealed record StrictGrammarian(int MinLength = 3) : BossModifier
+/// <summary>
+/// No 2-letter words — incidental short cross words become illegal, so parallel plays get hard. The rule alone is a
+/// wall as the Week 5 finale (~45% of runs that reach it lost there), so its deadline is scaled by
+/// <see cref="TargetScale"/> (0.75 → ~15%) to keep it the hardest boss without ending most runs.
+/// </summary>
+public sealed record StrictGrammarian(int MinLength = 3, decimal TargetScale = 0.75m) : BossModifier
 {
     public override string Id => "strict-grammarian";
     public override string Name => "The Strict Grammarian";
     public override string Description => $"Every word formed must be at least {MinLength} letters.";
 
-    protected override RoundConfig ModifyRound(RoundConfig config) => config with { MinWordLength = MinLength };
+    protected override RoundConfig ModifyRound(RoundConfig config) =>
+        config with { MinWordLength = MinLength, TargetScore = (long)(config.TargetScore * TargetScale) };
 }
 
 /// <summary>Vowels cost chips instead of earning them, in every word they appear in.</summary>
