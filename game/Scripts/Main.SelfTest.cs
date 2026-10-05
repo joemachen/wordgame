@@ -6,7 +6,8 @@ namespace Wordgame.Godot;
 
 /// <summary>
 /// --selftest: drives the real UI through Godot's input pipeline (simulated mouse/keyboard events) to check
-/// click-select, drag-to-reorder (ghost slot, sliding tiles, gap drops, cancel), drag-onto-board and shuffle. Prints PASS/FAIL lines, exits with code 0/1.
+/// click-select, drag-to-reorder (ghost slot, sliding tiles, gap drops, cancel), drag-onto-board, shuffle, hints, the Style
+/// Guides popup and every Stationery item (incl. White-Out board targeting). Prints PASS/FAIL lines, exits with code 0/1.
 /// </summary>
 public partial class Main
 {
@@ -113,6 +114,43 @@ public partial class Main
             Run.Stationery.IsEmpty && _pending.Count == best.Play.Placed.Length
             && best.Play.Placed.All(p => _pending.TryGetValue(p.Position, out var t) && t == p.Tile));
 
+        // 9. Margin Clip adds a submission and keeps the pending play.
+        int submissionsBefore = Round.SubmissionsLeft;
+        int pendingCount = _pending.Count;
+        await GiveAndUse(new Crossword.Core.Stationery.MarginClip());
+        Check("margin clip adds a submission", Round.SubmissionsLeft == submissionsBefore + 1 && _pending.Count == pendingCount);
+
+        // 10. Red Ink Bottle raises the previewed mult by its bonus.
+        decimal multBefore = decimal.Parse(_multLabel.Text);
+        await GiveAndUse(new Crossword.Core.Stationery.RedInkBottle(Mult: 3));
+        Check("red ink adds mult to the preview", Round.Config.BonusMult == 3 && decimal.Parse(_multLabel.Text) == multBefore + 3
+            && _resourcesLabel.Text.Contains("Red ink"));
+        await PressKey(global::Godot.Key.Escape);
+
+        // 11. Scissors redraw the selected tiles without spending a discard.
+        int discardsBefore = Round.DiscardsLeft;
+        int[] cut = [HandButton(0).TileId, HandButton(1).TileId];
+        await Click(Centre(HandButton(0)));
+        await Click(Centre(HandButton(1)));
+        await GiveAndUse(new Crossword.Core.Stationery.Scissors(MaxTiles: 2));
+        Check("scissors redraw the selected tiles",
+            cut.All(id => !Round.Hand.Contains(id)) && Round.Hand.Count == Round.Config.HandSize && Round.DiscardsLeft == discardsBefore
+            && Run.Stationery.IsEmpty && _selected.Count == 0);
+
+        // 12. White-Out: Use arms board targeting, Esc cancels, clicking a board tile removes it.
+        var spot = new GridPos(3, 3);
+        _session = _session with
+        {
+            Round = Round with { Board = Round.Board.Place([new(spot, new Crossword.Core.Domain.Tile(9000, Crossword.Core.Domain.Letter.From('A')))]) },
+        };
+        await GiveAndUse(new Crossword.Core.Stationery.WhiteOut());
+        Check("white-out arms board targeting", _whiteOutSlot == 0 && BoardCell(spot) is BaseButton { Disabled: false });
+        await PressKey(global::Godot.Key.Escape);
+        Check("esc cancels white-out", _whiteOutSlot is null && Round.Board.IsOccupied(spot) && Run.Stationery.Length == 1);
+        await Click(Centre(UseButton()));
+        await Click(Centre(BoardCell(spot)));
+        Check("white-out removes the clicked tile", !Round.Board.IsOccupied(spot) && Run.Stationery.IsEmpty && _whiteOutSlot is null);
+
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);
     }
@@ -125,6 +163,17 @@ public partial class Main
     }
 
     private TileButton HandButton(int index) => _handRow.GetChild<TileButton>(index);
+
+    private Button UseButton() => _deskRow.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "Use");
+
+    /// <summary>Puts a Stationery item in the first free slot and clicks its Use button.</summary>
+    private async Task GiveAndUse(Crossword.Core.Stationery.IStationery item)
+    {
+        _session = _session with { Run = Run.AddStationery(item).Value };
+        Refresh();
+        await Frames(2);
+        await Click(Centre(UseButton()));
+    }
 
     /// <summary>The board grid is rebuilt on refresh; find the control at a grid position.</summary>
     private Control BoardCell(GridPos pos)

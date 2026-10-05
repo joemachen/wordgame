@@ -1,13 +1,18 @@
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
 using Crossword.Core.Run;
+using Crossword.Core.Stationery;
 using Godot;
+using GridPos = Crossword.Core.Domain.Position;
 
 namespace Wordgame.Godot;
 
 public partial class Main
 {
     private static readonly Color StationeryColor = new("b48ef0");
+
+    /// <summary>Slot of the White-Out waiting for a board tile to be clicked; null when not targeting.</summary>
+    private int? _whiteOutSlot;
 
     private static Color RarityColor(DeskItemRarity rarity) => rarity switch
     {
@@ -20,6 +25,9 @@ public partial class Main
     private void RefreshDesk()
     {
         UiKit.ClearChildren(_deskRow);
+        if (_whiteOutSlot is int targeting
+            && (_session.Phase != RunPhase.InRound || targeting >= Run.Stationery.Length || Run.Stationery[targeting] is not WhiteOut))
+            _whiteOutSlot = null;
         bool canEdit = _session.Phase is RunPhase.InRound or RunPhase.Shop && !_animating;
 
         for (int slot = 0; slot < RunState.MaxDeskSlots; slot++)
@@ -91,8 +99,14 @@ public partial class Main
 
         var actions = UiKit.HBox(4);
         int index = slot;
-        var use = UiKit.MakeButton("Use", UiKit.Panel, 12, StationeryColor);
+        var use = UiKit.MakeButton(_whiteOutSlot == slot ? "Cancel" : "Use", UiKit.Panel, 12, StationeryColor);
         use.Disabled = _animating || _session.Phase != RunPhase.InRound;
+        use.TooltipText = item.Target switch
+        {
+            StationeryTarget.HandTiles => "Select hand tiles first, then Use",
+            StationeryTarget.BoardTile => "Use, then click a board tile",
+            _ => "",
+        };
         use.Pressed += () => UseStationery(index);
         var sell = UiKit.MakeButton($"Sell ${_config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money);
         sell.Disabled = !canEdit;
@@ -106,18 +120,78 @@ public partial class Main
 
     private void UseStationery(int slot)
     {
-        string name = Run.Stationery[slot].Name;
-        var used = RunRules.UseStationery(_session, slot, _lexicon);
+        var item = Run.Stationery[slot];
+        switch (item)
+        {
+            case { Target: StationeryTarget.BoardTile }:
+                if (_whiteOutSlot == slot)
+                {
+                    _whiteOutSlot = null;
+                    SetMessage($"{item.Name} put away.", UiKit.TextMuted);
+                }
+                else if (Round.Board.IsEmpty)
+                {
+                    SetMessage("There are no tiles on the board yet.", UiKit.Bad);
+                    return;
+                }
+                else
+                {
+                    _whiteOutSlot = slot;
+                    SetMessage($"{item.Name}: click a board tile to remove it (Esc cancels).", StationeryColor);
+                }
+                Refresh();
+                return;
+
+            case Scissors scissors when _selected.Count == 0:
+                SetMessage($"Select up to {scissors.MaxTiles} hand tiles, then use the {item.Name}.", UiKit.TextMuted);
+                return;
+
+            case { Target: StationeryTarget.HandTiles }:
+                ApplyStationery(slot, tileIds: _selected.Select(t => t.Id).ToArray());
+                return;
+
+            default:
+                ApplyStationery(slot);
+                return;
+        }
+    }
+
+    /// <summary>Board-targeting click while a White-Out is armed.</summary>
+    private void WhiteOutCell(GridPos pos)
+    {
+        if (_whiteOutSlot is int slot && !_animating)
+            ApplyStationery(slot, cell: pos);
+    }
+
+    private void ApplyStationery(int slot, IReadOnlyCollection<int>? tileIds = null, GridPos? cell = null)
+    {
+        var item = Run.Stationery[slot];
+        var used = RunRules.UseStationery(_session, slot, _lexicon, tileIds, cell);
         if (!used.IsOk)
         {
             SetMessage(used.Error, UiKit.Bad);
             return;
         }
         _session = used.Value.Session;
+        _whiteOutSlot = null;
         if (used.Value.Play is { } play)
-            PlacePlay(play, $"{name}: the best play for this hand");
-        else
-            Refresh();
+        {
+            PlacePlay(play, $"{item.Name}: the best play for this hand");
+            return;
+        }
+
+        _selected.Clear();
+        foreach (var gone in _pending.Where(kv => !Round.Hand.Contains(kv.Value.Id) || Round.Board.IsOccupied(kv.Key)).ToList())
+            _pending.Remove(gone.Key);
+        SetMessage(item switch
+        {
+            MarginClip clip => $"{item.Name}: +{clip.Submissions} submission this round.",
+            RedInkBottle ink => $"{item.Name}: +{ink.Mult} mult on every play this round.",
+            Scissors => $"{item.Name}: {tileIds?.Count ?? 0} tile(s) cut and redrawn.",
+            WhiteOut => $"{item.Name}: tile removed.",
+            _ => $"{item.Name} used.",
+        }, StationeryColor);
+        AfterAction();
     }
 
     private void SellStationery(int slot)

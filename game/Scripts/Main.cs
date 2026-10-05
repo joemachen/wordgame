@@ -304,7 +304,8 @@ public partial class Main : Control
         _targetLabel.Text = Round.Config.TargetScore.ToString("N0");
         if (!_animating)
             _scoreLabel.Text = Round.Score.ToString("N0");
-        _resourcesLabel.Text = $"Submissions {Round.SubmissionsLeft}   ·   Discards {Round.DiscardsLeft}   ·   Bag {Round.Bag.Count}";
+        _resourcesLabel.Text = $"Submissions {Round.SubmissionsLeft}   ·   Discards {Round.DiscardsLeft}   ·   Bag {Round.Bag.Count}"
+            + (Round.Config.BonusMult > 0 ? $"   ·   Red ink +{Round.Config.BonusMult:0.##} mult" : "");
         _moneyLabel.Text = $"${Run.Money}";
         _seedLabel.Text = $"Seed {Run.Seed}";
     }

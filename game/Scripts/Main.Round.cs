@@ -80,8 +80,15 @@ public partial class Main
         var board = Round.Board;
         if (board.TileAt(pos) is { } placed)
         {
-            var tile = UiKit.MakeTile(placed, scoring.ValueOf(placed.Letter), CellSize, UiKit.Newsprint);
-            tile.Disabled = true;
+            bool target = _whiteOutSlot is not null;
+            var tile = UiKit.MakeTile(placed, scoring.ValueOf(placed.Letter), CellSize, target ? StationeryColor.Lightened(0.55f) : UiKit.Newsprint,
+                raised: target);
+            tile.Disabled = !target;
+            if (target)
+            {
+                tile.TooltipText = "Click to white out";
+                tile.Pressed += () => WhiteOutCell(pos);
+            }
             return tile;
         }
 
@@ -434,6 +441,7 @@ public partial class Main
         ScoringEngine.Sources.Word => UiKit.Chips.Lightened(0.3f),
         ScoringEngine.Sources.Intersection => UiKit.Mult.Lightened(0.3f),
         ScoringEngine.Sources.Enhancement => UiKit.Money,
+        ScoringEngine.Sources.Bonus => StationeryColor,
         _ => new Color("c9a6ff"), // desk items
     };
 
@@ -441,7 +449,9 @@ public partial class Main
     private void AfterAction()
     {
         if (_session.Phase == RunPhase.InRound && !RoundRules.HasLegalPlay(Round, _lexicon))
-            SetMessage("No legal play with this hand — select tiles and discard.", UiKit.Bad);
+            SetMessage(Round.DiscardsLeft > 0
+                ? "No legal play with this hand — select tiles and discard."
+                : "No legal play and no discards — use your Scissors or White-Out.", UiKit.Bad);
         Refresh();
     }
 
@@ -466,6 +476,11 @@ public partial class Main
         {
             case Key.Enter or Key.KpEnter:
                 Submit();
+                break;
+            case Key.Escape when _whiteOutSlot is not null:
+                _whiteOutSlot = null;
+                SetMessage("White-Out put away.", UiKit.TextMuted);
+                Refresh();
                 break;
             case Key.Escape:
                 Recall();
