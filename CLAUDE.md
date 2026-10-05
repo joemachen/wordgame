@@ -2,6 +2,9 @@
 
 Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target engine: **Godot 4 (C#, .NET 8)**.
 
+> **Start of every session: read [`handoff.md`](handoff.md)** — current status, decisions, open concerns, next steps, and workflow tips.
+> **End of every meaningful chunk of work: update `handoff.md`** (status table, decisions, next steps, HEAD/test counts, date).
+
 ## Core Principles
 1. Core game logic must remain in `src/Crossword.Core` with zero game engine imports and no NuGet packages (BCL only). Enforced by `tests/Crossword.Tests/Architecture/CoreDependencyTests.cs`.
 2. All state transitions must be pure and return new state instances.
