@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `3ef83ac` (code) · 318 unit tests passing · UI self-test 27/27 passing_
+_Last updated: 2026-10-05 · HEAD `f590c2e` (code) · 319 unit tests passing · UI self-test 27/27 passing_
 
 ---
 
@@ -167,6 +167,7 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+f590c2e Raise Margin Clip to $6 with per-item Stationery prices
 3ef83ac Teach the run simulator to buy and use Stationery
 49ade8b Use the new Stationery in the game UI
 cf2fb05 Add Margin Clip, Scissors, White-Out and Red Ink Bottle Stationery
