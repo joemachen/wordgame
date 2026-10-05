@@ -23,7 +23,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
-| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 340/1200/3600/9750/16000; The Strict Grammarian's deadline ×0.75. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
+| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 440/1560/4680/12680/20800; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 98-tile deck with 41 vowels. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
 | Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round). Holding Scissors/White-Out keeps a stuck round alive. |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds), CLI `hint`/`sim`. `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
@@ -40,7 +40,8 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Economy:** Balatro-style payouts **plus capped overkill bonus** (user's choice). **Run length:** 5 Weeks × 3 rounds (user's choice). **Newspaper theme** (Week / Daily / Saturday Stumper / Sunday Edition, Desk Items, deadlines).
 - **Balance is data-driven:** all numbers live in config records (`ScoringConfig`, `RunConfig`, `ShopConfig`, `EconomyConfig`, Desk Item constructor defaults) and are tuned with simulations, not by hand. Unit tests pin their own numbers so retuning never breaks them.
 - **Roadmap decisions (ROADMAP.md):** new boss names *merge* with existing bosses (renames + additions; "Saturday Stumper" boss → "The Puzzle Master", "Tight Deadline" stake → "Rush Job"); every roadmap entry carries a *proposed* effect + status; "Scrabble Board" → "Tile Rack" and the Trademarks dictionary is parked pending legal review; **dictionaries are per-run choices with tradeoffs**, not permanent global unlocks.
-- **Week targets 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75** (user's choice, 2026-10-05, option "B · Medium" from a sweep; was 225/800/2400/6500/16000). Goal: rounds that take more than 1–2 plays for a human, and a difficulty ramp instead of a finale wall. Rejected: gentler ×1.3 (rounds barely longer) and steeper ×1.75 (Week 1 wall for weaker players). **Balance against the ScoreFraction model** (`runsim … frac`, reference skill 0.75) from now on.
+- **Fairer letter mix + targets ×1.3** (user's choices, 2026-10-05): hands felt bad in playtests — measured 29.5% of hands at play time had ≤1 or ≥5 vowels. Chose balanced refills + deck at ~42% vowels + max 2 of a vowel (rejected for now: dropping Q; a "Qu" tile stays a release-hygiene item). That raised the reference player's wins ~43% → ~63%, so targets went ×1.3 → **440/1560/4680/12680/20800** (reference ~36%, rounds ~2.6 plays). Drawing the whole bag yourself is fine — opponents' random draws wouldn't change the odds.
+- **Week targets 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75** (user's choice, 2026-10-05, option "B · Medium" from a sweep; was 225/800/2400/6500/16000; since ×1.3, see above). Goal: rounds that take more than 1–2 plays for a human, and a difficulty ramp instead of a finale wall. Rejected: gentler ×1.3 (rounds barely longer) and steeper ×1.75 (Week 1 wall for weaker players). **Balance against the ScoreFraction model** (`runsim … frac`, reference skill 0.75) from now on.
 - **Boss tiers follow measured difficulty** (user's choice over the original roadmap tiers): easiest bosses early, The Strict Grammarian (hardest) as the Week 5 finale.
 - **Focus: a working game first.** Steam/launch work (Steamworks, store page, demo, Next Fest) is off the roadmap for now. Simulator throughput target: ~10k runs in minutes (100k+ not needed).
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
@@ -51,18 +52,26 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Playtest batch (user's choices, 2026-10-05):** only *pending* tiles can be moved (submitted tiles stay — White-Out is the way to remove one); Desk Item order is explained by a live score preview on the ◀ ▶ arrows (Stationery isn't reorderable); stats = profile + core stats now, **vocabulary grading later** (needs a licensed word-frequency list). Stats count **every word a play forms** (main + cross). QA flags (`--selftest`, `--screenshot`, `--autoplay`) never write the profile.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
-## 4. Current balance snapshot (after the 2026-10-05 retune + Stationery batch)
+## 4. Current balance snapshot (after balanced draws + targets ×1.3, 2026-10-05)
 
-Week targets **340/1200/3600/9750/16000**, day multipliers ×1/×1.3/×1.6, The Strict Grammarian's deadline ×0.75.
+Week targets **440/1560/4680/12680/20800**, day multipliers ×1/×1.3/×1.6, The Strict Grammarian's deadline ×0.75,
+balanced draws, 41-vowel deck, Margin Clip $6 (the bot buys it).
 **Reference player = ScoreFraction model** (`runsim 150 0.75 frac`: picks the best play worth ≤75% of the best one).
-Evaluating shop bot, 150 runs each. **The bot buys Margin Clips** (default `ShopBotConfig.StationeryGain`), now
-priced **$6** (`ShopConfig.StationeryPrices`; user's call after it measured over-tuned at $3):
+Evaluating shop bot (target-sweep harness, 150–200 runs per cell):
 
-| Skill (ScoreFraction) | Victory: no Stationery → Margin Clip $3 → **$6 (current)** | Rounds won in 1–2 subs | Mean subs to win (Daily, W1 → W5) | Margin Clips used/run |
-|---|---|---|---|---|
-| 0.9 | 45% → 61% → **56%** | 72% | 2.41 → 2.21 | 0.32 |
-| 0.75 (reference) | 31% → 47% → **43%** | 63% | 2.50 → 2.44 | 0.29 |
-| 0.6 | ~13% → 23% → **18%** | 52% | 2.73 → 2.74 | 0.22 |
+| Skill (ScoreFraction) | Victory | Mean subs per won round | Won in 1–2 subs |
+|---|---|---|---|
+| 0.9 | **59%** | 2.33 | 68% |
+| 0.75 (reference) | **36.5%** | 2.57 | 55% |
+| 0.6 | **15%** | 2.73 | 43% |
+
+**Letter-mix measurement** (200 paired runs + 600 rounds per arm, ScoreFraction 0.75, old targets): hands at play time
+with ≤1 or ≥5 vowels — current 29.5% / deck only 28.7% / balanced only 5.3% / all three 10.0%; hands holding a vowel 3×
+5.8% → 0%; best play per hand 275 → 316 (+15%); wins 43.5% → 63%. Balanced refills do almost all the work; the vowel bump
+alone changes nothing. **Target sweep with the new draws** (reference skill): ×1.0 63% · ×1.15 48% · ×1.3 36.5% · ×1.45 24%.
+
+**Before the letter-mix change** (old targets 340/…/16000): Victory at 0.9 / 0.75 / 0.6 went 45/31/13% (no Stationery)
+→ 61/47/23% (Margin Clip $3) → 56/43/18% (Margin Clip $6).
 
 **Margin Clip price sweep** (scratch harness, 200 paired runs, ScoreFraction 0.75, baseline without Stationery 37.5%):
 always offered +13 / +13 / +9.5 / +10 pts at $3 / $5 / $6 / $7; realistic full pool +8.5 / +5.5 / +6 / +4.5. Price is a
@@ -125,7 +134,7 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
-0. **Playtest the new feel:** does the ring-up escalate nicely (thresholds in `Juice.cs`: Big ≥25% / Huge ≥60% of the deadline; the stamp fires whenever one play clears the deadline, which is common in Week 1)? Is the week progress clear? Next for stats: vocabulary grading (find + license-check a frequency list), a profile picker, more fun stats.
+0. **Playtest the fairer hands + ×1.3 targets:** do hands feel playable now, and is the difficulty right? Also: does the ring-up escalate nicely (thresholds in `Juice.cs`: Big ≥25% / Huge ≥60% of the deadline; the stamp fires whenever one play clears the deadline, which is common in Week 1)? Is the week progress clear? Next for stats: vocabulary grading (find + license-check a frequency list), a profile picker, more fun stats.
 1. **Stationery balance:** Margin Clip raised to $6 (done). If it still dominates in playtests, give it a cost
    (e.g. −1 discard) or make it rarer — price alone stops working above ~$5. The others may need buffs (e.g. Red Ink +5,
    Answer Key $2) — check in playtests, since the bot's use is rule-based. Re-measure with the scratch harness (§7).

@@ -238,13 +238,14 @@ tests and a `runsim` balance check.
 
 | Phase | Work | Depends on |
 |---|---|---|
-| **0** ✅ | Retune week targets → 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75, balanced against the ScoreFraction model (reference skill 0.75 wins ~31%) | — |
+| **0** ✅ | Retune week targets → 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75 (ScoreFraction model), then ×1.3 → 440/1560/4680/12680/20800 after balanced draws (reference skill 0.75 wins ~36%) | — |
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
 | **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 5 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle) + bot support. Later: Highlighter, Fountain Pen, Correction Tape | — |
 | **4** | In-run save/resume → profile & unlock tracking (§9) | — |
 | **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |
-| **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile); legal checklist (§10) | before shipping |
+| **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
+| **Letter mix** ✅ | Balanced draws (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) + starting deck at ~42% vowels. Rough hands at play time 29.5% → 10%. | done 2026-10-05 |
 
 | Parallel track | Work | Best time |
 |---|---|---|
