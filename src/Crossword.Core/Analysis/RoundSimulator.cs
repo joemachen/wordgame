@@ -15,13 +15,14 @@ public sealed record SimulatedRound(ulong Seed, ImmutableArray<SimulatedPlay> Pl
 /// Balance tooling: plays rounds automatically, discarding the whole hand when nothing is playable.
 /// <c>skill</c> 1.0 = greedy (always the best play, an upper bound on human play); lower values pick the play at
 /// that percentile of the ranking (0.9 = the play better than 90% of legal plays), a rough proxy for weaker players.
+/// <see cref="SkillModel.ScoreFraction"/> instead picks the best play worth at most that fraction of the best one.
 /// </summary>
 public static class RoundSimulator
 {
     /// <summary>Plays every submission of one round (target ignored, so the full score potential is measured).</summary>
     public static SimulatedRound PlayRound(
         ulong seed, RoundConfig config, IWordGraph lexicon, IReadOnlyList<IDeskItem> deskItems, ScoringConfig scoring,
-        double skill = 1.0)
+        double skill = 1.0, SkillModel model = SkillModel.Percentile)
     {
         if (skill is <= 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(skill), skill, "Skill must be in (0, 1].");
@@ -44,7 +45,7 @@ public static class RoundSimulator
                 continue;
             }
 
-            var best = ranked[(int)((1 - skill) * (ranked.Count - 1))];
+            var best = PlayChooser.Choose(ranked, skill, model);
             var outcome = RoundRules.Submit(round, best.Play.Placed, lexicon, deskItems, scoring).Value;
             submission++;
             plays.Add(new SimulatedPlay(

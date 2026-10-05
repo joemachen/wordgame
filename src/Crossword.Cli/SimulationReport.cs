@@ -37,10 +37,11 @@ public static class SimulationReport
     }
 
     public static string FormatRuns(IReadOnlyList<SimulatedRun> runs, RunConfig config, double skill,
-        ShopStrategy strategy = ShopStrategy.Evaluating)
+        ShopStrategy strategy = ShopStrategy.Evaluating, SkillModel model = SkillModel.Percentile)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Run simulation: {runs.Count} runs at skill {skill:0.00} ({(strategy == ShopStrategy.Naive ? "naive" : "evaluating")} shop bot):");
+        string skillLabel = model == SkillModel.ScoreFraction ? $"{skill:0.00} of best score" : $"{skill:0.00}";
+        sb.AppendLine($"Run simulation: {runs.Count} runs at skill {skillLabel} ({(strategy == ShopStrategy.Naive ? "naive" : "evaluating")} shop bot):");
         sb.AppendLine($"  Victory {100.0 * runs.Count(r => r.Victory) / runs.Count:0}%   average rounds cleared {runs.Average(r => r.RoundsCleared):0.0}/{config.TotalRounds}");
         sb.AppendLine($"  Average unspent money at the end ${runs.Average(r => r.FinalMoney):0.0}");
         for (int week = 0; week < config.WeekTargets.Length; week++)
@@ -48,10 +49,30 @@ public static class SimulationReport
             int reached = runs.Count(r => r.Rounds.Any(x => config.WeekOf(x.RoundIndex) == week));
             sb.AppendLine($"  Reached week {week + 1}: {100.0 * reached / runs.Count,3:0}%");
         }
+        AppendSubmissionsToWin(sb, runs, config);
         var deaths = runs.Where(r => !r.Victory).Select(r => r.Rounds[^1]).GroupBy(r => r.Boss ?? r.Kind)
             .OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count()}");
         sb.Append($"  Lost on: {string.Join(", ", deaths)}");
         return sb.ToString();
+    }
+
+    /// <summary>Mean submissions used in won rounds, per week and day kind (the "how long does a round last" feel).</summary>
+    private static void AppendSubmissionsToWin(StringBuilder sb, IReadOnlyList<SimulatedRun> runs, RunConfig config)
+    {
+        var won = runs.SelectMany(r => r.Rounds).Where(r => r.Won).ToList();
+        if (won.Count == 0)
+            return;
+        sb.AppendLine($"  Submissions to win (mean over won rounds; {100.0 * won.Count(r => r.Submissions <= 2) / won.Count:0}% won in 1-2):");
+        sb.AppendLine($"    {"",-8}{string.Join("", config.Days.Select(d => $"{d.Name,18}"))}");
+        for (int week = 0; week < config.WeekTargets.Length; week++)
+        {
+            var cells = Enumerable.Range(0, config.Days.Length).Select(day =>
+            {
+                var rounds = won.Where(r => r.RoundIndex == week * config.Days.Length + day).ToList();
+                return rounds.Count == 0 ? $"{"-",18}" : $"{rounds.Average(r => r.Submissions),18:0.00}";
+            });
+            sb.AppendLine($"    {$"Week {week + 1}",-8}{string.Join("", cells)}");
+        }
     }
 
     private static int? SubmissionsToReach(SimulatedRound round, long target)

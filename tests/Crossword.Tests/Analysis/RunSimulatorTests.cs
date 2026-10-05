@@ -32,6 +32,25 @@ public class RunSimulatorTests
     }
 
     [Fact]
+    public void PlayRun_RecordsSubmissionsUsedPerRound()
+    {
+        var run = RunSimulator.PlayRun(12, ShortRun, LexiconLoader.Enable);
+
+        Assert.All(run.Rounds, r => Assert.InRange(r.Submissions, 1, ShortRun.RoundConfigFor(r.RoundIndex).Submissions));
+    }
+
+    [Fact]
+    public void PlayRun_ScoreFractionModel_IsDeterministic_AndWeakerThanBest()
+    {
+        var a = RunSimulator.PlayRun(14, ShortRun, LexiconLoader.Enable, 0.5, model: SkillModel.ScoreFraction);
+        var b = RunSimulator.PlayRun(14, ShortRun, LexiconLoader.Enable, 0.5, model: SkillModel.ScoreFraction);
+        var best = RunSimulator.PlayRun(14, ShortRun, LexiconLoader.Enable, 1.0);
+
+        Assert.Equal(a.Rounds, b.Rounds);
+        Assert.True(a.Rounds[0].Score < best.Rounds[0].Score || a.Rounds[0].Submissions > best.Rounds[0].Submissions);
+    }
+
+    [Fact]
     public void PlayRun_NaiveShopBot_StillPlaysThrough()
     {
         var a = RunSimulator.PlayRun(12, ShortRun, LexiconLoader.Enable, strategy: ShopStrategy.Naive);

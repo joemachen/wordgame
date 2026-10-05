@@ -6,7 +6,7 @@ using Crossword.Core.Run;
 
 namespace Crossword.Core.Analysis;
 
-public sealed record SimulatedRunRound(int RoundIndex, string Kind, string? Boss, long Target, long Score, bool Won);
+public sealed record SimulatedRunRound(int RoundIndex, string Kind, string? Boss, long Target, long Score, bool Won, int Submissions);
 
 public sealed record SimulatedRun(
     ulong Seed,
@@ -26,7 +26,7 @@ public sealed record SimulatedRun(
 public static class RunSimulator
 {
     public static SimulatedRun PlayRun(ulong seed, RunConfig config, IWordGraph lexicon, double skill = 1.0,
-        ShopStrategy strategy = ShopStrategy.Evaluating, ShopBotConfig? bot = null)
+        ShopStrategy strategy = ShopStrategy.Evaluating, ShopBotConfig? bot = null, SkillModel model = SkillModel.Percentile)
     {
         bot ??= ShopBotConfig.Default;
         var session = RunRules.NewGame(seed, config, lexicon);
@@ -43,10 +43,11 @@ public static class RunSimulator
             }
 
             var startIndex = session.Run.RoundIndex;
-            (session, history) = PlayRound(session, lexicon, skill, strategy == ShopStrategy.Evaluating ? bot : null, history);
+            (session, history) = PlayRound(session, lexicon, skill, model, strategy == ShopStrategy.Evaluating ? bot : null, history);
             var round = session.Round;
             rounds.Add(new SimulatedRunRound(startIndex, config.KindOf(startIndex).Name, round.Config.Boss?.Name,
-                round.Config.TargetScore, round.Score, round.Status == RoundStatus.Won));
+                round.Config.TargetScore, round.Score, round.Status == RoundStatus.Won,
+                round.Config.Submissions - round.SubmissionsLeft));
         }
 
         return new SimulatedRun(seed, rounds.ToImmutable(), session.Phase == RunPhase.Victory, session.Run.Money,
@@ -55,7 +56,7 @@ public static class RunSimulator
 
     /// <summary>Plays the round; when <paramref name="bot"/> is set, records each decision for the shop bot.</summary>
     private static (GameSession, ShopHistory) PlayRound(GameSession session, IWordGraph lexicon, double skill,
-        ShopBotConfig? bot, ShopHistory history)
+        SkillModel model, ShopBotConfig? bot, ShopHistory history)
     {
         while (session.Phase == RunPhase.InRound)
         {
@@ -74,7 +75,7 @@ public static class RunSimulator
                 continue;
             }
 
-            var choice = ranked[(int)((1 - skill) * (ranked.Count - 1))];
+            var choice = PlayChooser.Choose(ranked, skill, model);
             if (bot is not null)
                 history = history.Add(ShopHistory.Capture(session.Run.RoundIndex, round, env, ranked, scoring, choice.Play,
                     bot.CandidatePlays), bot.HistoryWindow);
