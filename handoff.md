@@ -78,8 +78,8 @@ day multipliers ×1/×1.3/×1.6.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
-Longer-term phases live in `ROADMAP.md` §6 (phase 0 retune ✅ → naming pass → new items/bosses → Stationery →
-save/load + meta → decks/dictionaries/stakes).
+Longer-term phases live in `ROADMAP.md` §12 (phase 0 retune ✅ → naming pass → new items/bosses → Stationery →
+save/load + meta → decks/dictionaries/stakes → Daily Editorial + Steamworks → demo / Next Fest), plus parallel tracks (CI, seed entry, presentation, onboarding). §6–§11 cover infra, modes, presentation, persistence, Steam and suggested additions.
 
 1. User playtests a few runs at the new targets via `run_local_qa.bat` → check early-game feel (concern #1).
 2. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;

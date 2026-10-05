@@ -162,9 +162,87 @@ the effects are our own.
 
 ---
 
-## 6. Build order
+## 6. Engine, infrastructure & simulation
 
-Each phase builds on the ones before it. Core features come with unit tests and a `runsim` balance check.
+| Feature | Notes | Status |
+|---|---|---|
+| **Headless core** (`src/Crossword.Core`) | Engine-agnostic rules, BCL only (enforced by an architecture test). Immutable state records, DAWG word graph, pooled Chips × Mult scoring with an `EffectEvent` log the UI animates from. | ✅ |
+| **Balance simulator** | `RoundSimulator` / `RunSimulator` + CLI `sim` / `runsim`. Evaluating shop bot. Reports win rate, week reached, boss loss rates, unspent money. | ✅ |
+| Simulator throughput | **Reality check:** today a run takes ~0.5 s (move generation dominates), so 100 runs take ~1 minute on all cores and 100,000 runs would take **~15 hours**, not seconds. Realistic target: **~10k runs in minutes** via profiling + optimizing `MoveGenerator`/scoring (caching anchors and cross-checks, cutting allocations), and a `--fast` bot that only examines the top-N moves. 1k runs per tuning question is already enough statistically (±3 pts). | 🟡 |
+| Simulator coverage | Per-deck and per-stake win rates, item pick/win rates, shop economy reports, target-curve sweeps across Weeks 1–5 (needs decks/stakes first). | 🟡 |
+| **Local QA runner** | `run_local_qa.bat`: build → tests → game window (`--cli`, `--ci`, seed). UI self-test (`--selftest`) and screenshot flags. | ✅ |
+| **Unit tests** | 251 xUnit tests incl. scoring edge cases, determinism and architecture rules. | ✅ |
+| **CI pipeline** | GitHub Actions: build (warnings as errors) + `dotnet test` on every push. Later: headless Godot `--selftest` and export builds. | 🟡 |
+
+---
+
+## 7. Game modes & seeding
+
+Everything random goes through the seeded `Rng`, so a seed reproduces a run exactly. That makes all of these
+modes cheap to build on the core.
+
+| Mode | Design (*proposed*) | Status |
+|---|---|---|
+| **Endless Mode** | After Week 5, targets ×2 per week (`RunConfig.EndlessGrowth`). Offered on the victory screen in the game and CLI. | ✅ |
+| **Custom / seeded runs** | Seeds already work (`--seed=` dev flag; shown in the game footer). Planned: a seed entry box on the new-run screen and a copyable seed. Note: two players get the same boards, bosses and **first** shop, but later shop offers drift once their purchases differ (offers exclude owned items), as in Balatro. | 🟡 partial |
+| **Daily Editorial** (daily seeded puzzle) | One seed per UTC date for everyone, one attempt per day, score/rounds cleared posted to a leaderboard. The deterministic core lets a server **replay a submitted action log to verify scores** (anti-cheat). Name check: distinct from the "Daily" round, but keep the UI wording clear. | 🟡 |
+
+---
+
+## 8. Presentation, UI/UX & "juice"
+
+| Feature | Design (*proposed*) | Status |
+|---|---|---|
+| **Visual design system: 1950s newsroom** | Newsprint paper canvas `#F6F4EE`, Printer's Ink `#111111`, Red Pen correction marks `#C53030`, mahogany desk surround. Replaces the current dark first-pass theme. Centralize colors in `UiKit` so the whole theme can be swapped in one place. Check text contrast (WCAG AA) and keep Chips/Mult distinguishable for colorblind players. **Don't use NYT branding** (name, masthead, fonts) in the game or store assets; "NYT-style" is internal shorthand only. | 🟡 |
+| **Audio** | Typewriter clacks on tile placement, pencil scribbles, rubber-stamp approval on round win, printing-press roll for big Mult. Sources must be CC0 or bought with a commercial license. | 🟡 |
+| **Animation** | Tile placement, score count-up driven by the existing `EffectEvent` log, stamp/press effects scaled to Mult. | 🟡 (scoring playback ✅ first pass) |
+| Shop card color-coding | Distinct colors per category: Desk Items / deck edits / Style Guides / Stationery. | 🟡 |
+| Score breakdown tooltips | Hover a pending play to see its Chips × Mult math step by step (live preview ✅ already shows the totals). | 🟡 |
+| Deck View & Style Guide levels modals | Popups that keep the board uncluttered: full deck with enhancements; tier levels with chips/mult. | 🟡 |
+
+---
+
+## 9. Persistence & meta-progression
+
+| Feature | Design (*proposed*) | Status |
+|---|---|---|
+| **In-run save & resume** | Save on exit, resume on launch: board, hand, bag order, deck, Desk Items (with scaling state), shop offers and every RNG state. All state is immutable records, so this is mostly serialization: `System.Text.Json` (in the BCL, so Core rules allow it) with a **type discriminator** for polymorphic Desk Items/bosses/offers, plus a save **version number** for migrations. Hand arrangement is UI-only today; save it alongside. | 🟡 |
+| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | 🟡 |
+
+---
+
+## 10. Steam & production
+
+Steam code lives in the Godot layer only, never in Core. Candidate bindings: Steamworks.NET or Facepunch.Steamworks
+(both MIT). Both need the Steamworks SDK, which has its own Valve terms.
+
+| Feature | Design (*proposed*) | Status |
+|---|---|---|
+| Leaderboards | Daily Editorial leaderboard (score verified by replay, see §7); optional per-seed boards. | 🟡 |
+| Achievements | e.g. **10,000+ points in a single play** (scoring is per play, not per word), clear Week 5 on Final Print Run (Gold), win with each deck, unlock every dictionary. | 🟡 |
+| Steam Cloud | Sync the profile and the run save. | 🟡 |
+| Steam Deck | **Controller navigation is real work:** today the UI is mouse/keyboard with drag-and-drop. Needs focus-based navigation (select tile → select cell), on-screen prompts, and a 1280×800 layout check. Touch comes nearly free with tap-to-select (already supported). | 🟡 |
+| Store page & press kit | Capsule art, screenshots, trailer, description (no NYT/Scrabble references), press kit page. | 🟡 |
+| Public demo | Time- or week-limited build (e.g. Weeks 1–2) with a wishlist prompt. | 🟡 |
+| Steam Next Fest | Pick a target edition; check Valve's current requirements (they typically want a Coming Soon page and a demo submitted well ahead of the event). | 🟡 |
+
+---
+
+## 11. Suggested additions (not yet requested; Claude's recommendations)
+
+- **Tutorial / onboarding:** with current targets an average player (sim skill 0.7) loses in Week 1 about 65% of the
+  time, so a guided first round and better word hints would matter before a demo.
+- **Settings & accessibility:** volume, text size, colorblind-safe palette, reduced motion, key rebinding.
+- **Localization:** UI text can be translated, but **gameplay in another language needs its own licensed word
+  list and letter values**, which is a major project per language. Plan for English-only at launch.
+- **Release legal checklist:** word-list licenses/credits, font and audio licenses, trademark sweep of all names.
+
+---
+
+## 12. Build order
+
+Core phases run in order. The **parallel tracks** can be picked up between phases. Core features come with unit
+tests and a `runsim` balance check.
 
 | Phase | Work | Depends on |
 |---|---|---|
@@ -172,17 +250,29 @@ Each phase builds on the ones before it. Core features come with unit tests and 
 | **1** | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` | — |
 | **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
 | **3** | Stationery consumable system (state, shop, actions, UI) | — |
-| **4** | Save/load → meta-progression profile (tracks unlocks) | — |
+| **4** | In-run save/resume → profile & unlock tracking (§9) | — |
 | **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |
-| **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile) | before shipping |
+| **6** | Daily Editorial + Steamworks (leaderboards, achievements, Cloud) | 4 |
+| **7** | Steam Deck controls, demo build, store page, press kit → Next Fest | 6 |
+| **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile); legal checklist (§11) | before shipping |
+
+| Parallel track | Work | Best time |
+|---|---|---|
+| Infra | CI pipeline (cheap, do early); simulator throughput work when sims become the bottleneck | anytime |
+| Modes | Seed entry box for custom runs (small) | anytime |
+| Presentation | Newsroom visual system → audio/animation → shop colors, tooltips, Deck View / Style Guide modals | after phases 1–3 settle the content |
+| Onboarding | Tutorial and settings (§11) | before the demo |
 
 ---
 
-## 7. Open questions
+## 13. Open questions
 
 - **Trademarks dictionary:** legal review before any work, or drop it.
 - **Slang dictionary source:** find a word list we can legally ship (or build our own), and plan how to keep slurs out of it.
 - **Vowel Drought:** keep the Vowel Tax effect, or rework it to fewer vowels in the bag?
 - **Press Run effects:** confirm after playtesting; check each tier's difficulty step with `runsim`.
+- **Early-game difficulty:** keep the harsh Week 1 (skill 0.7 loses ~65%), or soften it and let Press Runs carry
+  the challenge? Decide after playtests.
+- **Simulator scale:** is ~10k runs in minutes enough, or is there a specific need for 100k+?
 - **Balance outliers** found by the evaluating shop bot: Pulitzer, Margin Notes and Word Count are picked in almost
   every run, and deck edits are never worth buying (see `handoff.md` §4).

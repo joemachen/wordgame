@@ -4,7 +4,7 @@ Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target
 
 > **Start of every session: read [`handoff.md`](handoff.md)** — current status, decisions, open concerns, next steps, and workflow tips.
 > **End of every meaningful chunk of work: update `handoff.md`** (status table, decisions, next steps, HEAD/test counts, date).
-> **Feature design roadmap: [`ROADMAP.md`](ROADMAP.md)** — the official plan for upcoming features (dictionaries, decks, items, Stationery, bosses, stakes, build order) with *proposed* numbers. Mark entries ✅ when they land; keep current status in `handoff.md`.
+> **Feature design roadmap: [`ROADMAP.md`](ROADMAP.md)** — the official plan for upcoming features (dictionaries, decks, items, Stationery, bosses, stakes, infra/simulation, game modes, presentation, persistence, Steam/production, build order) with *proposed* numbers. Mark entries ✅ when they land; keep current status in `handoff.md`.
 
 ## Core Principles
 1. Core game logic must remain in `src/Crossword.Core` with zero game engine imports and no NuGet packages (BCL only). Enforced by `tests/Crossword.Tests/Architecture/CoreDependencyTests.cs`.
