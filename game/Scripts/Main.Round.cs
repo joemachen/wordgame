@@ -14,7 +14,6 @@ public partial class Main
 {
     private const float CellSize = 66;
     private const float HandTileSize = 72;
-    private const double StepSeconds = 0.32;
 
     private Button _shuffleButton = null!;
     private Button _sortButton = null!;
@@ -461,29 +460,41 @@ public partial class Main
         AnimateScore(result.Value.Score, scoreBefore);
     }
 
-    /// <summary>Plays back the scoring event log step by step, Balatro-style.</summary>
+    /// <summary>
+    /// Plays back the scoring event log step by step, Balatro-style: numbers tick up, the Chips/Mult panels punch, the
+    /// Desk Item (or Red Ink line) behind each step pops with a floating delta, and the finish escalates with the play's
+    /// share of the deadline (see <see cref="Juice"/>).
+    /// </summary>
     private void AnimateScore(ScoreContext score, long scoreBefore)
     {
+        long target = Round.Config.TargetScore;
+        var level = Juice.LevelFor(score.Total, target);
         _scoreLabel.Text = scoreBefore.ToString("N0");
+        _chipsLabel.Text = "0";
+        _multLabel.Text = "0";
+
         var tween = CreateTween();
-        foreach (var evt in score.Log)
+        long chips = 0;
+        decimal mult = 0;
+        for (int i = 0; i < score.Log.Count; i++)
         {
-            var e = evt;
-            tween.TweenCallback(Callable.From(() =>
-            {
-                _chipsLabel.Text = e.ChipsAfter.ToString("N0");
-                _multLabel.Text = e.MultAfter.ToString("0.##");
-                AddLog(e.Description, ColorFor(e.SourceId));
-            }));
-            tween.TweenInterval(StepSeconds);
+            var e = score.Log[i];
+            var (chipsFrom, multFrom) = (chips, mult);
+            (chips, mult) = (e.ChipsAfter, e.MultAfter);
+            double seconds = Juice.StepSeconds(i);
+            float punch = Juice.StepScale(i, level);
+            tween.TweenCallback(Callable.From(() => RingUp(e, chipsFrom, multFrom, seconds, punch)));
+            tween.TweenInterval(seconds);
         }
         tween.TweenCallback(Callable.From(() =>
         {
             AddLog($"= {score.Total:N0} points" + (score.Money > 0 ? $"  (+${score.Money})" : ""), UiKit.Text);
-            _scoreLabel.Text = (scoreBefore + score.Total).ToString("N0");
+            Juice.CountUp(_scoreLabel, scoreBefore, scoreBefore + score.Total, Juice.FinalCountSeconds, "N0");
             SetMessage($"+{score.Total:N0}", UiKit.Good);
         }));
-        tween.TweenInterval(_session.Phase == RunPhase.InRound ? 0.2 : 1.1);
+        tween.TweenInterval(Juice.FinalCountSeconds);
+        tween.TweenCallback(Callable.From(() => Celebrate(score.Total, target, level)));
+        tween.TweenInterval(_session.Phase == RunPhase.InRound ? (level == Juice.Level.Huge ? 0.6 : 0.25) : 1.4);
         tween.TweenCallback(Callable.From(() =>
         {
             _animating = false;
@@ -492,6 +503,66 @@ public partial class Main
             AfterAction();
         }));
     }
+
+    /// <summary>One scoring step: tick the numbers that changed and pop whatever caused it.</summary>
+    private void RingUp(EffectEvent e, long chipsFrom, decimal multFrom, double seconds, float punch)
+    {
+        double count = seconds * 0.7;
+        if (e.ChipsAfter != chipsFrom)
+        {
+            Juice.CountUp(_chipsLabel, chipsFrom, e.ChipsAfter, count, "N0");
+            Juice.Pop(_chipsPanel, punch);
+        }
+        if (e.MultAfter != multFrom)
+        {
+            Juice.CountUp(_multLabel, multFrom, e.MultAfter, count, "0.##");
+            Juice.Pop(_multPanel, punch);
+        }
+        var color = ColorFor(e.SourceId);
+        AddLog(e.Description, color);
+
+        int colon = e.Description.IndexOf(": ", StringComparison.Ordinal);
+        string delta = colon >= 0 ? e.Description[(colon + 2)..] : e.Description;
+        if (_deskCards.TryGetValue(e.SourceId, out var card) && IsInstanceValid(card))
+        {
+            _deskPops++;
+            Juice.Pop(card, Juice.SourcePunch + (punch - 1) * Juice.SourcePunchPerStep, 0.24);
+            Juice.Flash(card, UiKit.Selected, 0.35);
+            var rect = card.GetGlobalRect();
+            Juice.FloatText(_fxLayer, new Vector2(rect.GetCenter().X, rect.End.Y + 26), delta, color, 18);
+        }
+        else if (e.SourceId == ScoringEngine.Sources.Bonus)
+        {
+            Juice.Pop(_resourcesLabel, Juice.SourcePunch, fromLeft: true);
+            Juice.FloatText(_fxLayer, _resourcesLabel.GetGlobalRect().GetCenter(), delta, StationeryColor, 18);
+        }
+    }
+
+    /// <summary>The finish: a punch on the score that grows with the play, shake + confetti for huge plays, and a stamp
+    /// when one play clears the whole deadline.</summary>
+    private void Celebrate(long total, long target, Juice.Level level)
+    {
+        float punch = level switch
+        {
+            Juice.Level.Huge => Juice.HugeFinalPunch,
+            Juice.Level.Big => Juice.BigFinalPunch,
+            _ => Juice.FinalPunch,
+        };
+        Juice.Pop(_scoreLabel, punch, 0.4, fromLeft: true);
+        if (level != Juice.Level.Normal)
+            Juice.Flash(_scoreLabel, UiKit.Money, 0.6);
+        if (level == Juice.Level.Huge)
+        {
+            Juice.Shake(_shakeRoot);
+            Juice.Confetti(_fxLayer, _scoreLabel.GetGlobalRect().GetCenter());
+        }
+        if (target > 0 && total >= target)
+            Juice.Stamp(_fxLayer, _boardHolder, Juice.StampText);
+        _lastCelebration = level;
+    }
+
+    /// <summary>The last finish level shown (self-test hook).</summary>
+    private Juice.Level? _lastCelebration;
 
     private static Color ColorFor(string source) => source switch
     {

@@ -200,6 +200,18 @@ public partial class Main
         await Click(Centre(BoardCell(spot)));
         Check("white-out removes the clicked tile", !Round.Board.IsOccupied(spot) && Run.Stationery.IsEmpty && _whiteOutSlot is null);
 
+        // 13. Submitting rings the score up: the Desk Item that fired pops, the finish plays, then input unlocks.
+        _session = _session with { Run = Run with { DeskItems = [Crossword.Core.DeskItems.DeskItemCatalog.Find("red-pen")!] } };
+        Refresh();
+        PlacePlay(RankedPlays()[0], null);
+        int popsBefore = _deskPops;
+        await PressKey(global::Godot.Key.Enter);
+        bool animatingAfterSubmit = _animating;
+        for (int i = 0; i < 100 && _animating; i++)
+            await Seconds(0.1);
+        Check("scoring pops the desk item and finishes", animatingAfterSubmit && _deskPops > popsBefore
+            && _lastCelebration is not null && !_animating);
+
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);
     }

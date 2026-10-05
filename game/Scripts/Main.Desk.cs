@@ -13,6 +13,12 @@ public partial class Main
 {
     private static readonly Color StationeryColor = new("b48ef0");
 
+    /// <summary>Desk Item cards by item id, so scoring playback can pop the card that fired.</summary>
+    private readonly Dictionary<string, Control> _deskCards = new();
+
+    /// <summary>How many times scoring playback has popped a Desk Item card (self-test hook).</summary>
+    private int _deskPops;
+
     /// <summary>Slot of the White-Out waiting for a board tile to be clicked; null when not targeting.</summary>
     private int? _whiteOutSlot;
 
@@ -27,6 +33,7 @@ public partial class Main
     private void RefreshDesk()
     {
         UiKit.ClearChildren(_deskRow);
+        _deskCards.Clear();
         if (_whiteOutSlot is int targeting
             && (_session.Phase != RunPhase.InRound || targeting >= Run.Stationery.Length || Run.Stationery[targeting] is not WhiteOut))
             _whiteOutSlot = null;
@@ -51,6 +58,7 @@ public partial class Main
             var card = UiKit.MakePanel(UiKit.PanelRaised, padding: 10, border: RarityColor(item.Rarity), borderWidth: 2);
             card.CustomMinimumSize = new Vector2(0, 104);
             card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            _deskCards[item.Id] = card;
             var box = UiKit.VBox(4);
             card.AddChild(box);
             box.AddChild(UiKit.MakeLabel(item.Name, 16, UiKit.Text));

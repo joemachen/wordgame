@@ -56,6 +56,12 @@ public partial class Main : Control
     private Label _scoreLabel = null!;
     private Label _chipsLabel = null!;
     private Label _multLabel = null!;
+    private PanelContainer _chipsPanel = null!;
+    private PanelContainer _multPanel = null!;
+
+    // Scoring effects: a layer above the UI for floating text/confetti/stamps, and the container that shakes.
+    private Control _fxLayer = null!;
+    private MarginContainer _shakeRoot = null!;
     private Label _resourcesLabel = null!;
     private Label _moneyLabel = null!;
     private Label _messageLabel = null!;
@@ -171,6 +177,7 @@ public partial class Main : Control
         AddChild(background);
 
         var margin = new MarginContainer();
+        _shakeRoot = margin;
         margin.SetAnchorsPreset(LayoutPreset.FullRect);
         foreach (var side in new[] { "left", "right", "top", "bottom" })
             margin.AddThemeConstantOverride($"margin_{side}", 18);
@@ -205,6 +212,10 @@ public partial class Main : Control
         _shopArea.AddChild(_shopContent);
         content.AddChild(_shopArea);
 
+        _fxLayer = new Control { MouseFilter = MouseFilterEnum.Ignore };
+        _fxLayer.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(_fxLayer);
+
         _styleGuidesOverlay = BuildStyleGuidesOverlay();
         AddChild(_styleGuidesOverlay);
     }
@@ -235,17 +246,17 @@ public partial class Main : Control
         box.AddChild(_scoreLabel);
 
         var tally = UiKit.HBox(8);
-        var chipsPanel = UiKit.MakePanel(UiKit.Chips, padding: 8);
-        chipsPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _chipsPanel = UiKit.MakePanel(UiKit.Chips, padding: 8);
+        _chipsPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _chipsLabel = UiKit.MakeLabel("0", 30, Colors.White, HorizontalAlignment.Center);
-        chipsPanel.AddChild(_chipsLabel);
-        var multPanel = UiKit.MakePanel(UiKit.Mult, padding: 8);
-        multPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _chipsPanel.AddChild(_chipsLabel);
+        _multPanel = UiKit.MakePanel(UiKit.Mult, padding: 8);
+        _multPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _multLabel = UiKit.MakeLabel("0", 30, Colors.White, HorizontalAlignment.Center);
-        multPanel.AddChild(_multLabel);
-        tally.AddChild(chipsPanel);
+        _multPanel.AddChild(_multLabel);
+        tally.AddChild(_chipsPanel);
         tally.AddChild(UiKit.MakeLabel("×", 28, UiKit.Text));
-        tally.AddChild(multPanel);
+        tally.AddChild(_multPanel);
         box.AddChild(tally);
 
         _messageLabel = UiKit.MakeLabel("", 16, UiKit.TextMuted, wrap: true);
@@ -294,7 +305,8 @@ public partial class Main : Control
         RefreshSidebar();
         RefreshDesk();
 
-        bool inRound = _session.Phase == RunPhase.InRound;
+        // A winning play keeps the board on screen until its scoring animation finishes.
+        bool inRound = _session.Phase == RunPhase.InRound || _animating;
         _roundArea.Visible = inRound;
         _shopArea.Visible = !inRound;
 
@@ -395,5 +407,10 @@ public partial class Main : Control
 
     private void ClearLog() => UiKit.ClearChildren(_logBox);
 
-    private void AddLog(string text, Color color) => _logBox.AddChild(UiKit.MakeLabel(text, 14, color, wrap: true));
+    private Label AddLog(string text, Color color)
+    {
+        var label = UiKit.MakeLabel(text, 14, color, wrap: true);
+        _logBox.AddChild(label);
+        return label;
+    }
 }
