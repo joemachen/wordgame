@@ -8,7 +8,7 @@ public static class LexiconLoader
     private static readonly Lazy<Dawg> CachedEnable = new(() => Dawg.Build(ReadEnableWords()));
 
     /// <summary>Shared, lazily built ENABLE DAWG. Immutable, safe to share across runs.</summary>
-    public static ILexicon Enable => CachedEnable.Value;
+    public static IWordGraph Enable => CachedEnable.Value;
 
     public static IEnumerable<string> ReadEnableWords()
     {

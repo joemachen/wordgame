@@ -7,7 +7,7 @@ namespace Crossword.Tests.TestSupport;
 internal static class Fixtures
 {
     /// <summary>Small deterministic word list so tests don't depend on ENABLE's contents.</summary>
-    public static readonly ILexicon Words = new HashSetLexicon(
+    public static readonly IWordGraph Words = Dawg.Build(
     [
         "CAT", "CATS", "CAR", "CARS", "AT", "TA", "AS", "SAT", "TO", "TOE", "ACT", "ACE", "ARC", "OAT",
         "TAR", "ARE", "EAR", "ERA", "AE", "RE", "ES", "ZA", "ZAX", "AX", "TE", "STAR",

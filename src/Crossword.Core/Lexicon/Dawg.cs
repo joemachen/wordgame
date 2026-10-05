@@ -7,9 +7,9 @@ namespace Crossword.Core.Lexicon;
 /// Built with Daciuk et al.'s incremental algorithm for sorted input, then frozen into flat arrays.
 /// Supports prefix traversal, which future move generation / dead-board detection relies on.
 /// </summary>
-public sealed class Dawg : ILexicon
+public sealed class Dawg : IWordGraph
 {
-    private const int Root = 0;
+    private const int RootNode = 0;
 
     // Node i's outgoing edges are _edgeLabel/_edgeTarget[_firstEdge[i] .. _firstEdge[i + 1]), sorted by label.
     private readonly int[] _firstEdge;
@@ -41,10 +41,16 @@ public sealed class Dawg : ILexicon
     public bool HasPrefix(string prefix) =>
         string.IsNullOrEmpty(prefix) ? WordCount > 0 : Walk(prefix) >= 0;
 
+    public int Root => RootNode;
+
+    public int Step(int node, char letter) => Child(node, letter);
+
+    public bool IsTerminal(int node) => _terminal[node];
+
     /// <summary>Follows <paramref name="text"/> from the root; returns the reached node or -1.</summary>
     private int Walk(string text)
     {
-        int node = Root;
+        int node = RootNode;
         foreach (char raw in text)
         {
             node = Child(node, char.ToUpperInvariant(raw));
