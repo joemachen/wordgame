@@ -20,30 +20,30 @@ public sealed record SimulatedRun(
 
 /// <summary>
 /// Balance tooling: plays whole runs with a bot. In rounds it uses <see cref="RoundSimulator"/>'s skill model;
-/// in the shop it buys the most expensive affordable Desk Item, then enhances its most common letter, strikes
-/// awkward letters (J, Q, X, Z, V, K) and buys enhanced tiles. Deliberately naive — a floor on what a thoughtful
-/// player gets out of the shop.
+/// in the shop it follows <see cref="ShopStrategy"/> — by default <see cref="EvaluatingShopBot"/>, which values
+/// purchases by re-scoring the plays it recently faced.
 /// </summary>
 public static class RunSimulator
 {
-    private const string AwkwardLetters = "QZXJVK";
-
-    public static SimulatedRun PlayRun(ulong seed, RunConfig config, IWordGraph lexicon, double skill = 1.0)
+    public static SimulatedRun PlayRun(ulong seed, RunConfig config, IWordGraph lexicon, double skill = 1.0,
+        ShopStrategy strategy = ShopStrategy.Evaluating, ShopBotConfig? bot = null)
     {
+        bot ??= ShopBotConfig.Default;
         var session = RunRules.NewGame(seed, config, lexicon);
         var rounds = ImmutableArray.CreateBuilder<SimulatedRunRound>();
+        var history = ShopHistory.Empty;
 
         while (session.Phase is RunPhase.InRound or RunPhase.Shop)
         {
             if (session.Phase == RunPhase.Shop)
             {
-                session = Shop(session);
+                session = strategy == ShopStrategy.Naive ? NaiveShopBot.Shop(session) : EvaluatingShopBot.Shop(session, history, bot);
                 session = RunRules.LeaveShop(session, lexicon).Value;
                 continue;
             }
 
             var startIndex = session.Run.RoundIndex;
-            session = PlayRound(session, lexicon, skill);
+            (session, history) = PlayRound(session, lexicon, skill, strategy == ShopStrategy.Evaluating ? bot : null, history);
             var round = session.Round;
             rounds.Add(new SimulatedRunRound(startIndex, config.KindOf(startIndex).Name, round.Config.Boss?.Name,
                 round.Config.TargetScore, round.Score, round.Status == RoundStatus.Won));
@@ -53,14 +53,17 @@ public static class RunSimulator
             session.Run.DeskItems.Select(d => d.Id).ToImmutableArray());
     }
 
-    private static GameSession PlayRound(GameSession session, IWordGraph lexicon, double skill)
+    /// <summary>Plays the round; when <paramref name="bot"/> is set, records each decision for the shop bot.</summary>
+    private static (GameSession, ShopHistory) PlayRound(GameSession session, IWordGraph lexicon, double skill,
+        ShopBotConfig? bot, ShopHistory history)
     {
         while (session.Phase == RunPhase.InRound)
         {
             var round = session.Round;
-            var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, session.Run.DeskItems,
-                round.Config.EffectiveScoring(session.Scoring), round.Config.MinWordLength,
-                RoundRules.Environment(round, session.Run.Money));
+            var scoring = round.Config.EffectiveScoring(session.Scoring);
+            var env = RoundRules.Environment(round, session.Run.Money);
+            var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, session.Run.DeskItems, scoring,
+                round.Config.MinWordLength, env);
 
             if (ranked.Count == 0)
             {
@@ -72,72 +75,11 @@ public static class RunSimulator
             }
 
             var choice = ranked[(int)((1 - skill) * (ranked.Count - 1))];
+            if (bot is not null)
+                history = history.Add(ShopHistory.Capture(session.Run.RoundIndex, round, env, ranked, scoring, choice.Play,
+                    bot.CandidatePlays), bot.HistoryWindow);
             session = RunRules.Submit(session, choice.Play.Placed, lexicon).Value.Session;
         }
-        return session;
-    }
-
-    private static GameSession Shop(GameSession session)
-    {
-        bool bought = true;
-        while (bought)
-        {
-            bought = false;
-            var offers = session.Shop!.Offers;
-            var candidates = Enumerable.Range(0, offers.Length)
-                .Where(i => offers[i] is { } o && o.Price <= session.Run.Money)
-                .OrderBy(i => Priority(offers[i]!))
-                .ThenByDescending(i => offers[i]!.Price);
-
-            foreach (int i in candidates)
-            {
-                var tiles = TilesFor(offers[i]!, session);
-                if (tiles is null)
-                    continue;
-                var result = ShopRules.Buy(session, i, tiles);
-                if (result.IsOk)
-                {
-                    session = result.Value;
-                    bought = true;
-                    break;
-                }
-            }
-        }
-        return session;
-    }
-
-    private static int Priority(ShopOffer offer) => offer switch
-    {
-        DeskItemOffer => 0,
-        StyleGuideOffer => 1,
-        EnhanceOffer => 2,
-        StrikeOffer => 3,
-        AddTileOffer { Enhancement: not TileEnhancement.None } => 4,
-        _ => 9,
-    };
-
-    /// <summary>Tile choice for edits, or null to skip the offer.</summary>
-    private static IReadOnlyCollection<int>? TilesFor(ShopOffer offer, GameSession session)
-    {
-        var deck = session.Run.Deck;
-        switch (offer)
-        {
-            case EnhanceOffer:
-                var target = deck.Where(t => t.Enhancement == TileEnhancement.None)
-                    .GroupBy(t => t.Letter.Char)
-                    .OrderByDescending(g => g.Count())
-                    .FirstOrDefault()?.First();
-                return target is null ? null : [target.Id];
-            case StrikeOffer strike:
-                var awkward = deck.Where(t => AwkwardLetters.Contains(t.Letter.Char) && t.Enhancement == TileEnhancement.None)
-                    .Take(strike.MaxTiles).Select(t => t.Id).ToList();
-                return awkward.Count == 0 ? null : awkward;
-            case AddTileOffer { Enhancement: TileEnhancement.None }:
-                return null;
-            case StyleGuideOffer { TierMinLength: < 3 }:
-                return null; // the bot rarely scores with 2-letter words as its longest
-            default:
-                return [];
-        }
+        return (session, history);
     }
 }

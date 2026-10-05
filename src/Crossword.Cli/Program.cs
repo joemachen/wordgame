@@ -77,7 +77,8 @@ public static class Program
                 break;
             case "runsim":
                 SimulateRuns(rest.Length > 0 && int.TryParse(rest[0], out var runs) ? runs : 50,
-                    rest.Length > 1 && double.TryParse(rest[1], System.Globalization.CultureInfo.InvariantCulture, out var skill) ? skill : 0.9);
+                    rest.Length > 1 && double.TryParse(rest[1], System.Globalization.CultureInfo.InvariantCulture, out var skill) ? skill : 0.9,
+                    rest.Length > 2 && rest[2].Equals("naive", StringComparison.OrdinalIgnoreCase) ? ShopStrategy.Naive : ShopStrategy.Evaluating);
                 break;
             case "shop":
                 PrintPhase();
@@ -324,7 +325,7 @@ public static class Program
         Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
     }
 
-    private static void SimulateRuns(int runs, double skill)
+    private static void SimulateRuns(int runs, double skill, ShopStrategy strategy)
     {
         if (skill is <= 0 or > 1)
         {
@@ -335,9 +336,9 @@ public static class Program
         var sw = Stopwatch.StartNew();
         var results = Enumerable.Range(1, runs)
             .AsParallel()
-            .Select(seed => RunSimulator.PlayRun((ulong)seed, Config, _lexicon, skill))
+            .Select(seed => RunSimulator.PlayRun((ulong)seed, Config, _lexicon, skill, strategy))
             .ToList();
-        Console.WriteLine(SimulationReport.FormatRuns(results, Config, skill));
+        Console.WriteLine(SimulationReport.FormatRuns(results, Config, skill, strategy));
         Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
     }
 
@@ -389,7 +390,7 @@ public static class Program
               discard | x <LETTERS>          Discard tiles (costs a discard), e.g. 'discard QV'
               hint [n]                       Show the n best legal plays (dev/QA aid)
               sim [rounds]                   Greedy-play simulation of the current round settings
-              runsim [runs] [skill]          Full-run simulation with a shop bot (default 50, 0.9)
+              runsim [runs] [skill] [naive]  Full-run simulation with a shop bot (default 50, 0.9, smart bot)
             In the shop:
               buy <n> [LETTERS]              Buy offer n; LETTERS picks deck tiles for Enhance/Strike
               reroll                         New offers (cost rises each reroll)

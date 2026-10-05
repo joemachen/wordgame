@@ -39,8 +39,9 @@ All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item
 ## Balance Workflow
 - `RoundSimulator` (Core/Analysis) plays rounds automatically; `skill` 1.0 = greedy best play (upper bound), 0.9 ≈ strong human proxy.
 - CLI `sim [rounds]` prints per-submission score distribution, intersection rate and submissions-to-target; `hint [n]` lists best plays.
-- `RunSimulator` plays whole runs with a naive shop bot; CLI `runsim [runs] [skill]` reports victory %, week reached and what killed runs. Current tuning (100 runs each): skill 0.9 wins ~42%, 0.8 ~29%, 0.7 ~15%; boss loss rates 4–16% per encounter.
-- Watch: the gap between skill levels is narrow — build strength now dominates word-finding skill. Retune targets with `runsim` whenever scaling content changes.
+- `RunSimulator` plays whole runs; CLI `runsim [runs] [skill] [naive]` reports victory %, week reached, unspent money and what killed runs. Default shop bot is `EvaluatingShopBot` (`Core/Analysis/ShopBot.cs`): it records recent decisions (trimmed candidate plays) and values each purchase by re-scoring them with the resulting loadout — every slot position, replacements when full, Style Guides, scaling items projected to mid-run, money effects as reduced price. Thresholds in `ShopBotConfig`. `NaiveShopBot` (priciest item first) kept for comparison.
+- Current numbers (100 runs, current targets): evaluating bot wins ~97% / 83% / 59% at skill 0.9 / 0.8 / 0.7; naive bot ~42% / 29% / 15%. Targets were tuned against the naive bot and are too soft for good shopping — retune pending user decision.
+- Findings: shop decisions dominate outcomes; Pulitzer, Margin Notes and Word Count end up in >90% of skill-0.9 evaluating runs; deck edits never pay off for the bot (buying them at any estimated gain lowered win rate). Retune targets with `runsim` whenever scaling content changes.
 - Current tuning rationale: tier Mult 1,1,2,2,3,3 + 3 Mult per intersection so grid-building beats isolated long words; round 1 target 300 (~90% clear rate at skill 0.9); starter items ~+35–55% alone.
 - Unit tests must pin their own numbers (explicit config / constructor args) so retuning defaults never breaks them.
 

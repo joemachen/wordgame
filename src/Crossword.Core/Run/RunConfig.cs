@@ -19,8 +19,9 @@ public sealed record EconomyConfig(
 /// <summary>
 /// Shape of a run: <see cref="WeekTargets"/>.Length weeks × <see cref="Days"/> rounds. After the final week the
 /// run is won; endless play continues with targets growing by <see cref="EndlessGrowth"/> per week.
-/// Default targets tuned with <see cref="Analysis.RunSimulator"/> (100 runs per curve, 18 Desk Items + Style
-/// Guides): skill-0.9 bot wins ~40%, skill 0.8 ~30%. Retune with 'runsim' whenever scaling content changes.
+/// Default targets were tuned with <see cref="Analysis.RunSimulator"/>'s naive shop bot (skill 0.9 wins ~42%,
+/// 0.8 ~29%). The evaluating shop bot wins ~97% / 83% / 59% at skill 0.9 / 0.8 / 0.7, so these targets are too
+/// soft for a player who shops well. Retune with 'runsim' whenever scaling content changes.
 /// </summary>
 public sealed record RunConfig(
     ImmutableArray<long> WeekTargets,

@@ -32,6 +32,17 @@ public class RunSimulatorTests
     }
 
     [Fact]
+    public void PlayRun_NaiveShopBot_StillPlaysThrough()
+    {
+        var a = RunSimulator.PlayRun(12, ShortRun, LexiconLoader.Enable, strategy: ShopStrategy.Naive);
+        var b = RunSimulator.PlayRun(12, ShortRun, LexiconLoader.Enable, strategy: ShopStrategy.Naive);
+
+        Assert.True(a.Victory);
+        Assert.NotEmpty(a.DeskItems);
+        Assert.Equal(a.Rounds, b.Rounds);
+    }
+
+    [Fact]
     public void PlayRun_ImpossibleTarget_EndsOnFirstRound()
     {
         var run = RunSimulator.PlayRun(13, RunConfig.Default with { WeekTargets = [1_000_000] }, LexiconLoader.Enable);

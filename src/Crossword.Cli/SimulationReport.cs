@@ -36,11 +36,13 @@ public static class SimulationReport
         return sb.ToString();
     }
 
-    public static string FormatRuns(IReadOnlyList<SimulatedRun> runs, RunConfig config, double skill)
+    public static string FormatRuns(IReadOnlyList<SimulatedRun> runs, RunConfig config, double skill,
+        ShopStrategy strategy = ShopStrategy.Evaluating)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Run simulation: {runs.Count} runs at skill {skill:0.00} (naive shop bot):");
+        sb.AppendLine($"Run simulation: {runs.Count} runs at skill {skill:0.00} ({(strategy == ShopStrategy.Naive ? "naive" : "evaluating")} shop bot):");
         sb.AppendLine($"  Victory {100.0 * runs.Count(r => r.Victory) / runs.Count:0}%   average rounds cleared {runs.Average(r => r.RoundsCleared):0.0}/{config.TotalRounds}");
+        sb.AppendLine($"  Average unspent money at the end ${runs.Average(r => r.FinalMoney):0.0}");
         for (int week = 0; week < config.WeekTargets.Length; week++)
         {
             int reached = runs.Count(r => r.Rounds.Any(x => config.WeekOf(x.RoundIndex) == week));
