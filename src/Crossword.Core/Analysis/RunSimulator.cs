@@ -16,6 +16,9 @@ public sealed record SimulatedRun(
     ImmutableArray<string> DeskItems)
 {
     public int RoundsCleared => Rounds.Count(r => r.Won);
+
+    /// <summary>Ids of the Stationery used during the run, in order.</summary>
+    public ImmutableArray<string> StationeryUsed { get; init; } = ImmutableArray<string>.Empty;
 }
 
 /// <summary>
@@ -32,6 +35,7 @@ public static class RunSimulator
         var session = RunRules.NewGame(seed, config, lexicon);
         var rounds = ImmutableArray.CreateBuilder<SimulatedRunRound>();
         var history = ShopHistory.Empty;
+        var stationeryUsed = ImmutableArray.CreateBuilder<string>();
 
         while (session.Phase is RunPhase.InRound or RunPhase.Shop)
         {
@@ -43,21 +47,29 @@ public static class RunSimulator
             }
 
             var startIndex = session.Run.RoundIndex;
-            (session, history) = PlayRound(session, lexicon, skill, model, strategy == ShopStrategy.Evaluating ? bot : null, history);
+            int submissions;
+            (session, history, submissions) = PlayRound(session, lexicon, skill, model,
+                strategy == ShopStrategy.Evaluating ? bot : null, history, stationeryUsed);
             var round = session.Round;
             rounds.Add(new SimulatedRunRound(startIndex, config.KindOf(startIndex).Name, round.Config.Boss?.Name,
-                round.Config.TargetScore, round.Score, round.Status == RoundStatus.Won,
-                round.Config.Submissions - round.SubmissionsLeft));
+                round.Config.TargetScore, round.Score, round.Status == RoundStatus.Won, submissions));
         }
 
         return new SimulatedRun(seed, rounds.ToImmutable(), session.Phase == RunPhase.Victory, session.Run.Money,
-            session.Run.DeskItems.Select(d => d.Id).ToImmutableArray());
+            session.Run.DeskItems.Select(d => d.Id).ToImmutableArray())
+        {
+            StationeryUsed = stationeryUsed.ToImmutable(),
+        };
     }
 
-    /// <summary>Plays the round; when <paramref name="bot"/> is set, records each decision for the shop bot.</summary>
-    private static (GameSession, ShopHistory) PlayRound(GameSession session, IWordGraph lexicon, double skill,
-        SkillModel model, ShopBotConfig? bot, ShopHistory history)
+    /// <summary>
+    /// Plays the round, using held Stationery via <see cref="StationeryBot"/>; when <paramref name="bot"/> is set,
+    /// records each decision for the shop bot. Returns the number of submissions made.
+    /// </summary>
+    private static (GameSession, ShopHistory, int) PlayRound(GameSession session, IWordGraph lexicon, double skill,
+        SkillModel model, ShopBotConfig? bot, ShopHistory history, ImmutableArray<string>.Builder stationeryUsed)
     {
+        int submissions = 0;
         while (session.Phase == RunPhase.InRound)
         {
             var round = session.Round;
@@ -68,6 +80,16 @@ public static class RunSimulator
 
             if (ranked.Count == 0)
             {
+                if (round.DiscardsLeft == 0)
+                {
+                    // Only reachable while holding Scissors / White-Out (otherwise the round is already lost).
+                    var escaped = StationeryBot.Escape(session, lexicon);
+                    if (escaped is null)
+                        break;
+                    RecordUse(session, escaped, stationeryUsed);
+                    session = escaped;
+                    continue;
+                }
                 var discarded = RunRules.Discard(session, round.Hand.Tiles.Select(t => t.Id).ToArray(), lexicon);
                 if (!discarded.IsOk)
                     break;
@@ -76,11 +98,36 @@ public static class RunSimulator
             }
 
             var choice = PlayChooser.Choose(ranked, skill, model);
+            var (afterStationery, revealed) = StationeryBot.BeforePlay(session, ranked, choice, lexicon);
+            if (!ReferenceEquals(afterStationery, session))
+            {
+                RecordUse(session, afterStationery, stationeryUsed);
+                session = afterStationery;
+                if (revealed is null)
+                    continue; // re-rank under the new round state (e.g. Red Ink's bonus)
+                choice = revealed;
+            }
+
             if (bot is not null)
                 history = history.Add(ShopHistory.Capture(session.Run.RoundIndex, round, env, ranked, scoring, choice.Play,
                     bot.CandidatePlays), bot.HistoryWindow);
             session = RunRules.Submit(session, choice.Play.Placed, lexicon).Value.Session;
+            submissions++;
         }
-        return (session, history);
+        return (session, history, submissions);
+    }
+
+    /// <summary>Records which Stationery item a transition used up (the one no longer held).</summary>
+    private static void RecordUse(GameSession before, GameSession after, ImmutableArray<string>.Builder used)
+    {
+        var remaining = after.Run.Stationery.Select(s => s.Id).ToList();
+        foreach (var item in before.Run.Stationery)
+        {
+            if (!remaining.Remove(item.Id))
+            {
+                used.Add(item.Id);
+                return;
+            }
+        }
     }
 }

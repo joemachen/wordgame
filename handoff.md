@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `e928808` (code) · 294 unit tests passing · UI self-test 21/21 passing_
+_Last updated: 2026-10-05 · HEAD `HEADPLACEHOLDER` (code) · 318 unit tests passing · UI self-test 27/27 passing_
 
 ---
 
@@ -24,10 +24,10 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 340/1200/3600/9750/16000; The Strict Grammarian's deadline ×0.75. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
-| Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike), **Stationery** system (2 one-shot slots) with its first item, the **Answer Key** (reveals the best play, $3). |
+| Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round). Holding Scissors/White-Out keeps a stuck round alive. |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
-| Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
-| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell) + 2 Stationery slots (use/sell; Answer Key shop card), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
+| Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds), CLI `hint`/`sim`. `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
+| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -46,22 +46,38 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 - **Definitions come from Open English WordNet** (user's choice; CC BY 4.0 → attribution in `THIRD_PARTY_NOTICES.md`, must also appear in in-game credits before release). Wiktionary was rejected for now (CC BY-SA share-alike). Unknown words show "valid word — no definition on file". Definitions appear in the play preview only (user's choice; not in the scoring log or board tooltips).
 - **Style Guides are shown in a Run Info-style popup** (Tab / sidebar button), user's choice over an always-visible sidebar table or desk-bar badges.
+- **Stationery batch (user's choice, 2026-10-05):** Margin Clip, Scissors, White-Out, Red Ink Bottle, flat $3. Red Ink is a round-level `RoundConfig.BonusMult` (scoring step 4b, before Desk Items, so ×Mult items multiply it). White-Out's tile is gone for the round (not returned); leftover fragments are only checked when a later play crosses them. **Deadlock escape** (Claude's call, flagged to the user): holding Scissors/White-Out postpones the "no play, no discards" loss, since otherwise the round would end while the player holds the way out.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
-## 4. Current balance snapshot (after the 2026-10-05 retune)
+## 4. Current balance snapshot (after the 2026-10-05 retune + Stationery batch)
 
 Week targets **340/1200/3600/9750/16000**, day multipliers ×1/×1.3/×1.6, The Strict Grammarian's deadline ×0.75.
 **Reference player = ScoreFraction model** (`runsim 150 0.75 frac`: picks the best play worth ≤75% of the best one).
-Evaluating shop bot, 150 runs each:
+Evaluating shop bot, 150 runs each. **The bot now buys Margin Clips** (default `ShopBotConfig.StationeryGain`), which
+moved every row up ~10–16 pts:
 
-| Skill (ScoreFraction) | Victory | Rounds won in 1–2 subs | Mean subs to win (Daily, W1 → W5) |
+| Skill (ScoreFraction) | Victory (before Stationery → now) | Rounds won in 1–2 subs | Mean subs to win (Daily, W1 → W5) | Margin Clips used/run |
+|---|---|---|---|---|
+| 0.9 | 45% → **61%** | 71% | 2.41 → 2.27 | 0.49 |
+| 0.75 (reference) | 31% → **47%** | 61% | 2.50 → 2.52 | 0.60 |
+| 0.6 | ~13% → **23%** | 48% | 2.73 → 2.71 | 0.59 |
+
+**Per-item Stationery value** (scratch harness: 200 paired runs per arm, ScoreFraction 0.75, the shop offers only that
+item and the bot buys it at a fixed gain; baseline without Stationery 37.5% on seeds 1–200):
+
+| Item ($3) | Win-rate change | Uses/run | Notes |
 |---|---|---|---|
-| 0.9 | 45% | 74% | 2.41 → 2.10 |
-| 0.75 (reference) | 31% | 65% | 2.50 → 2.36 |
-| 0.6 (from the sweep) | ~13% | ~54% | ~2.5 → 2.7 |
+| **Margin Clip** | **+13 to +14 pts** | ~1.6 | Used on a short last submission. Far the best buy per dollar in the game. |
+| Answer Key | −3 (gain 0.1), −11 (0.3) | ~3 | Used when only the best play wins the round now. |
+| Red Ink Bottle | −2.5 (0.1), −10 (0.3) | ~5.6 | Used on boss openers and short last submissions. |
+| Scissors | −8 (0.05), −10.5 (0.1) | ~2.7 | Cuts unused Q/Z/X/J tiles before a play. |
+| White-Out | −11.5 | 0 | Bot only uses it to escape a stuck hand, which practically never happens. |
 
-- Losses are spread across the weeks; Dailies and Saturday Stumpers end most runs. The Strict Grammarian ends 13 (0.9) /
-  8 (0.75) of 150 runs — still the hardest boss, no longer a wall.
+  Negative = the $3 (and the slot) would have done more as money/Desk Items for this bot. The bot's Stationery use
+  is rule-based, so these are a floor on what a human gets — but Margin Clip is clearly over-tuned (open question).
+
+- Losses are spread across the weeks; Dailies and Saturday Stumpers end most runs. The Strict Grammarian ends 7 (0.9) /
+  8 (0.75) of 150 runs — still among the hardest bosses, no longer a wall.
 - **Targets plateau at ~2.5 plays per round:** steeper curves (×1.75, ×2) only turn long rounds into lost rounds
   (4 submissions, high per-play variance). 3+ play rounds need a structural change (e.g. 5 submissions + higher targets).
 - **The percentile skill model is a poor human proxy** (its 0.9 = the play better than 90% of legal plays, far below the
@@ -81,31 +97,38 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 
 ## 5. Open concerns / known gaps
 
-1. **Overall difficulty after the retune** (see §4): the reference player wins ~31%, a weaker one ~13%. Check in
-   playtests; the Press Run stakes (ROADMAP §5) could carry difficulty if the base game should be gentler.
+1. **Overall difficulty after the retune + Stationery** (see §4): the reference player wins ~47%, a weaker one ~23%,
+   much of it from Margin Clips. Check in playtests; the Press Run stakes (ROADMAP §5) could carry difficulty.
+   **Margin Clip at $3 is over-tuned** (+13 pts alone) and the other four Stationery don't pay for themselves for the
+   bot — the user hasn't decided on fixes yet (see §6).
 2. **Possible dominant items / weak deck edits** (see §4): Pulitzer, Margin Notes, Word Count near-universal picks;
    deck edits not worth buying. The bot values items by the *best* play per decision (strong-shopper view), not
-   the play its skill level would pick. Bots don't buy or use Stationery yet.
+   the play its skill level would pick. Stationery is bought at fixed per-item gains (`ShopBotConfig.StationeryGain`),
+   not by re-scoring, and its in-round use is rule-based (`StationeryBot`) — a floor on what a human gets from it.
 3. **No save/load.** State is immutable records, so it's mostly serialization (Desk Items are polymorphic records — needs a type discriminator).
 4. **UI is first-pass:** no art, sound, or settings; only the hand-reorder slide is animated. Hand drag (ghost slot, sliding tiles, lifted preview) confirmed good by the user with a real mouse.
 5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping (the same pass should cover definitions; WordNet glosses include crude senses). "Q without U" is a dead tile (consider a "Qu" tile).
 6. **Hand arrangement is UI-only** (not saved); fine until save/load exists.
 7. **~38% of ENABLE has no definition** (mostly obscure words, e.g. GLEY, the user's own example; 2–5-letter words ~73% covered, every 2-letter word covered). Options if it matters: extend `supplement.txt` for words that come up often, or add a second source after a license check (Wiktionary is CC BY-SA).
+8. **The CLI has no Stationery commands** (dev `give` only covers Desk Items); the game UI is the only way to use it.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
-1. **Playtest the retune + new Hint** via `run_local_qa.bat` — do rounds feel longer, is the overall difficulty right
-   (concern #1), is the free Hint useful without being a crutch, is the Answer Key worth $3? If 3+ play rounds are
-   wanted, try 5 submissions per round with higher targets (targets alone plateau at ~2.5 plays).
-2. More Stationery (ROADMAP §Stationery: White-Out, Scissors, Margin Clip…) + teach the shop bot to value it.
-   ROADMAP phase 2: new Desk Items + Redundant Copy (Mid) and The Puzzle Master (Final) bosses.
-3. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;
+1. **Stationery balance** (decision pending): Margin Clip is too strong at $3 — options: price it higher (~$6), make
+   it rarer in the pool, or give it a cost (e.g. −1 discard). The others may need buffs (e.g. Red Ink +5, Answer Key
+   $2) — check in playtests, since the bot's use is rule-based. Re-measure with the scratch harness (§7).
+2. **Playtest the retune, new Hint and Stationery** via `run_local_qa.bat` — do rounds feel longer, is difficulty right
+   (concern #1), is the free Hint useful without being a crutch, do Scissors/White-Out feel worth $3? If 3+ play rounds
+   are wanted, try 5 submissions per round with higher targets (targets alone plateau at ~2.5 plays).
+3. ROADMAP phase 2: new Desk Items + Redundant Copy (Mid) and The Puzzle Master (Final) bosses. Remaining Stationery
+   (Highlighter, Fountain Pen, Correction Tape) can come later on the same targeting system.
+4. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;
    make deck edits worth buying.
-4. Save/load (resume a run) — prerequisite for meta-progression.
-5. UI polish: tile placement/score animations, sound, juice; deck viewer; tooltips for Desk Items/bosses.
+5. Save/load (resume a run) — prerequisite for meta-progression.
+6. UI polish: tile placement/score animations, sound, juice; deck viewer; tooltips for Desk Items/bosses.
 
 ## 7. How to work in this repo (practical tips learned the hard way)
 
@@ -122,6 +145,9 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 - **Batch files must be CRLF** (`.gitattributes` enforces; normalize with `sed -i 's/\r*$/\r/'` after writing).
 - Running `run_local_qa.bat` from a captured shell hangs because Godot inherits the pipe — expected; it's fine on double-click.
 - Target sweeps: wrap a boss in a harness-side `BossModifier` subclass whose `ModifyRound` calls `Inner.Apply(config) with { Boss = null }` and rescales `TargetScore` — lets you test boss deadlines without touching Core. Flatten configs × seeds into one `.AsParallel()` query (20 cores: ~0.5 s per run).
+- Stationery value: same harness pattern, one arm per item with `ShopConfig.StationeryIds = {id}` (the shop always
+  offers it) and `ShopBotConfig.StationeryGain = {id: g}`, paired seeds against a no-Stationery baseline. A full
+  5-item × 2-gain sweep at 200 runs/arm takes ~18 min on 20 cores.
 - Balance experiments: a throwaway console project in the scratchpad referencing `src/Crossword.Core` (loop over configs, call `RunSimulator.PlayRun(seed, config, lexicon, skill, strategy, botConfig, model: SkillModel.ScoreFraction)` with `.AsParallel()`, build `-c Release`) is faster than editing defaults repeatedly. 100 runs ≈ 1 min with the evaluating bot. Note `RunConfig.Days` multipliers must be set explicitly in such harnesses. n=60 runs is too noisy (±6 pts) to compare close variants; use 150+.
 - The user's machine has old Godot crash dumps; the project uses the **GL Compatibility** renderer, which has been stable.
 

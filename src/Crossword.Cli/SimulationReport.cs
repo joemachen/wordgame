@@ -50,6 +50,9 @@ public static class SimulationReport
             sb.AppendLine($"  Reached week {week + 1}: {100.0 * reached / runs.Count,3:0}%");
         }
         AppendSubmissionsToWin(sb, runs, config);
+        var used = runs.SelectMany(r => r.StationeryUsed).GroupBy(id => id).OrderByDescending(g => g.Count())
+            .Select(g => $"{g.Key} {(double)g.Count() / runs.Count:0.00}").ToList();
+        sb.AppendLine($"  Stationery used per run: {(used.Count == 0 ? "none" : string.Join(", ", used))}");
         var deaths = runs.Where(r => !r.Victory).Select(r => r.Rounds[^1]).GroupBy(r => r.Boss ?? r.Kind)
             .OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count()}");
         sb.Append($"  Lost on: {string.Join(", ", deaths)}");

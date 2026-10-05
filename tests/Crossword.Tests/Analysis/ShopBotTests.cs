@@ -179,6 +179,21 @@ public class ShopBotTests
     }
 
     [Fact]
+    public void BuysStationery_OnlyWhenItsGainIsConfigured()
+    {
+        var offer = new StationeryOffer(new Crossword.Core.Stationery.MarginClip(), 3);
+        var history = History(Plays());
+        var valued = Bot with { StationeryGain = new Dictionary<string, double> { ["margin-clip"] = 0.2 } };
+
+        var ignored = EvaluatingShopBot.Shop(InShop(10, 0, [], offer), history, Bot);
+        var bought = EvaluatingShopBot.Shop(InShop(10, 0, [], offer), history, valued);
+
+        Assert.Empty(ignored.Run.Stationery);
+        Assert.Equal("margin-clip", Assert.Single(bought.Run.Stationery).Id);
+        Assert.Equal(7, bought.Run.Money);
+    }
+
+    [Fact]
     public void History_KeepsOnlyTheMostRecentWindow()
     {
         var plays = Plays();

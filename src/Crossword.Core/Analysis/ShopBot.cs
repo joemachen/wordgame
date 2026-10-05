@@ -21,6 +21,8 @@ public enum ShopStrategy
 /// Defaults picked by sweeping configs (150 runs, skill 0.7): a money reserve for interest lowered win rate
 /// (−6 pts), and so did buying deck edits at any fixed estimated gain (−4 pts), so both are off by default;
 /// rerolling with a full desk is neutral but spends money that would otherwise end the run unused.
+/// Stationery is valued like deck edits, by a fixed estimated gain per item (<see cref="StationeryGain"/>), and
+/// used in rounds by <see cref="StationeryBot"/>.
 /// </summary>
 public sealed record ShopBotConfig(
     int CandidatePlays = 20,
@@ -34,9 +36,18 @@ public sealed record ShopBotConfig(
     double EarningsHorizon = 0.5,
     double EnhanceGain = 0,
     double EnhancedTileGain = 0,
-    double StrikeGain = 0)
+    double StrikeGain = 0,
+    IReadOnlyDictionary<string, double>? StationeryGain = null)
 {
-    public static ShopBotConfig Default { get; } = new();
+    /// <summary>
+    /// Buys only the Margin Clip: measured alone at $3 (200 runs, ScoreFraction 0.75) it added +13 pts of win rate,
+    /// while Answer Key (−3), Red Ink Bottle (−2.5) and Scissors (−8, cutting Q/Z/X/J) cost the bot more than they
+    /// returned. White-Out is only used to escape a stuck hand, which almost never happens.
+    /// </summary>
+    public static ShopBotConfig Default { get; } = new(StationeryGain: new Dictionary<string, double> { ["margin-clip"] = 0.05 });
+
+    /// <summary>Fixed estimated gain of buying a Stationery item (by id); 0 = never buy it.</summary>
+    public double GainOf(Stationery.IStationery item) => StationeryGain?.GetValueOrDefault(item.Id) ?? 0;
 }
 
 /// <summary>
@@ -179,6 +190,11 @@ public static class EvaluatingShopBot
                     var g = evaluator.Measure(run.DeskItems, run.UpgradeTier(guide.TierMinLength).TierUpgrades);
                     yield return new Candidate(index, evaluator.Gain(baseline, g), offer.Price - evaluator.Earnings(baseline, g),
                         offer.Price, s => ShopRules.Buy(s, index));
+                    break;
+
+                case StationeryOffer stationery when run.Money >= offer.Price && run.Stationery.Length < RunState.MaxStationerySlots:
+                    if (config.GainOf(stationery.Item) is var stationeryGain and > 0)
+                        yield return new Candidate(index, stationeryGain, offer.Price, offer.Price, s => ShopRules.Buy(s, index));
                     break;
 
                 case EnhanceOffer or StrikeOffer or AddTileOffer when run.Money >= offer.Price:

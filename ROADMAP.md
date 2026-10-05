@@ -95,19 +95,20 @@ These are in addition to the 18 Desk Items already in `DeskItemCatalog`. Rarity 
 
 One-shot items bought in the shop, held in **2 Stationery slots**, used during a round (the equivalent of
 Balatro's Tarot cards). ✅ The system exists (`RunState.Stationery`, `StationeryOffer` in the shop at $3, sell for
-half, `RunRules.UseStationery`, UI slots beside the Desk Items) with the Answer Key as its first item; the rest
-of this table is still proposed. Shop bots don't buy Stationery yet.
+half, `RunRules.UseStationery` with hand-tile / board-cell targets, UI slots beside the Desk Items, White-Out
+board targeting) with five items; the rest of this table is still proposed. ✅ The evaluating shop bot buys
+Stationery at a fixed estimated gain per item and `StationeryBot` uses it in simulated rounds.
 
 | Stationery | Effect (*proposed*) |
 |---|---|
 | **Answer Key** ✅ | Reveals the best play for your current hand. The free Hint only shows a decent play (never the best), so solving the board for you costs money. |
-| **White-Out** | Remove one tile from the board |
+| **White-Out** ✅ | Remove one tile from the board for the rest of the round. Holding it (or Scissors) keeps a stuck round alive. |
 | **Highlighter** | One tile's letter value ×3 on your next play |
 | **Fountain Pen** | Rewrite one hand tile as any letter |
-| **Scissors** | Swap up to 2 hand tiles for new draws without spending a discard |
+| **Scissors** ✅ | Swap up to 2 hand tiles for new draws without spending a discard |
 | **Correction Tape** | Undo your last submission this round; its tiles return to your hand and you get the submission back |
-| **Red Ink Bottle** | +3 Mult on every play for the rest of the round |
-| **Margin Clip** | +1 submission this round |
+| **Red Ink Bottle** ✅ | +3 Mult on every play for the rest of the round (stacks) |
+| **Margin Clip** ✅ | +1 submission this round |
 
 ### Style Guides (word-tier upgrades)
 
@@ -177,7 +178,7 @@ the effects are our own.
 | Simulator throughput | Target: **~10k runs in minutes** (agreed). Today a run takes ~0.5 s (move generation dominates), so 100 runs take ~1 minute on all cores. Get there by profiling + optimizing `MoveGenerator`/scoring (caching anchors and cross-checks, cutting allocations) and a `--fast` bot that only examines the top-N moves. 1k runs per tuning question is already enough statistically (±3 pts). | 🟡 |
 | Simulator coverage | Per-deck and per-stake win rates, item pick/win rates, shop economy reports, target-curve sweeps across Weeks 1–5 (needs decks/stakes first). | 🟡 |
 | **Local QA runner** | `run_local_qa.bat`: build → tests → game window (`--cli`, `--ci`, seed). UI self-test (`--selftest`) and screenshot flags. | ✅ |
-| **Unit tests** | 251 xUnit tests incl. scoring edge cases, determinism and architecture rules. | ✅ |
+| **Unit tests** | 300+ xUnit tests incl. scoring edge cases, determinism and architecture rules (current count in `handoff.md`). | ✅ |
 | **CI pipeline** | GitHub Actions: build (warnings as errors) + `dotnet test` on every push. Later: headless Godot `--selftest`. | 🟡 |
 
 ---
@@ -219,8 +220,8 @@ modes cheap to build on the core.
 
 ## 10. Suggested additions (not yet requested; Claude's recommendations)
 
-- **Tutorial / onboarding:** with current targets an average player (sim skill 0.7) loses in Week 1 about 65% of the
-  time, so a guided first round and better word hints would matter before external playtests.
+- **Tutorial / onboarding:** with current targets the reference simulated player (ScoreFraction 0.75) wins ~31% of
+  runs and a weaker one (0.6) ~13%, so a guided first round would matter before external playtests.
 - **Settings & accessibility:** volume, text size, colorblind-safe palette, reduced motion, key rebinding.
 - **Localization:** UI text can be translated, but **gameplay in another language needs its own licensed word
   list and letter values**, which is a major project per language. Plan for English-only at launch.
@@ -235,10 +236,10 @@ tests and a `runsim` balance check.
 
 | Phase | Work | Depends on |
 |---|---|---|
-| **0** ✅ | Retune week targets against the evaluating shop bot → 225/800/2400/6500/16000 (skill 0.9 wins ~39%) | — |
+| **0** ✅ | Retune week targets → 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75, balanced against the ScoreFraction model (reference skill 0.75 wins ~31%) | — |
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
-| **3** 🟡 | Stationery consumable system (state, shop, actions, UI) — system + Answer Key done; more Stationery and bot support to go | — |
+| **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 5 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle) + bot support. Later: Highlighter, Fountain Pen, Correction Tape | — |
 | **4** | In-run save/resume → profile & unlock tracking (§9) | — |
 | **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |
 | **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile); legal checklist (§10) | before shipping |
@@ -258,7 +259,7 @@ tests and a `runsim` balance check.
 - **Slang dictionary source:** find a word list we can legally ship (or build our own), and plan how to keep slurs out of it.
 - **Vowel Drought:** keep the Vowel Tax effect, or rework it to fewer vowels in the bag?
 - **Press Run effects:** confirm after playtesting; check each tier's difficulty step with `runsim`.
-- **Early-game difficulty:** keep the harsh Week 1 (skill 0.7 loses ~65%), or soften it and let Press Runs carry
-  the challenge? Decide after playtests.
+- **Early-game difficulty:** keep the current curve (reference player wins ~31%), or soften it and let Press Runs
+  carry the challenge? Decide after playtests.
 - **Balance outliers** found by the evaluating shop bot: Pulitzer, Margin Notes and Word Count are picked in almost
   every run, and deck edits are never worth buying (see `handoff.md` §4).
