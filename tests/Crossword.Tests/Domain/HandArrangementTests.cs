@@ -59,4 +59,13 @@ public class HandArrangementTests
     {
         Assert.Equal([4], HandArrangement.Shuffle([4], Rng.FromSeed(1)).Order);
     }
+
+    [Fact]
+    public void Sort_OrdersByLetter_EitherWay_TiesByTileId()
+    {
+        var hand = HandOf("TACAZ"); // ids: T0 A1 C2 A3 Z4
+
+        Assert.Equal([1, 3, 2, 0, 4], HandArrangement.Sort(hand));
+        Assert.Equal([4, 0, 2, 1, 3], HandArrangement.Sort(hand, descending: true));
+    }
 }

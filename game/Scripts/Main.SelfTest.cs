@@ -17,6 +17,10 @@ public partial class Main
     {
         await Frames(3);
 
+        // 0. The sidebar shows the week, its three puzzles and how far away the boss is.
+        Check("progress shows week and boss distance", _titleLabel.Text == "WEEK 1 OF 5" && _weekPips.GetChildCount() == 5
+            && _dayStrip.GetChildCount() == 3 && _bossLabel.Text.StartsWith("2 puzzles until the Sunday Edition"));
+
         // 1. Click selects a hand tile.
         var first = HandButton(0);
         int firstId = first.TileId;
@@ -77,6 +81,35 @@ public partial class Main
         // 5. Esc recalls the pending tile.
         await PressKey(global::Godot.Key.Escape);
         Check("escape recalls pending tiles", _pending.Count == 0 && _handRow.GetChildCount() == Round.Hand.Count);
+
+        // 5b. A pending tile can be dragged to another square, then back into the hand.
+        int movingId = HandButton(0).TileId;
+        await Drag(Centre(HandButton(0)), Centre(BoardCell(new GridPos(3, 3))));
+        await Drag(Centre(BoardCell(new GridPos(3, 3))), Centre(BoardCell(new GridPos(3, 4))));
+        Check("pending tile moves to another square",
+            _pending.Count == 1 && _pending.TryGetValue(new GridPos(3, 4), out var moved) && moved.Id == movingId);
+        await Drag(Centre(BoardCell(new GridPos(3, 4))), Centre(HandButton(1)));
+        Check("pending tile drags back into the hand", _pending.Count == 0 && _handRow.GetChildCount() == Round.Hand.Count
+            && _handRow.GetChildren().OfType<TileButton>().Any(b => b.TileId == movingId));
+
+        await Seconds(0.2); // clicks right after a drag are ignored (TileButton.RecentlyDragged)
+
+        // 5c. A→Z sorts the hand; pressing again sorts Z→A.
+        await Click(Centre(_sortButton));
+        bool ascending = _handOrder.SequenceEqual(Crossword.Core.Domain.HandArrangement.Sort(Round.Hand));
+        await Click(Centre(_sortButton));
+        Check("sort orders the hand A→Z then Z→A",
+            ascending && _handOrder.SequenceEqual(Crossword.Core.Domain.HandArrangement.Sort(Round.Hand, descending: true)));
+
+        // 5d. Tiles drawn by a discard are marked NEW.
+        var handBefore = Round.Hand.Tiles.Select(t => t.Id).ToHashSet();
+        await Click(Centre(HandButton(0)));
+        await Click(Centre(HandButton(1)));
+        await Click(Centre(_discardButton));
+        var drawn = Round.Hand.Tiles.Where(t => !handBefore.Contains(t.Id)).Select(t => t.Id).ToHashSet();
+        var tagged = _handRow.GetChildren().OfType<TileButton>().Where(b => b.FindChild("NewTag", owned: false) is not null)
+            .Select(b => b.TileId).ToHashSet();
+        Check("new tiles are highlighted after a discard", drawn.Count == 2 && tagged.SetEquals(drawn));
 
         // 6. Hint places a play; the preview defines every word it forms.
         await Click(Centre(_hintButton));

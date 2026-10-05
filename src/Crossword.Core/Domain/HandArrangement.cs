@@ -33,6 +33,15 @@ public static class HandArrangement
         return list.ToImmutableArray();
     }
 
+    /// <summary>Alphabetical order of the hand (A→Z, or Z→A when <paramref name="descending"/>); ties keep tile-id order.</summary>
+    public static ImmutableArray<int> Sort(Hand hand, bool descending = false)
+    {
+        var byLetter = descending
+            ? hand.Tiles.OrderByDescending(t => t.Letter.Char)
+            : hand.Tiles.OrderBy(t => t.Letter.Char);
+        return byLetter.ThenBy(t => t.Id).Select(t => t.Id).ToImmutableArray();
+    }
+
     /// <summary>
     /// Shuffles the order. With two or more tiles the result always differs from the input, so a Shuffle
     /// button never appears to do nothing (ignoring duplicate letters, which share no ids).

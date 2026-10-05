@@ -166,6 +166,7 @@ public partial class Main
     private void ApplyStationery(int slot, IReadOnlyCollection<int>? tileIds = null, GridPos? cell = null)
     {
         var item = Run.Stationery[slot];
+        var before = HandIds();
         var used = RunRules.UseStationery(_session, slot, _lexicon, tileIds, cell);
         if (!used.IsOk)
         {
@@ -174,6 +175,8 @@ public partial class Main
         }
         _session = used.Value.Session;
         _whiteOutSlot = null;
+        if (item is Scissors)
+            MarkNewTiles(before);
         if (used.Value.Play is { } play)
         {
             PlacePlay(play, $"{item.Name}: the best play for this hand");

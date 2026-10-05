@@ -17,6 +17,7 @@ public partial class Main
     private const double StepSeconds = 0.32;
 
     private Button _shuffleButton = null!;
+    private Button _sortButton = null!;
 
     private ScoringConfig RoundScoring => Round.Config.EffectiveScoring(_session.Scoring);
 
@@ -28,7 +29,7 @@ public partial class Main
         box.AddChild(_boardHolder);
 
         var handHolder = new CenterContainer();
-        _handRow = new HandRow { CanAcceptDrop = () => _handDragId is not null, Dropped = DropOnHand };
+        _handRow = new HandRow { CanAcceptDrop = () => _handDragId is not null || _boardDragId is not null, Dropped = DropOnHand };
         _handRow.AddThemeConstantOverride("separation", 10);
         handHolder.AddChild(_handRow);
         box.AddChild(handHolder);
@@ -45,7 +46,10 @@ public partial class Main
         _hintButton.Pressed += Hint;
         _shuffleButton = UiKit.MakeButton("Shuffle  Space", UiKit.PanelRaised, 18);
         _shuffleButton.Pressed += ShuffleHand;
-        foreach (var b in new[] { _submitButton, _recallButton, _discardButton, _shuffleButton, _hintButton })
+        _sortButton = UiKit.MakeButton("A→Z", UiKit.PanelRaised, 18);
+        _sortButton.TooltipText = "Sort the hand alphabetically (press again to reverse)";
+        _sortButton.Pressed += SortHand;
+        foreach (var b in new[] { _submitButton, _recallButton, _discardButton, _shuffleButton, _sortButton, _hintButton })
             buttons.AddChild(b);
         buttonsHolder.AddChild(buttons);
         box.AddChild(buttonsHolder);
@@ -94,9 +98,15 @@ public partial class Main
 
         if (_pending.TryGetValue(pos, out var pending))
         {
-            var tile = UiKit.MakeTile(pending, scoring.ValueOf(pending.Letter), CellSize, UiKit.Pending, raised: true);
-            tile.TooltipText = "Click to take back";
+            int value = scoring.ValueOf(pending.Letter);
+            var tile = UiKit.MakeTile(pending, value, CellSize, UiKit.Pending, raised: true);
+            tile.TooltipText = "Click to take back · drag to another square or back to your hand";
             tile.Pressed += () => ReturnPending(pos);
+            if (!_animating)
+            {
+                tile.DragPreviewFactory = () => UiKit.MakeTile(pending, value, CellSize, UiKit.Selected, raised: true);
+                tile.DragStarted = id => _boardDragId = id;
+            }
             return tile;
         }
 
@@ -144,10 +154,16 @@ public partial class Main
             {
                 button.DragPreviewFactory = () => UiKit.MakeTile(tile, value, HandTileSize, UiKit.Selected, raised: true);
                 button.DragStarted = BeginHandDrag;
-                button.CanAcceptDrop = () => _handDragId is not null;
+                button.CanAcceptDrop = () => _handDragId is not null || _boardDragId is not null;
                 button.Dropped = DropOnHand;
             }
             _handRow.AddChild(button);
+            if (_newTilesRound == Run.RoundIndex && _newTileIds.Contains(id))
+            {
+                UiKit.MarkNew(button);
+                if (_animatedNewTiles.Add(id))
+                    UiKit.DropIn(button, HandTileSize);
+            }
         }
     }
 
@@ -160,6 +176,7 @@ public partial class Main
         _discardButton.Text = _selected.Count > 0 ? $"Discard {_selected.Count}" : "Discard selected";
         _hintButton.Disabled = !idle;
         _shuffleButton.Disabled = !idle || Round.Hand.Count < 2;
+        _sortButton.Disabled = !idle || Round.Hand.Count < 2;
     }
 
     // ---------------------------------------------------------------- interaction
@@ -188,13 +205,32 @@ public partial class Main
         Refresh();
     }
 
-    /// <summary>Drag-and-drop placement: puts a specific hand tile on an empty square.</summary>
+    /// <summary>Drag-and-drop placement: puts a hand tile, or a pending tile from another square, on an empty square.</summary>
     private void PlaceTile(GridPos pos, int tileId)
     {
-        if (_animating || Round.Hand.Tiles.FirstOrDefault(t => t.Id == tileId) is not { } tile || _pending.ContainsValue(tile))
+        if (_animating || Round.Hand.Tiles.FirstOrDefault(t => t.Id == tileId) is not { } tile)
             return;
+        foreach (var moved in _pending.Where(kv => kv.Value == tile).Select(kv => kv.Key).ToList())
+            _pending.Remove(moved);
         _selected.Remove(tile);
         _pending[pos] = tile;
+        Refresh();
+    }
+
+    /// <summary>A pending tile dragged onto the hand goes back into the hand at the slot under the cursor.</summary>
+    private void ReturnDraggedPending(int tileId)
+    {
+        foreach (var pos in _pending.Where(kv => kv.Value.Id == tileId).Select(kv => kv.Key).ToList())
+            _pending.Remove(pos);
+        var visible = _handRow.GetChildren().OfType<TileButton>().Select(b => b.TileId).ToList();
+        if (visible.Count > 0)
+        {
+            var rect = _handRow.GetGlobalRect();
+            int index = Mathf.Clamp((int)Mathf.Round((_cursor.X - rect.Position.X) / (rect.Size.X / visible.Count)), 0, visible.Count);
+            _handOrder = index < visible.Count
+                ? HandArrangement.Move(_handOrder, tileId, visible[index], after: false)
+                : HandArrangement.Move(_handOrder, tileId, visible[^1], after: true);
+        }
         Refresh();
     }
 
@@ -231,9 +267,15 @@ public partial class Main
         _handRow.MoveChildAnimated(ghost, index);
     }
 
-    /// <summary>A hand tile dropped on the hand takes the ghost's slot.</summary>
+    /// <summary>A hand tile dropped on the hand takes the ghost's slot; a pending board tile returns to the hand.</summary>
     private void DropOnHand(int tileId)
     {
+        if (!_animating && _boardDragId == tileId)
+        {
+            _boardDragId = null;
+            ReturnDraggedPending(tileId);
+            return;
+        }
         if (_animating || _handDragId != tileId)
             return;
         UpdateHandGhost();
@@ -265,6 +307,8 @@ public partial class Main
     {
         // Fired after any drop has been handled. A drag that didn't land on the hand (cancelled, or placed on the
         // board) leaves its ghost behind: rebuild the row. Deferred so no nodes are freed mid-propagation.
+        if (what == NotificationDragEnd)
+            _boardDragId = null;
         if (what == NotificationDragEnd && _handDragId is not null)
         {
             _handDragId = null;
@@ -280,9 +324,19 @@ public partial class Main
         Refresh();
     }
 
-    private void ReturnPending(GridPos pos)
+    private void SortHand()
     {
         if (_animating)
+            return;
+        _handOrder = HandArrangement.Sort(Round.Hand, _sortDescending);
+        _sortDescending = !_sortDescending;
+        _sortButton.Text = _sortDescending ? "Z→A" : "A→Z";
+        Refresh();
+    }
+
+    private void ReturnPending(GridPos pos)
+    {
+        if (_animating || TileButton.RecentlyDragged)
             return;
         _pending.Remove(pos);
         Refresh();
@@ -369,6 +423,7 @@ public partial class Main
 
     private void Discard()
     {
+        var before = HandIds();
         var result = RunRules.Discard(_session, _selected.Select(t => t.Id).ToArray(), _lexicon);
         if (!result.IsOk)
         {
@@ -376,6 +431,7 @@ public partial class Main
             return;
         }
         _session = result.Value;
+        MarkNewTiles(before);
         _selected.Clear();
         SetMessage("Discarded.", UiKit.TextMuted);
         AfterAction();
@@ -386,6 +442,7 @@ public partial class Main
         if (_animating || _pending.Count == 0)
             return;
 
+        var before = HandIds();
         var result = RunRules.Submit(_session, PendingPlacement(), _lexicon);
         if (!result.IsOk)
         {
@@ -395,6 +452,7 @@ public partial class Main
 
         long scoreBefore = Round.Score;
         _session = result.Value.Session;
+        MarkNewTiles(before);
         _pending.Clear();
         _selected.Clear();
         _animating = true;

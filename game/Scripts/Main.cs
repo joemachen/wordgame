@@ -33,11 +33,24 @@ public partial class Main : Control
 
     // Hand drag in progress: the dragged tile (shown as a ghost in the row), its starting slot, the latest cursor.
     private int? _handDragId;
+
+    // A pending board tile being dragged (to another square or back to the hand).
+    private int? _boardDragId;
+
+    // Tiles drawn by the last hand-changing action (highlighted until the next one), and those already animated in.
+    private readonly HashSet<int> _newTileIds = new();
+    private readonly HashSet<int> _animatedNewTiles = new();
+    private int _newTilesRound = -1;
+
+    // Next alphabetical sort direction.
+    private bool _sortDescending;
     private int _ghostHome;
     private Vector2 _cursor;
 
     // Sidebar
     private Label _titleLabel = null!;
+    private HBoxContainer _weekPips = null!;
+    private HBoxContainer _dayStrip = null!;
     private Label _bossLabel = null!;
     private Label _targetLabel = null!;
     private Label _scoreLabel = null!;
@@ -141,6 +154,7 @@ public partial class Main : Control
         _session = RunRules.NewGame(seed, _config, _lexicon);
         _selected.Clear();
         _pending.Clear();
+        _newTileIds.Clear();
         _handOrder = Array.Empty<int>();
         ClearLog();
         SetMessage("New run. Click or drag a tile onto a square. Drag tiles in your hand to reorder; Space shuffles.", UiKit.TextMuted);
@@ -198,8 +212,12 @@ public partial class Main : Control
         panel.AddChild(box);
 
         // Sidebar labels wrap so long round names never widen the sidebar and squeeze the board/shop.
-        _titleLabel = UiKit.MakeLabel("", 26, UiKit.Text, wrap: true);
+        _titleLabel = UiKit.MakeLabel("", 22, UiKit.Text, wrap: true);
         box.AddChild(_titleLabel);
+        _weekPips = UiKit.HBox(6);
+        box.AddChild(_weekPips);
+        _dayStrip = UiKit.HBox(6);
+        box.AddChild(_dayStrip);
         _bossLabel = UiKit.MakeLabel("", 15, UiKit.TextMuted, wrap: true);
         box.AddChild(_bossLabel);
         box.AddChild(new HSeparator());
@@ -296,11 +314,7 @@ public partial class Main : Control
     {
         if (_session.Phase == RunPhase.Shop && _messageLabel.Text.StartsWith("New run"))
             SetMessage("Paycheck in. Spend it in the shop, then start the next round.", UiKit.Money);
-        _titleLabel.Text = $"Week {_session.Week + 1}/{_config.WeekTargets.Length} · {_session.Kind.Name}";
-        _bossLabel.Text = Round.Config.Boss is { } boss
-            ? $"SUNDAY BOSS — {boss.Name}: {boss.Description}"
-            : $"This Sunday: {_session.WeekBoss.Name} — {_session.WeekBoss.Description}";
-        _bossLabel.AddThemeColorOverride("font_color", Round.Config.Boss is null ? UiKit.TextMuted : UiKit.Bad);
+        RefreshProgress();
         _targetLabel.Text = Round.Config.TargetScore.ToString("N0");
         if (!_animating)
             _scoreLabel.Text = Round.Score.ToString("N0");
@@ -309,6 +323,64 @@ public partial class Main : Control
         _moneyLabel.Text = $"${Run.Money}";
         _seedLabel.Text = $"Seed {Run.Seed}";
     }
+
+    /// <summary>Week header, week pips, this week's three puzzles and how far away the boss is.</summary>
+    private void RefreshProgress()
+    {
+        var progress = RunProgress.For(_config, Run.RoundIndex);
+        bool solved = _session.Phase != RunPhase.InRound && Round.Status == RoundStatus.Won;
+        var boss = Round.Config.Boss ?? _session.WeekBoss;
+        _titleLabel.Text = progress.Endless ? $"ENDLESS · WEEK {progress.Week + 1}" : $"WEEK {progress.Week + 1} OF {progress.WeekCount}";
+
+        UiKit.ClearChildren(_weekPips);
+        _weekPips.Visible = !progress.Endless;
+        for (int week = 0; week < progress.WeekCount && !progress.Endless; week++)
+        {
+            var color = week < progress.Week ? UiKit.Good : week == progress.Week ? UiKit.Selected : UiKit.PanelBorder;
+            var pip = new Panel { CustomMinimumSize = new Vector2(0, 6), SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            pip.AddThemeStyleboxOverride("panel", UiKit.Box(color, 3, padding: 0));
+            _weekPips.AddChild(pip);
+        }
+
+        UiKit.ClearChildren(_dayStrip);
+        for (int day = 0; day < progress.Days.Length; day++)
+        {
+            var kind = progress.Days[day];
+            bool done = day < progress.Day || (day == progress.Day && solved);
+            bool current = day == progress.Day && !solved;
+            var accent = kind.IsBoss ? UiKit.Bad : UiKit.Selected;
+            var step = UiKit.MakePanel(current ? UiKit.PanelRaised : UiKit.Panel, padding: 6, radius: 6,
+                border: current ? accent : done ? UiKit.Good : UiKit.PanelBorder, borderWidth: current ? 2 : 1);
+            step.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            step.SizeFlagsStretchRatio = 1;
+            string text = (done ? "DONE\n" : current ? "NOW\n" : "\n") + kind.Name + (kind.IsBoss ? $"\n{boss.Name}" : "");
+            var color = current ? UiKit.Text : done ? UiKit.Good : kind.IsBoss ? UiKit.Bad : UiKit.TextMuted;
+            step.AddChild(UiKit.MakeLabel(text, 12, color, HorizontalAlignment.Center, wrap: true));
+            _dayStrip.AddChild(step);
+        }
+
+        string bossDay = progress.Days[progress.BossDay].Name;
+        int left = progress.PuzzlesUntilBoss - (solved ? 1 : 0);
+        _bossLabel.Text = progress.IsBossDay
+            ? (solved ? "Week complete!" : $"BOSS ROUND — {boss.Name}: {boss.Description}")
+            : $"{left} puzzle{(left == 1 ? "" : "s")} until the {bossDay} — {boss.Name}: {boss.Description}";
+        _bossLabel.AddThemeColorOverride("font_color", progress.IsBossDay && !solved ? UiKit.Bad : UiKit.TextMuted);
+    }
+
+    /// <summary>Remembers which hand tiles a transition drew, so they can be highlighted until the next one.</summary>
+    private void MarkNewTiles(IReadOnlyCollection<int> handBefore)
+    {
+        _newTileIds.Clear();
+        _animatedNewTiles.Clear();
+        _newTilesRound = Run.RoundIndex;
+        if (_session.Phase != RunPhase.InRound)
+            return;
+        foreach (var tile in Round.Hand.Tiles)
+            if (!handBefore.Contains(tile.Id))
+                _newTileIds.Add(tile.Id);
+    }
+
+    private int[] HandIds() => Round.Hand.Tiles.Select(t => t.Id).ToArray();
 
     private void SetMessage(string text, Color color)
     {

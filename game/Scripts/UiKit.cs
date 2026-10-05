@@ -143,6 +143,35 @@ public static class UiKit
         return button;
     }
 
+    public static readonly Color Fresh = new("7ee0b5");
+
+    /// <summary>Marks a freshly drawn hand tile: an accent outline and a small NEW tag.</summary>
+    public static void MarkNew(TileButton button)
+    {
+        var outline = new Panel { Name = "NewOutline", MouseFilter = Control.MouseFilterEnum.Ignore };
+        outline.AddThemeStyleboxOverride("panel", Box(Colors.Transparent, 6, Fresh, 3, 0));
+        outline.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        button.AddChild(outline);
+        var tag = MakeLabel("NEW", 11, Fresh.Darkened(0.45f), HorizontalAlignment.Right);
+        tag.Name = "NewTag";
+        tag.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        tag.OffsetRight = -5;
+        tag.OffsetTop = 2;
+        tag.MouseFilter = Control.MouseFilterEnum.Ignore;
+        button.AddChild(tag);
+    }
+
+    /// <summary>Fades and pops a control in (scale only — containers own its position).</summary>
+    public static void DropIn(Control control, float size)
+    {
+        control.PivotOffset = new Vector2(size / 2, size / 2);
+        control.Scale = new Vector2(0.6f, 0.6f);
+        control.Modulate = new Color(1, 1, 1, 0);
+        var tween = control.CreateTween().SetParallel();
+        tween.TweenProperty(control, "scale", Vector2.One, 0.28).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(control, "modulate:a", 1f, 0.2);
+    }
+
     public static void ClearChildren(Node node)
     {
         foreach (var child in node.GetChildren())
