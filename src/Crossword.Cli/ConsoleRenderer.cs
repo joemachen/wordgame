@@ -90,6 +90,14 @@ public static class ConsoleRenderer
                (enhanced.Count > 0 ? $"\nEnhanced: {string.Join(", ", enhanced)}" : "");
     }
 
+    /// <summary>Word tier table with Style Guide levels.</summary>
+    public static string Tiers(GameSession session)
+    {
+        var tiers = session.Scoring.Tiers;
+        return "Word tiers: " + string.Join("  ", tiers.Select((t, i) =>
+            $"{t.Label(i == tiers.Length - 1)} Lv{session.Run.TierUpgrades.GetValueOrDefault(t.MinLength) + 1} {t.BaseChips}x{t.BaseMult:0.##}"));
+    }
+
     public static string ScoreBreakdown(ScoreContext score)
     {
         var sb = new StringBuilder();

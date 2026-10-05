@@ -34,7 +34,7 @@ public static class RunRules
         if (session.Phase != RunPhase.InRound)
             return Result<SessionOutcome, RoundError>.Fail(new RoundError.RoundOver(session.Round.Status));
 
-        var result = RoundRules.Submit(session.Round, placed, lexicon, session.Run.DeskItems, session.Config.Scoring);
+        var result = RoundRules.Submit(session.Round, placed, lexicon, session.Run.DeskItems, session.Scoring);
         if (!result.IsOk)
             return Result<SessionOutcome, RoundError>.Fail(result.Error);
 
@@ -105,7 +105,7 @@ public static class RunRules
 
     private static GameSession OpenShop(GameSession session)
     {
-        var (shop, rng) = ShopRules.Generate(session.Run, session.Config.Shop, session.Run.Rng);
+        var (shop, rng) = ShopRules.Generate(session.Run, session.Config, session.Run.Rng);
         return session with { Phase = RunPhase.Shop, Shop = shop, Run = session.Run with { Rng = rng } };
     }
 }

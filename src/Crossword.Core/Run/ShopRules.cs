@@ -11,11 +11,11 @@ public static class ShopRules
     private static readonly TileEnhancement[] Enhancements = [TileEnhancement.Bold, TileEnhancement.Italic, TileEnhancement.Gilded];
 
     /// <summary>Opens a shop; returns it with the advanced run RNG.</summary>
-    public static (ShopState Shop, Rng RunRng) Generate(RunState run, ShopConfig config, Rng runRng)
+    public static (ShopState Shop, Rng RunRng) Generate(RunState run, RunConfig config, Rng runRng)
     {
         var (seed, nextRunRng) = runRng.NextUInt64();
         var (offers, rng) = RollOffers(run, config, Rng.FromSeed(seed));
-        return (new ShopState(offers, config.RerollBaseCost, rng), nextRunRng);
+        return (new ShopState(offers, config.Shop.RerollBaseCost, rng), nextRunRng);
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public static class ShopRules
         if (session.Run.Money < shop.RerollCost)
             return Fail($"Reroll costs ${shop.RerollCost}; you have ${session.Run.Money}.");
 
-        var (offers, rng) = RollOffers(session.Run, session.Config.Shop, shop.Rng);
+        var (offers, rng) = RollOffers(session.Run, session.Config, shop.Rng);
         return Result<GameSession, string>.Ok(session with
         {
             Run = session.Run with { Money = session.Run.Money - shop.RerollCost },
@@ -94,6 +94,9 @@ public static class ShopRules
                     Deck = run.Deck.SetItem(index, run.Deck[index] with { Enhancement = enhance.Enhancement }),
                 });
 
+            case StyleGuideOffer guide:
+                return Result<RunState, string>.Ok(run.UpgradeTier(guide.TierMinLength));
+
             case StrikeOffer strike:
                 var ids = tileIds.ToHashSet();
                 if (ids.Count == 0 || ids.Count > strike.MaxTiles)
@@ -109,8 +112,9 @@ public static class ShopRules
         }
     }
 
-    private static (ImmutableArray<ShopOffer?> Offers, Rng Rng) RollOffers(RunState run, ShopConfig config, Rng rng)
+    private static (ImmutableArray<ShopOffer?> Offers, Rng Rng) RollOffers(RunState run, RunConfig runConfig, Rng rng)
     {
+        var config = runConfig.Shop;
         var offers = ImmutableArray.CreateBuilder<ShopOffer?>();
 
         var unowned = DeskItemCatalog.All.Where(item => run.DeskItems.All(owned => owned.Id != item.Id)).ToList();
@@ -141,6 +145,15 @@ public static class ShopRules
             {
                 offers.Add(new StrikeOffer(config.StrikeMaxTiles, config.StrikePrice));
             }
+        }
+
+        var tiers = runConfig.Scoring.Tiers;
+        for (int i = 0; i < config.StyleGuideOffers; i++)
+        {
+            (int t, rng) = rng.NextInt(tiers.Length);
+            var tier = tiers[t];
+            offers.Add(new StyleGuideOffer(tier.MinLength, tier.Label(t == tiers.Length - 1), tier.LevelChips, tier.LevelMult,
+                config.StyleGuidePrice));
         }
 
         return (offers.ToImmutable(), rng);

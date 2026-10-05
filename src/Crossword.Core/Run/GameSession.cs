@@ -1,5 +1,6 @@
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Scoring;
 
 namespace Crossword.Core.Run;
 
@@ -26,6 +27,9 @@ public sealed record GameSession(
     public int Week => Config.WeekOf(Run.RoundIndex);
 
     public RoundKind Kind => Config.KindOf(Run.RoundIndex);
+
+    /// <summary>Scoring rules for this run including Style Guide upgrades (bosses apply on top per round).</summary>
+    public ScoringConfig Scoring => Config.Scoring.WithUpgrades(Run.TierUpgrades);
 
     /// <summary>The boss waiting at the end of the current week (known in advance, like Balatro).</summary>
     public BossModifier WeekBoss => RunRules.BossFor(Run, Week);

@@ -3,8 +3,14 @@ using Crossword.Core.Domain;
 
 namespace Crossword.Core.Scoring;
 
-/// <summary>Base stats for a play whose longest word has at least <see cref="MinLength"/> letters.</summary>
-public sealed record WordTier(int MinLength, long BaseChips, decimal BaseMult);
+/// <summary>
+/// Base stats for a play whose longest word has at least <see cref="MinLength"/> letters.
+/// Each Style Guide upgrade adds <see cref="LevelChips"/> and <see cref="LevelMult"/>.
+/// </summary>
+public sealed record WordTier(int MinLength, long BaseChips, decimal BaseMult, long LevelChips = 0, decimal LevelMult = 0)
+{
+    public string Label(bool isTopTier) => isTopTier ? $"{MinLength}+-letter" : $"{MinLength}-letter";
+}
 
 /// <summary>
 /// All scoring numbers in one place so balance can be tuned without code changes.
@@ -23,12 +29,12 @@ public sealed record ScoringConfig(
     public static ScoringConfig Default { get; } = new(
         Tiers:
         [
-            new WordTier(2, 2, 1),
-            new WordTier(3, 5, 1),
-            new WordTier(4, 10, 2),
-            new WordTier(5, 20, 2),
-            new WordTier(6, 30, 3),
-            new WordTier(7, 40, 3),
+            new WordTier(2, 2, 1, LevelChips: 3, LevelMult: 1),
+            new WordTier(3, 5, 1, LevelChips: 5, LevelMult: 1),
+            new WordTier(4, 10, 2, LevelChips: 10, LevelMult: 1),
+            new WordTier(5, 20, 2, LevelChips: 15, LevelMult: 1),
+            new WordTier(6, 30, 3, LevelChips: 20, LevelMult: 1),
+            new WordTier(7, 40, 3, LevelChips: 25, LevelMult: 1),
         ],
         LetterValues: new Dictionary<char, int>
         {
@@ -44,4 +50,16 @@ public sealed record ScoringConfig(
         ?? throw new ArgumentOutOfRangeException(nameof(wordLength), wordLength, "No tier covers this word length.");
 
     public int ValueOf(Letter letter) => LetterValues.GetValueOrDefault(letter.Char);
+
+    /// <summary>Applies Style Guide upgrades (keyed by tier MinLength → number of upgrades).</summary>
+    public ScoringConfig WithUpgrades(IReadOnlyDictionary<int, int> upgrades) =>
+        upgrades.Count == 0
+            ? this
+            : this with
+            {
+                Tiers = Tiers.Select(t => upgrades.TryGetValue(t.MinLength, out int n) && n > 0
+                        ? t with { BaseChips = t.BaseChips + n * t.LevelChips, BaseMult = t.BaseMult + n * t.LevelMult }
+                        : t)
+                    .ToImmutableArray(),
+            };
 }

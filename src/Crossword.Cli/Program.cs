@@ -99,6 +99,7 @@ public static class Program
                 break;
             case "deck":
                 Console.WriteLine(ConsoleRenderer.Deck(Run));
+                Console.WriteLine(ConsoleRenderer.Tiers(_session));
                 break;
             case "give":
                 Give(rest);
@@ -293,7 +294,7 @@ public static class Program
             return;
 
         var ranked = MoveRanker.Rank(Round.Board, Round.Hand, _lexicon, Run.DeskItems,
-            Round.Config.EffectiveScoring(Config.Scoring), Round.Config.MinWordLength);
+            Round.Config.EffectiveScoring(_session.Scoring), Round.Config.MinWordLength);
         if (ranked.Count == 0)
         {
             Console.WriteLine("No legal plays with this hand.");
@@ -316,7 +317,7 @@ public static class Program
         var sw = Stopwatch.StartNew();
         var results = Enumerable.Range(1, rounds)
             .AsParallel()
-            .Select(seed => RoundSimulator.PlayRound((ulong)seed, config, _lexicon, Run.DeskItems, Config.Scoring))
+            .Select(seed => RoundSimulator.PlayRound((ulong)seed, config, _lexicon, Run.DeskItems, _session.Scoring))
             .OrderBy(r => r.Seed)
             .ToList();
         Console.WriteLine(SimulationReport.Format(results, config.TargetScore));
@@ -352,7 +353,7 @@ public static class Program
                 Console.WriteLine(ConsoleRenderer.Status(Round));
                 if (!Run.DeskItems.IsEmpty)
                     Console.WriteLine(ConsoleRenderer.Desk(Run, Config.Shop));
-                Console.WriteLine(ConsoleRenderer.Hand(Round.Hand, Round.Config.EffectiveScoring(Config.Scoring)));
+                Console.WriteLine(ConsoleRenderer.Hand(Round.Hand, Round.Config.EffectiveScoring(_session.Scoring)));
                 if (!RoundRules.HasLegalPlay(Round, _lexicon))
                     Console.WriteLine("(!) No legal play with this hand - discard some tiles.");
                 break;

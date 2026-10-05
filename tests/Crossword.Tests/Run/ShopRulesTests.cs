@@ -3,6 +3,7 @@ using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Random;
 using Crossword.Core.Run;
+using Crossword.Core.Scoring;
 
 namespace Crossword.Tests.Run;
 
@@ -28,12 +29,13 @@ public class ShopRulesTests
     {
         var run = RunState.New(1).AddDeskItem(new RedPen()).Value;
 
-        var (a, rngA) = ShopRules.Generate(run, Shop, Rng.FromSeed(10));
-        var (b, rngB) = ShopRules.Generate(run, Shop, Rng.FromSeed(10));
+        var (a, rngA) = ShopRules.Generate(run, Config, Rng.FromSeed(10));
+        var (b, rngB) = ShopRules.Generate(run, Config, Rng.FromSeed(10));
 
         Assert.Equal(a.Offers, b.Offers);
         Assert.Equal(rngA, rngB);
-        Assert.Equal(Shop.DeskItemOffers + Shop.EditOffers, a.Offers.Length);
+        Assert.Equal(Shop.DeskItemOffers + Shop.EditOffers + Shop.StyleGuideOffers, a.Offers.Length);
+        Assert.Single(a.Offers.OfType<StyleGuideOffer>());
         Assert.DoesNotContain(a.Offers.OfType<DeskItemOffer>(), o => o.Item.Id == "red-pen");
     }
 
@@ -121,6 +123,21 @@ public class ShopRulesTests
         session = session with { Run = session.Run with { Deck = session.Run.Deck.Take(31).ToImmutableArray() } };
 
         Assert.False(ShopRules.Buy(session, 0, [session.Run.Deck[0].Id, session.Run.Deck[1].Id]).IsOk);
+    }
+
+    [Fact]
+    public void BuyStyleGuide_UpgradesTier_AndStacks()
+    {
+        var session = InShop(10, new StyleGuideOffer(4, "4-letter", 10, 1, 3), new StyleGuideOffer(4, "4-letter", 10, 1, 3));
+
+        var next = ShopRules.Buy(ShopRules.Buy(session, 0).Value, 1).Value;
+
+        Assert.Equal(2, next.Run.TierUpgrades[4]);
+        Assert.Equal(4, next.Run.Money);
+        var tier = next.Scoring.TierFor(4);
+        var baseTier = ScoringConfig.Default.TierFor(4);
+        Assert.Equal(baseTier.BaseChips + 2 * baseTier.LevelChips, tier.BaseChips);
+        Assert.Equal(baseTier.BaseMult + 2 * baseTier.LevelMult, tier.BaseMult);
     }
 
     [Fact]

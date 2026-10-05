@@ -58,7 +58,7 @@ public static class RunSimulator
         {
             var round = session.Round;
             var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, session.Run.DeskItems,
-                round.Config.EffectiveScoring(session.Config.Scoring), round.Config.MinWordLength);
+                round.Config.EffectiveScoring(session.Scoring), round.Config.MinWordLength);
 
             if (ranked.Count == 0)
             {
@@ -107,9 +107,10 @@ public static class RunSimulator
     private static int Priority(ShopOffer offer) => offer switch
     {
         DeskItemOffer => 0,
-        EnhanceOffer => 1,
-        StrikeOffer => 2,
-        AddTileOffer { Enhancement: not TileEnhancement.None } => 3,
+        StyleGuideOffer => 1,
+        EnhanceOffer => 2,
+        StrikeOffer => 3,
+        AddTileOffer { Enhancement: not TileEnhancement.None } => 4,
         _ => 9,
     };
 
@@ -131,6 +132,8 @@ public static class RunSimulator
                 return awkward.Count == 0 ? null : awkward;
             case AddTileOffer { Enhancement: TileEnhancement.None }:
                 return null;
+            case StyleGuideOffer { TierMinLength: < 3 }:
+                return null; // the bot rarely scores with 2-letter words as its longest
             default:
                 return [];
         }

@@ -25,6 +25,12 @@ public sealed record RunState(
 
     public const int MaxDeskSlots = 5;
 
+    /// <summary>Style Guide upgrades bought: word tier MinLength → number of upgrades.</summary>
+    public ImmutableDictionary<int, int> TierUpgrades { get; init; } = ImmutableDictionary<int, int>.Empty;
+
+    public RunState UpgradeTier(int minLength) =>
+        this with { TierUpgrades = TierUpgrades.SetItem(minLength, TierUpgrades.GetValueOrDefault(minLength) + 1) };
+
     public RunState AdvanceRound() => this with { RoundIndex = RoundIndex + 1 };
 
     /// <summary>Adds an item to the rightmost slot. Duplicates (same Id) are not allowed.</summary>

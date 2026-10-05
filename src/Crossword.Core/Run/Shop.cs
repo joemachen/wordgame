@@ -20,7 +20,9 @@ public sealed record ShopConfig(
     int RerollBaseCost = 5,
     int RerollStep = 1,
     int MinDeckSize = 30,
-    int EnhancedTilePercent = 35)
+    int EnhancedTilePercent = 35,
+    int StyleGuideOffers = 1,
+    int StyleGuidePrice = 3)
 {
     public static ShopConfig Default { get; } = new();
 
@@ -61,6 +63,12 @@ public sealed record EnhanceOffer(TileEnhancement Enhancement, int Price) : Shop
 public sealed record StrikeOffer(int MaxTiles, int Price) : ShopOffer(Price)
 {
     public override string Description => $"Strike up to {MaxTiles} tiles from your deck";
+}
+
+/// <summary>Permanently levels up one word tier (Balatro's Planet cards).</summary>
+public sealed record StyleGuideOffer(int TierMinLength, string TierLabel, long Chips, decimal Mult, int Price) : ShopOffer(Price)
+{
+    public override string Description => $"Style Guide: {TierLabel} words +{Chips} chips, +{Mult} mult (permanent)";
 }
 
 /// <summary>An open shop. Bought offers become null; rerolling replaces all offers.</summary>
