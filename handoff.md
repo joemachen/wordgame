@@ -4,7 +4,7 @@
 > This file is the "where are we and what's next" brief; `CLAUDE.md` is the "how the code works" reference.
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `74e9fd8` · 240 unit tests passing · UI self-test 9/9 passing_
+_Last updated: 2026-10-05 · HEAD `51f5925` · 251 unit tests passing · UI self-test 9/9 passing (UI untouched this session)_
 
 ---
 
@@ -24,7 +24,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Paycheck economy with interest + overkill bonus. Endless mode. |
 | Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, Style Guide tier upgrades, 5 bosses, shop deck edits (add/enhance/strike). |
-| Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` with naive shop bot (`runsim`), CLI `hint`/`sim`. |
+| Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, reorder), live score preview, animated scoring, Desk Items bar (reorder/sell), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
@@ -41,14 +41,30 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 
 ## 4. Current balance snapshot (100-run sims, `RunSimulator`)
 
-Week targets 150/400/900/1900/3800, day multipliers ×1/×1.3/×1.6.
-Win rate: skill 0.9 ≈ 42%, 0.8 ≈ 29%, 0.7 ≈ 15%. Boss loss rate 4–16% per encounter. End-of-run unspent money ≈ $22 (skill 0.9).
-Re-run with CLI `runsim 100 0.9` (or the scratch harness pattern described in §7) after any content/scoring change.
+Week targets 150/400/900/1900/3800, day multipliers ×1/×1.3/×1.6 (tuned against the *naive* bot).
+
+| Shop bot | skill 0.9 | 0.8 | 0.7 | unspent $ at end |
+|---|---|---|---|---|
+| Evaluating (default) | **97%** | 83% | 59% | ~$10 |
+| Naive | 42% | 29% | 15% | ~$22 (0.9) |
+
+- **Shopping well matters more than word-finding:** same word skill, +55 pts win rate from the shop alone.
+- Evaluating bot gaps: 0.9→0.8 = 14 pts (compressed by the 97% ceiling), 0.8→0.7 = 24 pts — wider than the naive
+  bot's 13/14, so the "narrow skill gap" was partly a bot artifact. Re-measure after retuning targets.
+- Item concentration (skill 0.9, evaluating): Pulitzer 94%, Margin Notes 92%, Word Count 91% of runs; then
+  Editor-in-Chief, Broadsheet, Cross-Reference ~50–60%. Margin Notes is strong partly because the bot only
+  discards when it has no play (always +6 Mult).
+- Deck edits (enhance/strike/add tile) never pay off: buying them at any fixed estimated gain *lowered* the bot's
+  win rate, so `ShopBotConfig` defaults skip them. A money reserve for interest also lowered win rate.
+- Re-run with CLI `runsim 100 0.9` (add `naive` for the old bot) or the scratch harness pattern in §7.
 
 ## 5. Open concerns / known gaps
 
-1. **Skill gap is narrow** (0.9 vs 0.8 only ~13 pts apart): build strength dominates word-finding skill. Design levers proposed but not chosen: items rewarding word *quality* (rare letters, length, patterns), fewer unconditional ×Mult effects. May partly be an artifact of the naive shop bot. **Needs user input after playtesting.**
-2. **Shop bot is naive** (buys priciest affordable item). A smarter bot would make tuning more trustworthy.
+1. **Targets are too soft for good shopping** (evaluating bot wins 97% at skill 0.9). Recommended: retune week
+   targets so the evaluating bot at 0.9 wins ~40–50%, then re-check the skill gap. **Awaiting user go-ahead.**
+2. **Possible dominant items / weak deck edits** (see §4): Pulitzer, Margin Notes, Word Count near-universal picks;
+   deck edits not worth buying. Candidates for tuning once targets are settled. The bot values items by the
+   *best* play per decision (strong-shopper view), not the play its skill level would pick.
 3. **No save/load.** State is immutable records, so it's mostly serialization (Desk Items are polymorphic records — needs a type discriminator).
 4. **UI is first-pass:** no art, sound, tile animations, or settings; drag preview feel only verified via simulated input.
 5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping. "Q without U" is a dead tile (consider a "Qu" tile).
@@ -56,11 +72,13 @@ Re-run with CLI `runsim 100 0.9` (or the scratch harness pattern described in §
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
-1. User playtests a few runs via `run_local_qa.bat` → recalibrate targets/feel from their feedback.
-2. Smarter shop bot → re-check the skill-gap concern.
-3. Save/load (resume a run).
-4. UI polish: tile placement/score animations, sound, juice; deck viewer; tooltips for Desk Items/bosses.
-5. More content: Rare items, more bosses, more enhancements, consumables (Tarot-like one-shots).
+1. **Retune week targets against the evaluating bot** (recommended next; quick with the scratch harness), then
+   re-measure the skill gap and item pick rates.
+2. Balance pass on outliers: Pulitzer / Margin Notes / Word Count, and make deck edits worth buying.
+3. User playtests a few runs via `run_local_qa.bat` → recalibrate feel from their feedback.
+4. Save/load (resume a run).
+5. UI polish: tile placement/score animations, sound, juice; deck viewer; tooltips for Desk Items/bosses.
+6. More content: Rare items, more bosses, more enhancements, consumables (Tarot-like one-shots).
 
 ## 7. How to work in this repo (practical tips learned the hard way)
 
@@ -73,7 +91,7 @@ Re-run with CLI `runsim 100 0.9` (or the scratch harness pattern described in §
 - **Editing gotchas:** the Write/Edit tools turn `\uXXXX` escapes into literal characters, and bash heredocs can mangle `\n`. For multi-file edits, write a Python script with raw strings (`r"""..."""`) to the scratchpad and run it; for C# char literals prefer `(char)0xFEFF` style.
 - **Batch files must be CRLF** (`.gitattributes` enforces; normalize with `sed -i 's/\r*$/\r/'` after writing).
 - Running `run_local_qa.bat` from a captured shell hangs because Godot inherits the pipe — expected; it's fine on double-click.
-- Balance experiments: a throwaway console project in the scratchpad referencing `src/Crossword.Core` (loop over configs, call `RunSimulator.PlayRun` in parallel) is faster than editing defaults repeatedly. Note `RunConfig.Days` multipliers must be set explicitly in such harnesses.
+- Balance experiments: a throwaway console project in the scratchpad referencing `src/Crossword.Core` (loop over configs, call `RunSimulator.PlayRun(seed, config, lexicon, skill, strategy, botConfig)` with `.AsParallel()`, build `-c Release`) is faster than editing defaults repeatedly. 100 runs ≈ 1 min with the evaluating bot. Note `RunConfig.Days` multipliers must be set explicitly in such harnesses. n=60 runs is too noisy (±6 pts) to compare close variants; use 150+.
 - The user's machine has old Godot crash dumps; the project uses the **GL Compatibility** renderer, which has been stable.
 
 ## 8. Working with the user
@@ -86,6 +104,8 @@ Re-run with CLI `runsim 100 0.9` (or the scratch harness pattern described in §
 ## 9. Commit history (newest first)
 
 ```
+51f5925 Add evaluating shop bot to the run simulator
+cb0b6f0 Add handoff.md session brief and point CLAUDE.md at it
 74e9fd8 Add hand shuffle and drag-and-drop tile arrangement to the game UI
 d76b7f5 Add Godot 4 game UI and launch it from run_local_qa.bat
 ed24341 Tune bosses and steepen week targets for the expanded content
