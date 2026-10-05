@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    One-off data tool: turns an Open English WordNet WN-LMF release into the compact definitions file embedded in
+    Crossword.Core. Not part of the game. See Program.cs for usage.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Crossword.DefinitionsBuilder</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Crossword.Core\Crossword.Core.csproj" />
+  </ItemGroup>
+
+</Project>

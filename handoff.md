@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `b469770` (code) · 256 unit tests passing · UI self-test 15/15 passing_
+_Last updated: 2026-10-05 · HEAD `b469770` (code) · 269 unit tests passing · UI self-test 16/16 passing_
 
 ---
 
@@ -20,13 +20,13 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 
 | Area | State |
 |---|---|
-| Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). |
+| Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 225/800/2400/6500/16000. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy with interest + overkill bonus. Endless mode. |
 | Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike). |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; `NaiveShopBot` kept for comparison), CLI `hint`/`sim`. |
-| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview, animated scoring, Desk Items bar (reorder/sell), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
+| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell), shop + tile picker, paycheck, win/lose screens. First-pass visuals (no art, sound, or tile animations yet). |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -43,6 +43,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Boss tiers follow measured difficulty** (user's choice over the original roadmap tiers): easiest bosses early, The Strict Grammarian (hardest) as the Week 5 finale.
 - **Focus: a working game first.** Steam/launch work (Steamworks, store page, demo, Next Fest) is off the roadmap for now. Simulator throughput target: ~10k runs in minutes (100k+ not needed).
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
+- **Definitions come from Open English WordNet** (user's choice; CC BY 4.0 → attribution in `THIRD_PARTY_NOTICES.md`, must also appear in in-game credits before release). Wiktionary was rejected for now (CC BY-SA share-alike). Unknown words show "valid word — no definition on file". Definitions appear in the play preview only (user's choice; not in the scoring log or board tooltips).
 
 ## 4. Current balance snapshot (`RunSimulator`, 300 runs at 0.9, 150 at 0.8/0.7; after phase 1 boss tiers)
 
@@ -79,7 +80,7 @@ day multipliers ×1/×1.3/×1.6.
    the play its skill level would pick.
 3. **No save/load.** State is immutable records, so it's mostly serialization (Desk Items are polymorphic records — needs a type discriminator).
 4. **UI is first-pass:** no art, sound, or settings; only the hand-reorder slide is animated. Drag feel (ghost slot, sliding tiles, lifted preview) only verified via simulated input + screenshots — needs a real-mouse playtest.
-5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping. "Q without U" is a dead tile (consider a "Qu" tile).
+5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping (the same pass should cover definitions; WordNet glosses include crude senses). "Q without U" is a dead tile (consider a "Qu" tile).
 6. **Hand arrangement is UI-only** (not saved); fine until save/load exists.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)

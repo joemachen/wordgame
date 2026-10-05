@@ -1,0 +1,151 @@
+# Hand-written definitions (original text, owned by this project) for words Open English WordNet lacks (pronouns,
+# prepositions, conjunctions, interjections, Scrabble two-letter words) or defines unhelpfully for play (IN as
+# "inch", AT as a Laotian coin). A word listed here REPLACES its WordNet senses.
+# Format: WORD | pos | gloss   (pos: n v a r prep pron conj interj det; repeat a word for a second sense)
+AE | det | one (Scots)
+AH | interj | expressing surprise, pleasure, or relief
+AM | v | present tense of be, used with I
+AN | det | the form of "a" used before a vowel sound
+AR | n | the letter R
+ARE | v | present tense of be, used with you, we, and they
+AS | conj | in the way that; to the same degree
+AT | prep | in, on, or near a place or time
+AW | interj | expressing sympathy, disappointment, or mild protest
+AY | interj | yes; an affirmative vote
+BA | n | the soul, in ancient Egyptian belief
+BE | v | to exist; to have a quality or state
+BO | n | a pal or buddy
+BY | prep | beside; through the action of
+CAN | v | to be able to
+CAN | n | a sealed metal container for food or drink
+DE | prep | of; from (used in names)
+DOES | v | third-person singular of do
+EF | n | the letter F
+EH | interj | used to ask for repetition or agreement
+EL | n | the letter L; an elevated railway
+ER | interj | expressing hesitation
+ES | n | the letter S
+ET | v | past tense of eat (dialect)
+HA | interj | expressing triumph, surprise, or laughter
+HE | pron | that male person or animal
+HM | interj | expressing thought or doubt
+HO | interj | used to attract attention or express surprise
+IF | conj | in the event that; on condition that
+IN | prep | inside; within
+IT | pron | that thing or animal
+JO | n | a sweetheart (Scots)
+KA | n | the spiritual self, in ancient Egyptian belief
+LO | interj | look! see!
+MA | n | mother (informal)
+MAY | v | used to express possibility or permission
+ME | pron | the speaker, as an object
+MI | n | the third note of the musical scale
+MM | interj | expressing agreement or enjoyment
+MUST | v | to be obliged to; to need to
+MY | pron | belonging to me
+NA | r | no; not (dialect)
+NO | det | not any
+NO | interj | expressing refusal or denial
+OD | n | a force once thought to pervade all of nature
+OE | n | a whirlwind off the Faroe Islands
+OF | prep | belonging to; from; about
+OH | interj | expressing surprise, pain, or understanding
+OM | n | a sacred syllable chanted in meditation
+ON | prep | supported by; upon
+OP | n | op art, abstract art using optical illusions
+OR | conj | used to link alternatives
+OW | interj | expressing sudden pain
+OY | interj | expressing dismay or exasperation
+SH | interj | used to urge silence
+SO | r | to such a great degree; therefore
+TA | interj | thanks (British, informal)
+TI | n | the seventh note of the musical scale
+TO | prep | in the direction of; as far as
+UH | interj | expressing hesitation
+UM | interj | expressing hesitation
+UP | r | toward a higher place or position
+US | pron | the speakers, as an object
+WAS | v | past tense of be (with I, he, she, it)
+WE | pron | the speaker together with others
+WO | n | woe
+XU | n | a coin of Vietnam
+YA | pron | you (informal)
+YE | pron | you (plural, archaic)
+YO | interj | used as a greeting or to get attention
+ALTHOUGH | conj | despite the fact that
+AMONG | prep | surrounded by; shared by
+AGAINST | prep | in opposition to; touching for support
+AND | conj | used to join words or clauses
+BECAUSE | conj | for the reason that
+BUT | conj | on the other hand; except
+COULD | v | past tense of can
+DURING | prep | throughout the course of
+ELSE | r | other; besides
+FOR | prep | intended to belong to; because of
+FROM | prep | starting at; out of
+HER | pron | that female person, as an object; belonging to her
+HERS | pron | the one belonging to her
+HERSELF | pron | she or her, reflexively or for emphasis
+HIM | pron | that male person, as an object
+HIMSELF | pron | he or him, reflexively or for emphasis
+HIS | pron | belonging to him
+HOW | r | in what way
+INTO | prep | to the inside of
+ITS | pron | belonging to it
+ITSELF | pron | it, reflexively or for emphasis
+MYSELF | pron | I or me, reflexively or for emphasis
+NONE | pron | not any; no one
+NOR | conj | and not
+ONTO | prep | to a position on
+OUGHT | v | used to express duty or advisability
+OUR | pron | belonging to us
+OURS | pron | the one belonging to us
+OURSELVES | pron | we or us, reflexively or for emphasis
+PER | prep | for each
+SHALL | v | used to express the future or a command
+SHE | pron | that female person or animal
+SHOULD | v | used to express duty or likelihood
+SINCE | prep | from a past time until now; because
+THAN | conj | used to introduce the second part of a comparison
+THAT | pron | the one indicated or mentioned
+THE | det | used before a noun that is already known or specified
+THEE | pron | you, as an object (archaic)
+THEIR | pron | belonging to them
+THEIRS | pron | the one belonging to them
+THEM | pron | those people or things, as an object
+THEMSELVES | pron | they or them, reflexively or for emphasis
+THESE | pron | plural of this
+THEY | pron | those people or things
+THINE | pron | yours (archaic)
+THIS | pron | the one here or just mentioned
+THOSE | pron | plural of that
+THY | pron | your (archaic)
+TOWARD | prep | in the direction of
+TOWARDS | prep | in the direction of
+UNLESS | conj | except if
+UNTIL | prep | up to the time of
+UPON | prep | on; on top of
+VIA | prep | by way of
+WHAT | pron | which thing
+WHEN | r | at what time
+WHERE | r | at or to what place
+WHETHER | conj | used to introduce alternatives
+WHICH | pron | what one of a set
+WHILE | conj | during the time that
+WHO | pron | what or which person
+WHOM | pron | who, as an object
+WHOSE | pron | belonging to whom
+WHY | r | for what reason
+WITH | prep | accompanied by; using
+WITHOUT | prep | not having; lacking
+WOULD | v | past tense of will; used to express a condition
+YOU | pron | the person or people addressed
+YOUR | pron | belonging to you
+YOURS | pron | the one belonging to you
+YOURSELF | pron | you, reflexively or for emphasis
+AG | a | relating to agriculture
+AL | n | an East Indian tree
+BI | n | a bisexual person (informal)
+ED | n | education
+NE | a | born with the name of (used before a man's former name)
+UN | pron | one (dialect)

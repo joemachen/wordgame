@@ -67,7 +67,7 @@ public static class Program
                 break;
             case "check" or "c":
                 foreach (var word in rest)
-                    Console.WriteLine($"{word.ToUpperInvariant()}: {(_lexicon.Contains(word) ? "valid" : "NOT a word")}");
+                    PrintWordCheck(word);
                 break;
             case "hint":
                 Hint(rest.Length > 0 && int.TryParse(rest[0], out var n) ? n : 5);
@@ -381,6 +381,17 @@ public static class Program
         }
     }
 
+    private static void PrintWordCheck(string word)
+    {
+        Console.WriteLine($"{word.ToUpperInvariant()}: {(_lexicon.Contains(word) ? "valid" : "NOT a word")}");
+        if (DefinitionLoader.Default.Define(word) is not { } definition)
+            return;
+        if (definition.InflectionOf is not null)
+            Console.WriteLine($"  {definition.Form} {definition.InflectionOf}");
+        foreach (var sense in definition.Senses)
+            Console.WriteLine($"  {sense}");
+    }
+
     private static void PrintHelp()
     {
         Console.WriteLine($"""
@@ -396,7 +407,7 @@ public static class Program
               reroll                         New offers (cost rises each reroll)
               leave | next                   Start the next round
             Any time:
-              check | c <WORD...>            Look words up in the dictionary
+              check | c <WORD...>            Look words up in the dictionary (with definitions)
               desk / deck                    Show Desk Items (+catalog) / your tile deck
               sell <slot>                    Sell a Desk Item for half price
               move <from> <to>               Reorder Desk Items (they apply left to right)

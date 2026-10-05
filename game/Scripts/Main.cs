@@ -45,6 +45,7 @@ public partial class Main : Control
     private Label _resourcesLabel = null!;
     private Label _moneyLabel = null!;
     private Label _messageLabel = null!;
+    private RichTextLabel _definitionsLabel = null!;
     private VBoxContainer _logBox = null!;
     private Label _seedLabel = null!;
 
@@ -67,6 +68,7 @@ public partial class Main : Control
     {
         var args = ParseArgs();
         _lexicon = LexiconLoader.Enable;
+        _ = Task.Run(() => DefinitionLoader.Default); // warm up off the main thread so the first preview doesn't hitch
         BuildLayout();
 
         ulong seed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : (ulong)Time.GetTicksUsec();
@@ -219,6 +221,14 @@ public partial class Main : Control
         _messageLabel = UiKit.MakeLabel("", 16, UiKit.TextMuted, wrap: true);
         _messageLabel.CustomMinimumSize = new Vector2(0, 44);
         box.AddChild(_messageLabel);
+
+        // Definitions of the words in the pending play (Open English WordNet + hand-written supplement).
+        _definitionsLabel = new RichTextLabel { BbcodeEnabled = true, FitContent = true, ScrollActive = false, MouseFilter = MouseFilterEnum.Ignore };
+        _definitionsLabel.AddThemeFontSizeOverride("normal_font_size", 14);
+        _definitionsLabel.AddThemeFontSizeOverride("bold_font_size", 14);
+        _definitionsLabel.AddThemeFontSizeOverride("italics_font_size", 14);
+        _definitionsLabel.AddThemeColorOverride("default_color", UiKit.TextMuted);
+        box.AddChild(_definitionsLabel);
 
         _resourcesLabel = UiKit.MakeLabel("", 17, UiKit.Text, wrap: true);
         box.AddChild(_resourcesLabel);

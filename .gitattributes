@@ -4,3 +4,4 @@
 *.cmd text eol=crlf
 *.sln text eol=crlf
 *.txt text eol=lf
+*.gz binary

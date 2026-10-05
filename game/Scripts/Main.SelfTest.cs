@@ -1,3 +1,4 @@
+using Crossword.Core.Rules;
 using Godot;
 using GridPos = Crossword.Core.Domain.Position;
 
@@ -75,6 +76,13 @@ public partial class Main
         // 5. Esc recalls the pending tile.
         await PressKey(global::Godot.Key.Escape);
         Check("escape recalls pending tiles", _pending.Count == 0 && _handRow.GetChildCount() == Round.Hand.Count);
+
+        // 6. Hint places a play; the preview defines every word it forms.
+        await Click(Centre(_hintButton));
+        var words = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength)
+            .Value.Words.Select(w => w.Text).ToList();
+        string defined = _definitionsLabel.GetParsedText();
+        Check("preview defines each word", words.Count > 0 && words.All(w => defined.Contains(w)));
 
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);

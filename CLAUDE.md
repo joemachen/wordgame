@@ -27,6 +27,7 @@ Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target
 - **Round end:** Won when Score ≥ target; Lost when submissions run out, hand and bag are both empty, or **deadlocked** (no legal play for the hand and no discards left — checked after every transition via `MoveGenerator`).
 - **Desk Items:** up to 5 slots (`RunState.MaxDeskSlots`), no duplicates, applied left to right — slot order matters. 18 items in `Core/DeskItems/` (Starter, Conditional, Scaling), bought in the shop (CLI also has a dev `give` command).
 - **Lexicon:** ENABLE, words of 2–15 letters. 2-letter words are legal (lowest tier). QI/ZA are NOT in ENABLE.
+- **Definitions** (UI only, no rule depends on them): `DefinitionLoader.Default.Define(word)` from embedded `Lexicon/Data/definitions.tsv.gz` — Open English WordNet 2025 (CC BY 4.0, attribution in `THIRD_PARTY_NOTICES.md`) plus hand-written `tools/Crossword.DefinitionsBuilder/supplement.txt` (function words, all 2-letter words; overrides WordNet). Inflections point at their lemma. ~62% of ENABLE is covered; the rest shows "no definition on file". Regenerate with `dotnet run -c Release --project tools/Crossword.DefinitionsBuilder` (needs `english-wordnet-2025.xml.gz` in gitignored `tools/data/`).
 
 ## Scoring Order (`ScoringEngine`, one pooled Chips × Mult per play)
 1. **Tier:** longest word formed sets base Chips and base Mult (`ScoringConfig.Tiers`).
@@ -47,8 +48,9 @@ All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item
 - Unit tests must pin their own numbers (explicit config / constructor args) so retuning defaults never breaks them.
 
 ## Layout
-- `src/Crossword.Core` — `Domain/` (state records, board, premium layout), `Rules/` (placement validation, round/draw transitions), `Scoring/`, `Effects/` (Desk Item pipeline), `DeskItems/` (concrete items + catalog), `Analysis/` (move generator, ranker, round + run simulators), `Run/` (run config, economy, bosses, shop, `GameSession`/`RunRules`), `Lexicon/` (DAWG + embedded ENABLE, `IWordGraph` traversal), `Random/`
+- `src/Crossword.Core` — `Domain/` (state records, board, premium layout), `Rules/` (placement validation, round/draw transitions), `Scoring/`, `Effects/` (Desk Item pipeline), `DeskItems/` (concrete items + catalog), `Analysis/` (move generator, ranker, round + run simulators), `Run/` (run config, economy, bosses, shop, `GameSession`/`RunRules`), `Lexicon/` (DAWG + embedded ENABLE, `IWordGraph` traversal, word definitions), `Random/`
 - `game/` — **Godot 4.7 (.NET) UI** (`Wordgame.Godot.csproj`, `project.godot`, `Scenes/Main.tscn`). UI is built in code in `Scripts/Main*.cs` + `UiKit.cs`; it only renders `GameSession` and calls `RunRules`/`ShopRules` — no rules in the UI. Visual-only state (selected/pending tiles) lives in `Main`. Compatibility renderer.
+- `tools/Crossword.DefinitionsBuilder` — one-off data tool that generates the embedded definitions file
 - `src/Crossword.Cli` — developer text console (parser, renderer, simulation report, REPL); references Core only
 - `tests/Crossword.Tests` — xUnit tests, mirroring Core folder structure (+ `Cli/` parser tests, `TestSupport/Fixtures`)
 - `ROADMAP.md` — feature design roadmap; `handoff.md` — session status brief

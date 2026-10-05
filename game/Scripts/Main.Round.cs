@@ -1,6 +1,7 @@
 using Crossword.Core.Analysis;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Lexicon;
 using Crossword.Core.Rules;
 using Crossword.Core.Run;
 using Crossword.Core.Scoring;
@@ -292,6 +293,7 @@ public partial class Main
     /// <summary>Validates and scores the pending placement without committing it.</summary>
     private void UpdatePreview()
     {
+        _definitionsLabel.Text = "";
         if (_pending.Count == 0)
         {
             _chipsLabel.Text = "0";
@@ -312,7 +314,17 @@ public partial class Main
         _chipsLabel.Text = score.Chips.ToString("N0");
         _multLabel.Text = score.Mult.ToString("0.##");
         SetMessage($"{string.Join(" + ", validation.Value.Words.Select(w => w.Text))}  →  {score.Total:N0} points", UiKit.Good);
+        _definitionsLabel.Text = DefinitionsText(validation.Value.Words.Select(w => w.Text));
     }
+
+    /// <summary>One line per distinct word: "[b]GLEY[/b] n. a sticky clay soil" (BBCode).</summary>
+    private static string DefinitionsText(IEnumerable<string> words) => string.Join('\n', words.Distinct().Select(word =>
+    {
+        string head = $"[b][color=#{UiKit.Text.ToHtml(false)}]{word}[/color][/b]  ";
+        return DefinitionLoader.Default.Define(word) is { } definition
+            ? head + definition.Summary.Replace("[", "[lb]")
+            : head + "[i]valid word — no definition on file[/i]";
+    }));
 
     private RankedPlay? BestPlay() =>
         MoveRanker.Rank(Round.Board, Round.Hand, _lexicon, Run.DeskItems, RoundScoring, Round.Config.MinWordLength,

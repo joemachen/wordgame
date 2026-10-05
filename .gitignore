@@ -29,3 +29,6 @@ Thumbs.db
 
 # Machine-specific QA settings (e.g. Godot path)
 qa.local.bat
+
+# Downloaded source data for tools (e.g. Open English WordNet); not committed
+tools/data/
