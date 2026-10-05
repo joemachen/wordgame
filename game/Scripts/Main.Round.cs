@@ -15,6 +15,8 @@ public partial class Main
     private const float HandTileSize = 72;
     private const double StepSeconds = 0.32;
 
+    private Button _shuffleButton = null!;
+
     private ScoringConfig RoundScoring => Round.Config.EffectiveScoring(_session.Scoring);
 
     private Control BuildRoundArea()
@@ -39,7 +41,9 @@ public partial class Main
         _discardButton.Pressed += Discard;
         _hintButton = UiKit.MakeButton("Hint", UiKit.PanelRaised, 18);
         _hintButton.Pressed += Hint;
-        foreach (var b in new[] { _submitButton, _recallButton, _discardButton, _hintButton })
+        _shuffleButton = UiKit.MakeButton("Shuffle  Space", UiKit.PanelRaised, 18);
+        _shuffleButton.Pressed += ShuffleHand;
+        foreach (var b in new[] { _submitButton, _recallButton, _discardButton, _shuffleButton, _hintButton })
             buttons.AddChild(b);
         buttonsHolder.AddChild(buttons);
         box.AddChild(buttonsHolder);
@@ -87,7 +91,7 @@ public partial class Main
             return tile;
         }
 
-        var cell = new Button { CustomMinimumSize = new Vector2(CellSize, CellSize), FocusMode = FocusModeEnum.None };
+        var cell = new DropCell { CustomMinimumSize = new Vector2(CellSize, CellSize), FocusMode = FocusModeEnum.None };
         if (board.IsBlocked(pos))
         {
             cell.AddThemeStyleboxOverride("normal", UiKit.Box(UiKit.Blocked, 4));
@@ -106,6 +110,7 @@ public partial class Main
         cell.AddThemeStyleboxOverride("hover", UiKit.Box(color.Lightened(0.25f), 4, UiKit.Selected, 2));
         cell.AddThemeStyleboxOverride("pressed", UiKit.Box(color.Darkened(0.1f), 4));
         cell.Pressed += () => PlaceSelected(pos);
+        cell.TileDropped = id => PlaceTile(pos, id);
         return cell;
     }
 
@@ -113,12 +118,24 @@ public partial class Main
     {
         UiKit.ClearChildren(_handRow);
         var scoring = RoundScoring;
-        foreach (var tile in Round.Hand.Tiles.Where(t => !_pending.ContainsValue(t)))
+        _handOrder = HandArrangement.Reconcile(_handOrder, Round.Hand);
+        var byId = Round.Hand.Tiles.ToDictionary(t => t.Id);
+        foreach (int id in _handOrder)
         {
+            var tile = byId[id];
+            if (_pending.ContainsValue(tile))
+                continue;
+
             bool selected = _selected.Contains(tile);
-            var button = UiKit.MakeTile(tile, scoring.ValueOf(tile.Letter), HandTileSize,
-                selected ? UiKit.Selected : UiKit.Newsprint, raised: selected);
+            int value = scoring.ValueOf(tile.Letter);
+            var button = UiKit.MakeTile(tile, value, HandTileSize, selected ? UiKit.Selected : UiKit.Newsprint, raised: selected);
+            button.TooltipText = "Click to select · drag to reorder or onto the board";
             button.Pressed += () => ToggleSelected(tile);
+            if (!_animating)
+            {
+                button.DragPreviewFactory = () => UiKit.MakeTile(tile, value, HandTileSize, UiKit.Selected, raised: true);
+                button.TileDropped = MoveHandTile;
+            }
             _handRow.AddChild(button);
         }
     }
@@ -131,13 +148,14 @@ public partial class Main
         _discardButton.Disabled = !idle || _selected.Count == 0 || Round.DiscardsLeft == 0;
         _discardButton.Text = _selected.Count > 0 ? $"Discard {_selected.Count}" : "Discard selected";
         _hintButton.Disabled = !idle;
+        _shuffleButton.Disabled = !idle || Round.Hand.Count < 2;
     }
 
     // ---------------------------------------------------------------- interaction
 
     private void ToggleSelected(Tile tile)
     {
-        if (_animating)
+        if (_animating || TileButton.RecentlyDragged)
             return;
         if (!_selected.Remove(tile))
             _selected.Add(tile);
@@ -156,6 +174,35 @@ public partial class Main
         var tile = _selected[0];
         _selected.RemoveAt(0);
         _pending[pos] = tile;
+        Refresh();
+    }
+
+    /// <summary>Drag-and-drop placement: puts a specific hand tile on an empty square.</summary>
+    private void PlaceTile(GridPos pos, int tileId)
+    {
+        if (_animating || Round.Hand.Tiles.FirstOrDefault(t => t.Id == tileId) is not { } tile || _pending.ContainsValue(tile))
+            return;
+        _selected.Remove(tile);
+        _pending[pos] = tile;
+        Refresh();
+    }
+
+    /// <summary>The dropped tile takes the target's slot: dragging rightwards lands after it, leftwards before it.</summary>
+    private void MoveHandTile(int tileId, int targetId)
+    {
+        if (_animating)
+            return;
+        var order = _handOrder.ToList();
+        bool after = order.IndexOf(tileId) < order.IndexOf(targetId);
+        _handOrder = HandArrangement.Move(_handOrder, tileId, targetId, after);
+        Refresh();
+    }
+
+    private void ShuffleHand()
+    {
+        if (_animating)
+            return;
+        (_handOrder, _arrangementRng) = HandArrangement.Shuffle(HandArrangement.Reconcile(_handOrder, Round.Hand), _arrangementRng);
         Refresh();
     }
 
@@ -318,6 +365,9 @@ public partial class Main
                 break;
             case Key.Escape:
                 Recall();
+                break;
+            case Key.Space:
+                ShuffleHand();
                 break;
             case Key.Backspace when _pending.Count > 0:
                 ReturnPending(_pending.Keys.Last());

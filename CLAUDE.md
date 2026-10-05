@@ -54,6 +54,7 @@ All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item
 - Run scoring tests only: `dotnet test --filter Category=Scoring`
 - Play a specific seed: `run_local_qa.bat 42` (game) or `run_local_qa.bat --cli 42` (console)
 - Game dev flags (after `--`): `"%GODOT%" --path game -- --seed=42 --give=red-pen,pulitzer --autoplay=3 --hint --screenshot=out.png` (screenshot saves and quits — use it to visually verify UI changes).
+- UI regression check: `"<godot>_console.exe" --path game -- --seed=42 --selftest` drives the real UI with simulated mouse/keyboard input (select, drag-reorder, drag-to-board, shuffle, recall) and prints PASS/FAIL; exit code 1 on failure. Extend `Main.SelfTest.cs` when adding interactions.
 - Other categories: `Lexicon`, `Determinism`, `Architecture`
 
 ## Code Conventions

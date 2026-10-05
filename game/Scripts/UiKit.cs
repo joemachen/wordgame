@@ -110,9 +110,9 @@ public static class UiKit
     }
 
     /// <summary>A clickable tile: big letter, small value in the corner, coloured border for enhancements.</summary>
-    public static Button MakeTile(Tile tile, int value, float size, Color background, bool raised = false)
+    public static TileButton MakeTile(Tile tile, int value, float size, Color background, bool raised = false)
     {
-        var button = new Button { CustomMinimumSize = new Vector2(size, size), FocusMode = Control.FocusModeEnum.None };
+        var button = new TileButton { TileId = tile.Id, CustomMinimumSize = new Vector2(size, size), FocusMode = Control.FocusModeEnum.None };
         int borderWidth = tile.Enhancement == TileEnhancement.None ? 2 : 4;
         var border = EnhancementColor(tile.Enhancement);
         button.AddThemeStyleboxOverride("normal", Box(background, 6, border, borderWidth, 0, raised ? 8 : 3));

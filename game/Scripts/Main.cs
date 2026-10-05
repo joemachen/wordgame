@@ -12,7 +12,8 @@ namespace Wordgame.Godot;
 /// (selected/pending tiles) and rebuilds the screen from them. All rules go through Crossword.Core.
 ///
 /// Command-line user args (after "--"): --seed=N, --give=id,id (dev), --autoplay=N (play N best moves / leave shops),
-/// --hint (pre-place the best play), --screenshot=path.png (save a screenshot after loading and quit).
+/// --hint (pre-place the best play), --screenshot=path.png (save a screenshot after loading and quit),
+/// --selftest (drive the UI with simulated input, print PASS/FAIL, quit).
 /// </summary>
 public partial class Main : Control
 {
@@ -23,6 +24,10 @@ public partial class Main : Control
     // Visual-only state: tiles picked in the hand and tiles tentatively placed on the board.
     private readonly List<Tile> _selected = new();
     private readonly Dictionary<GridPos, Tile> _pending = new();
+
+    // Player's arrangement of the hand (tile ids). Cosmetic, so its shuffle RNG is separate from the game's.
+    private IReadOnlyList<int> _handOrder = Array.Empty<int>();
+    private Crossword.Core.Random.Rng _arrangementRng = Crossword.Core.Random.Rng.FromSeed(Time.GetTicksUsec());
     private bool _animating;
 
     // Sidebar
@@ -77,6 +82,8 @@ public partial class Main : Control
 
         if (args.TryGetValue("screenshot", out var path))
             _ = ScreenshotAndQuit(path);
+        else if (args.ContainsKey("selftest"))
+            _ = RunSelfTest();
     }
 
     private static Dictionary<string, string> ParseArgs()
@@ -123,8 +130,9 @@ public partial class Main : Control
         _session = RunRules.NewGame(seed, _config, _lexicon);
         _selected.Clear();
         _pending.Clear();
+        _handOrder = Array.Empty<int>();
         ClearLog();
-        SetMessage("New run. Click a tile, then a square. Enter submits, Esc recalls.", UiKit.TextMuted);
+        SetMessage("New run. Click or drag a tile onto a square. Drag tiles in your hand to reorder; Space shuffles.", UiKit.TextMuted);
         Refresh();
     }
 
