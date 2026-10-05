@@ -203,7 +203,8 @@ public partial class Main
         // 13. Submitting rings the score up: the Desk Item that fired pops, the finish plays, then input unlocks.
         _session = _session with { Run = Run with { DeskItems = [Crossword.Core.DeskItems.DeskItemCatalog.Find("red-pen")!] } };
         Refresh();
-        PlacePlay(RankedPlays()[0], null);
+        var submitted = RankedPlays()[0];
+        PlacePlay(submitted, null);
         int popsBefore = _deskPops;
         await PressKey(global::Godot.Key.Enter);
         bool animatingAfterSubmit = _animating;
@@ -211,6 +212,15 @@ public partial class Main
             await Seconds(0.1);
         Check("scoring pops the desk item and finishes", animatingAfterSubmit && _deskPops > popsBefore
             && _lastCelebration is not null && !_animating);
+
+        // 14. The play lands in the (in-memory) profile, and the Stats popup lists its words; Esc closes it.
+        var playedWords = submitted.Play.Words.Select(w => w.Text).ToList();
+        await Click(Centre(_statsButton));
+        string statsText = string.Join("\n", _statsBox.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
+        Check("stats popup lists the played words", _statsOverlay.Visible && _profile.Profile.Stats.PlaysRecorded == 1
+            && playedWords.All(w => _profile.Profile.Stats.Words.ContainsKey(w) && statsText.Contains(w)));
+        await PressKey(global::Godot.Key.Escape);
+        Check("esc closes stats", !_statsOverlay.Visible);
 
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);

@@ -452,6 +452,7 @@ public partial class Main
         long scoreBefore = Round.Score;
         _session = result.Value.Session;
         MarkNewTiles(before);
+        _profile.Update(s => Crossword.Core.Profile.StatsRules.RecordPlay(s, result.Value.Score.Play, result.Value.Score.Total));
         _pending.Clear();
         _selected.Clear();
         _animating = true;
@@ -590,6 +591,15 @@ public partial class Main
     {
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
+
+        // Stats popup: while it's open, Esc closes it and nothing else reacts.
+        if (_statsOverlay.Visible)
+        {
+            if (key.Keycode == Key.Escape)
+                ToggleStats();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
 
         // Style Guides popup: Tab toggles it anywhere; while it's open, Esc closes it and nothing else reacts.
         if (key.Keycode == Key.Tab || (_styleGuidesOverlay.Visible && key.Keycode == Key.Escape))

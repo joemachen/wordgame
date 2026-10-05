@@ -1,5 +1,6 @@
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
+using Crossword.Core.Profile;
 using Crossword.Core.Rules;
 using Crossword.Core.Run;
 using Godot;
@@ -13,7 +14,8 @@ namespace Wordgame.Godot;
 ///
 /// Command-line user args (after "--"): --seed=N, --give=id,id (dev: Desk Items or Stationery, e.g. answer-key), --autoplay=N (play N best moves / leave shops),
 /// --hint (pre-place the best play), --dev (the Hint button shows the best play), --screenshot=path.png (save a screenshot after loading and quit),
-/// --selftest (drive the UI with simulated input, print PASS/FAIL, quit).
+/// --selftest (drive the UI with simulated input, print PASS/FAIL, quit), --profile=name (player profile to load/save;
+/// default "Player"). --selftest, --screenshot and --autoplay keep the profile in memory so QA runs never touch stats.
 /// </summary>
 public partial class Main : Control
 {
@@ -68,6 +70,7 @@ public partial class Main : Control
     private RichTextLabel _definitionsLabel = null!;
     private VBoxContainer _logBox = null!;
     private Label _seedLabel = null!;
+    private Button _statsButton = null!;
 
     // Centre
     private HBoxContainer _deskRow = null!;
@@ -91,10 +94,15 @@ public partial class Main : Control
         _lexicon = LexiconLoader.Enable;
         _ = Task.Run(() => DefinitionLoader.Default); // warm up off the main thread so the first preview doesn't hitch
         _devMode = args.ContainsKey("dev");
+        string profileName = args.TryGetValue("profile", out var named) && named.Length > 0 ? named : "Player";
+        bool qaRun = args.ContainsKey("selftest") || args.ContainsKey("screenshot") || args.ContainsKey("autoplay");
+        _profile = qaRun ? ProfileStore.InMemory(profileName) : ProfileStore.Load(profileName);
         BuildLayout();
 
         ulong seed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : (ulong)Time.GetTicksUsec();
         NewRun(seed);
+        if (_profile.Notice is { } notice)
+            SetMessage(notice, UiKit.Bad);
 
         if (args.TryGetValue("give", out var give))
             foreach (var id in give.Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -163,6 +171,8 @@ public partial class Main : Control
         _pending.Clear();
         _newTileIds.Clear();
         _handOrder = Array.Empty<int>();
+        _profile.Update(StatsRules.RecordRunStart);
+        _runEndRecorded = false;
         ClearLog();
         SetMessage("New run. Click or drag a tile onto a square. Drag tiles in your hand to reorder; Space shuffles.", UiKit.TextMuted);
         Refresh();
@@ -218,6 +228,8 @@ public partial class Main : Control
 
         _styleGuidesOverlay = BuildStyleGuidesOverlay();
         AddChild(_styleGuidesOverlay);
+        _statsOverlay = BuildStatsOverlay();
+        AddChild(_statsOverlay);
     }
 
     private Control BuildSidebar()
@@ -290,9 +302,13 @@ public partial class Main : Control
         var newRun = UiKit.MakeButton("New run", UiKit.PanelRaised, 14);
         newRun.Pressed += () => NewRun((ulong)Time.GetTicksUsec());
         footer.AddChild(newRun);
-        var guides = UiKit.MakeButton("Style Guides  Tab", UiKit.PanelRaised, 14);
+        var guides = UiKit.MakeButton("Guides  Tab", UiKit.PanelRaised, 14);
+        guides.TooltipText = "Style Guides: every word tier's level and chips × mult";
         guides.Pressed += ToggleStyleGuides;
         footer.AddChild(guides);
+        _statsButton = UiKit.MakeButton("Stats", UiKit.PanelRaised, 14);
+        _statsButton.Pressed += ToggleStats;
+        footer.AddChild(_statsButton);
         box.AddChild(footer);
         return panel;
     }
@@ -302,6 +318,7 @@ public partial class Main : Control
     /// <summary>Redraws everything from the current session and visual state.</summary>
     private void Refresh()
     {
+        RecordRunEndIfOver();
         RefreshSidebar();
         RefreshDesk();
 
