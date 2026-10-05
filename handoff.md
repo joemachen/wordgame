@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `fd41f74` (code) · 362 unit tests passing · UI self-test 40/40 passing_
+_Last updated: 2026-10-05 · HEAD `88faed4` (code) · 374 unit tests passing · UI self-test 43/43 passing_
 
 ---
 
@@ -201,6 +201,11 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+88faed4 Pay overkill every 25% and interest per $4; raise targets x1.15
+2cc96fa Hide the clue columns until the visual overhaul
+22de92e Add the art direction reference image
+ff54932 Print ACROSS/DOWN clue columns beside the board
+925442a Let the bots buy wild tiles and use the Fountain Pen; record money flow
 fd41f74 Add wild tiles: deck blanks, shop offers, Fountain Pen, wild edit
 b3df7b7 Raise week targets x1.3 after balanced draws
 ab45824 Balance tile draws and raise the deck's vowel share
