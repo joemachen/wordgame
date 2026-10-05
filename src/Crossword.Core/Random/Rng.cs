@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Crossword.Core.Random;
 
 /// <summary>
@@ -19,6 +21,19 @@ public readonly record struct Rng(ulong State)
         z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
         z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
         return (z ^ (z >> 31), new Rng(state));
+    }
+
+    /// <summary>Fisher–Yates shuffle; returns a new array and the advanced generator.</summary>
+    public (ImmutableArray<T> Shuffled, Rng Next) Shuffle<T>(IEnumerable<T> items)
+    {
+        var array = items.ToArray();
+        var rng = this;
+        for (int i = array.Length - 1; i > 0; i--)
+        {
+            (int j, rng) = rng.NextInt(i + 1);
+            (array[i], array[j]) = (array[j], array[i]);
+        }
+        return (ImmutableArray.Create(array), rng);
     }
 
     /// <summary>Returns a uniformly distributed integer in [0, maxExclusive).</summary>

@@ -1,55 +1,58 @@
+using System.Collections.Immutable;
 using Crossword.Core.Domain;
+using Crossword.Core.Random;
 using Crossword.Core.Rules;
 
 namespace Crossword.Tests.Rules;
 
 public class DrawRulesTests
 {
-    [Fact]
-    public void NewRun_StartsWithEmptyHandAndFullBag()
-    {
-        var run = RunState.New(seed: 1);
-
-        Assert.Equal(0, run.Hand.Count);
-        Assert.Equal(StartingDeck.Create().Length, run.Bag.Count);
-    }
+    private static RoundState EmptyHandRound(int handSize = 7, int deckSize = 98) => new(
+        Config: new RoundConfig(TargetScore: 100, HandSize: handSize),
+        Board: Board.Empty(7),
+        Bag: new TileBag(StartingDeck.Create().Take(deckSize).ToImmutableArray()),
+        Hand: Hand.Empty,
+        Rng: Rng.FromSeed(1),
+        Score: 0,
+        SubmissionsLeft: 4,
+        DiscardsLeft: 3);
 
     [Fact]
     public void DrawToHandSize_FillsHand_AndShrinksBag()
     {
-        var run = RunState.New(seed: 1);
+        var round = EmptyHandRound();
 
-        var next = DrawRules.DrawToHandSize(run);
+        var next = DrawRules.DrawToHandSize(round);
 
-        Assert.Equal(run.HandSize, next.Hand.Count);
-        Assert.Equal(run.Bag.Count - run.HandSize, next.Bag.Count);
+        Assert.Equal(7, next.Hand.Count);
+        Assert.Equal(round.Bag.Count - 7, next.Bag.Count);
     }
 
     [Fact]
     public void DrawToHandSize_ReturnsNewState_LeavingOriginalUntouched()
     {
-        var run = RunState.New(seed: 1);
+        var round = EmptyHandRound();
 
-        var next = DrawRules.DrawToHandSize(run);
+        var next = DrawRules.DrawToHandSize(round);
 
-        Assert.NotSame(run, next);
-        Assert.Equal(0, run.Hand.Count);
-        Assert.NotEqual(run.Rng, next.Rng);
+        Assert.NotSame(round, next);
+        Assert.Equal(0, round.Hand.Count);
+        Assert.NotEqual(round.Rng, next.Rng);
     }
 
     [Fact]
     public void DrawToHandSize_WhenHandFull_ReturnsSameState()
     {
-        var full = DrawRules.DrawToHandSize(RunState.New(seed: 1));
+        var full = DrawRules.DrawToHandSize(EmptyHandRound());
 
         Assert.Same(full, DrawRules.DrawToHandSize(full));
     }
 
     [Fact]
-    public void DrawToHandSize_IsReproducibleFromSeed()
+    public void DrawToHandSize_IsReproducible()
     {
-        var a = DrawRules.DrawToHandSize(RunState.New(seed: 2026));
-        var b = DrawRules.DrawToHandSize(RunState.New(seed: 2026));
+        var a = DrawRules.DrawToHandSize(EmptyHandRound());
+        var b = DrawRules.DrawToHandSize(EmptyHandRound());
 
         Assert.Equal(a.Hand.Tiles.Select(t => t.Id), b.Hand.Tiles.Select(t => t.Id));
     }
@@ -57,11 +60,9 @@ public class DrawRulesTests
     [Fact]
     public void DrawToHandSize_WithNearlyEmptyBag_DrawsWhatIsLeft()
     {
-        var run = RunState.New(seed: 1, handSize: 200);
+        var next = DrawRules.DrawToHandSize(EmptyHandRound(deckSize: 3));
 
-        var next = DrawRules.DrawToHandSize(run);
-
-        Assert.Equal(run.Bag.Count, next.Hand.Count);
+        Assert.Equal(3, next.Hand.Count);
         Assert.True(next.Bag.IsEmpty);
     }
 }

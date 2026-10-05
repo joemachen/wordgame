@@ -48,6 +48,19 @@ public class RngTests
         Assert.Equal(6, seen.Count);
     }
 
+    [Fact]
+    public void Shuffle_IsDeterministicPermutation()
+    {
+        var items = Enumerable.Range(0, 50).ToArray();
+
+        var (a, _) = Rng.FromSeed(8).Shuffle(items);
+        var (b, _) = Rng.FromSeed(8).Shuffle(items);
+
+        Assert.Equal(a, b);
+        Assert.NotEqual(items, a.ToArray());
+        Assert.Equal(items, a.Order());
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
