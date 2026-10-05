@@ -1,5 +1,6 @@
 using System.Text;
 using Crossword.Core.Analysis;
+using Crossword.Core.Run;
 
 namespace Crossword.Cli;
 
@@ -32,6 +33,22 @@ public static class SimulationReport
         sb.Append($"  vs target {target}: greedy wins {100.0 * wins / rounds.Count:0}%");
         if (wins > 0)
             sb.Append($", needing {submissionsToWin.Where(s => s is not null).Average(s => s!.Value):0.0} submissions on average");
+        return sb.ToString();
+    }
+
+    public static string FormatRuns(IReadOnlyList<SimulatedRun> runs, RunConfig config, double skill)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Run simulation: {runs.Count} runs at skill {skill:0.00} (naive shop bot):");
+        sb.AppendLine($"  Victory {100.0 * runs.Count(r => r.Victory) / runs.Count:0}%   average rounds cleared {runs.Average(r => r.RoundsCleared):0.0}/{config.TotalRounds}");
+        for (int week = 0; week < config.WeekTargets.Length; week++)
+        {
+            int reached = runs.Count(r => r.Rounds.Any(x => config.WeekOf(x.RoundIndex) == week));
+            sb.AppendLine($"  Reached week {week + 1}: {100.0 * reached / runs.Count,3:0}%");
+        }
+        var deaths = runs.Where(r => !r.Victory).Select(r => r.Rounds[^1]).GroupBy(r => r.Boss ?? r.Kind)
+            .OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count()}");
+        sb.Append($"  Lost on: {string.Join(", ", deaths)}");
         return sb.ToString();
     }
 

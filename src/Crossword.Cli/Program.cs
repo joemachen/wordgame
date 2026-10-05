@@ -75,6 +75,10 @@ public static class Program
             case "sim":
                 Simulate(rest.Length > 0 && int.TryParse(rest[0], out var r) ? r : 100);
                 break;
+            case "runsim":
+                SimulateRuns(rest.Length > 0 && int.TryParse(rest[0], out var runs) ? runs : 50,
+                    rest.Length > 1 && double.TryParse(rest[1], System.Globalization.CultureInfo.InvariantCulture, out var skill) ? skill : 0.9);
+                break;
             case "shop":
                 PrintPhase();
                 break;
@@ -319,6 +323,23 @@ public static class Program
         Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
     }
 
+    private static void SimulateRuns(int runs, double skill)
+    {
+        if (skill is <= 0 or > 1)
+        {
+            Console.WriteLine("Skill must be in (0, 1], e.g. 'runsim 50 0.9'.");
+            return;
+        }
+        Console.WriteLine($"Simulating {runs} full runs at skill {skill:0.00}...");
+        var sw = Stopwatch.StartNew();
+        var results = Enumerable.Range(1, runs)
+            .AsParallel()
+            .Select(seed => RunSimulator.PlayRun((ulong)seed, Config, _lexicon, skill))
+            .ToList();
+        Console.WriteLine(SimulationReport.FormatRuns(results, Config, skill));
+        Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
+    }
+
     /// <summary>Shows whatever screen the current phase needs.</summary>
     private static void PrintPhase()
     {
@@ -367,6 +388,7 @@ public static class Program
               discard | x <LETTERS>          Discard tiles (costs a discard), e.g. 'discard QV'
               hint [n]                       Show the n best legal plays (dev/QA aid)
               sim [rounds]                   Greedy-play simulation of the current round settings
+              runsim [runs] [skill]          Full-run simulation with a shop bot (default 50, 0.9)
             In the shop:
               buy <n> [LETTERS]              Buy offer n; LETTERS picks deck tiles for Enhance/Strike
               reroll                         New offers (cost rises each reroll)

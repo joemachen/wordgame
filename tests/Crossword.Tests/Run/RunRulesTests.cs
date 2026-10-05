@@ -13,6 +13,12 @@ public class RunRulesTests
     private static readonly RunConfig Config = RunConfig.Default with
     {
         WeekTargets = [300, 600, 1200],
+        Days =
+        [
+            new RoundKind("Daily", 1m, BasePay: 3, IsBoss: false),
+            new RoundKind("Saturday Stumper", 1.5m, BasePay: 4, IsBoss: false),
+            new RoundKind("Sunday Edition", 2m, BasePay: 5, IsBoss: true),
+        ],
         Economy = new EconomyConfig(StartingMoney: 4),
     };
 
