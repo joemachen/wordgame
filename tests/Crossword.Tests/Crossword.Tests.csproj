@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Crossword.Core\Crossword.Core.csproj" />
+    <ProjectReference Include="..\..\src\Crossword.Cli\Crossword.Cli.csproj" />
   </ItemGroup>
 
 </Project>

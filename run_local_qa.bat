@@ -2,14 +2,21 @@
 setlocal
 rem ============================================================
 rem  wordgame local QA: build -> test -> launch CLI.
-rem  Double-click to run. Pass --ci to skip pauses (non-interactive).
-rem  Any extra args after --ci are not supported; to pick a seed use
-rem  the 'new <seed>' command inside the CLI.
+rem  Double-click to run (random seed).
+rem  Usage: run_local_qa.bat [--ci] [seed]
+rem    --ci   skip pauses (non-interactive / scripted runs)
+rem    seed   start the CLI on a fixed seed for reproducible playtests
 rem ============================================================
 cd /d "%~dp0"
 
 set "NOPAUSE="
-if /i "%~1"=="--ci" set "NOPAUSE=1"
+set "SEED="
+:parse_args
+if "%~1"=="" goto :args_done
+if /i "%~1"=="--ci" (set "NOPAUSE=1") else (set "SEED=%~1")
+shift
+goto :parse_args
+:args_done
 
 where dotnet >nul 2>nul
 if errorlevel 1 (
@@ -38,7 +45,7 @@ if errorlevel 1 (
 echo.
 echo [QA] Step 3/3: Launching CLI...
 echo.
-dotnet run --project src\Crossword.Cli -c Debug --no-build
+dotnet run --project src\Crossword.Cli -c Debug --no-build -- %SEED%
 echo.
 echo [QA] CLI exited.
 if not defined NOPAUSE pause
