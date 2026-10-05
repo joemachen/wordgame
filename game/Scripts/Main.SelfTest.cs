@@ -84,6 +84,19 @@ public partial class Main
         string defined = _definitionsLabel.GetParsedText();
         Check("preview defines each word", words.Count > 0 && words.All(w => defined.Contains(w)));
 
+        // 7. Tab opens the Style Guides popup with every tier's guide and the hinted play's tier highlighted;
+        //    Esc closes it without recalling the pending play.
+        int pendingBefore = _pending.Count;
+        await PressKey(global::Godot.Key.Tab);
+        var tiers = RoundScoring.Tiers;
+        string popup = string.Join("\n", _styleGuidesBox.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
+        Check("tab opens style guides", _styleGuidesOverlay.Visible
+            && tiers.Select((t, i) => Crossword.Core.Run.StyleGuideNames.For(t.MinLength, t.Label(i == tiers.Length - 1))).All(popup.Contains));
+        Check("style guides highlight this play's tier",
+            _highlightedTier == RoundScoring.TierFor(words.Max(w => w.Length)).MinLength);
+        await PressKey(global::Godot.Key.Escape);
+        Check("esc closes style guides, keeps the play", !_styleGuidesOverlay.Visible && _pending.Count == pendingBefore);
+
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);
     }

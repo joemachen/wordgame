@@ -181,6 +181,9 @@ public partial class Main : Control
         _shopContent.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _shopArea.AddChild(_shopContent);
         content.AddChild(_shopArea);
+
+        _styleGuidesOverlay = BuildStyleGuidesOverlay();
+        AddChild(_styleGuidesOverlay);
     }
 
     private Control BuildSidebar()
@@ -249,6 +252,9 @@ public partial class Main : Control
         var newRun = UiKit.MakeButton("New run", UiKit.PanelRaised, 14);
         newRun.Pressed += () => NewRun((ulong)Time.GetTicksUsec());
         footer.AddChild(newRun);
+        var guides = UiKit.MakeButton("Style Guides  Tab", UiKit.PanelRaised, 14);
+        guides.Pressed += ToggleStyleGuides;
+        footer.AddChild(guides);
         box.AddChild(footer);
         return panel;
     }
@@ -277,6 +283,9 @@ public partial class Main : Control
         {
             RefreshShopArea();
         }
+
+        if (_styleGuidesOverlay.Visible)
+            RefreshStyleGuides();
     }
 
     private void RefreshSidebar()

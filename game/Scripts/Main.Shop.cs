@@ -66,7 +66,7 @@ public partial class Main
         var tiers = _session.Scoring.Tiers;
         string tierText = string.Join("     ", tiers.Select((t, i) =>
             $"{t.Label(i == tiers.Length - 1)} Lv{Run.TierUpgrades.GetValueOrDefault(t.MinLength) + 1}: {t.BaseChips}×{t.BaseMult:0.##}"));
-        _shopContent.AddChild(UiKit.MakeLabel($"Word tiers   {tierText}", 14, UiKit.TextMuted, wrap: true));
+        _shopContent.AddChild(UiKit.MakeLabel($"Word tiers   {tierText}     · Tab: Style Guides", 14, UiKit.TextMuted, wrap: true));
         _shopContent.AddChild(UiKit.MakeLabel(DeckSummary(), 14, UiKit.TextMuted, wrap: true));
     }
 

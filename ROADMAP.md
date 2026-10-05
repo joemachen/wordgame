@@ -109,7 +109,8 @@ Balatro's Tarot cards). Needs new state (slots in `RunState`), shop offers, use 
 ### Style Guides (word-tier upgrades)
 
 ✅ Implemented: each Style Guide permanently levels one word-length tier (`StyleGuideOffer`,
-`RunState.TierUpgrades`), and each tier has a named guide (`StyleGuideNames`):
+`RunState.TierUpgrades`), and each tier has a named guide (`StyleGuideNames`). The game's Style Guides popup
+(Tab, or the sidebar button) lists every tier's guide, level and current chips × mult:
 
 | Style Guide | Upgrades |
 |---|---|

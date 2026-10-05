@@ -294,6 +294,7 @@ public partial class Main
     private void UpdatePreview()
     {
         _definitionsLabel.Text = "";
+        _previewTier = null;
         if (_pending.Count == 0)
         {
             _chipsLabel.Text = "0";
@@ -315,6 +316,7 @@ public partial class Main
         _multLabel.Text = score.Mult.ToString("0.##");
         SetMessage($"{string.Join(" + ", validation.Value.Words.Select(w => w.Text))}  →  {score.Total:N0} points", UiKit.Good);
         _definitionsLabel.Text = DefinitionsText(validation.Value.Words.Select(w => w.Text));
+        _previewTier = RoundScoring.TierFor(validation.Value.Words.Max(w => w.Text.Length)).MinLength;
     }
 
     /// <summary>One line per distinct word: "[b]GLEY[/b] n. a sticky clay soil" (BBCode).</summary>
@@ -433,7 +435,17 @@ public partial class Main
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_session.Phase != RunPhase.InRound || _animating || @event is not InputEventKey { Pressed: true, Echo: false } key)
+        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+            return;
+
+        // Style Guides popup: Tab toggles it anywhere; while it's open, Esc closes it and nothing else reacts.
+        if (key.Keycode == Key.Tab || (_styleGuidesOverlay.Visible && key.Keycode == Key.Escape))
+        {
+            ToggleStyleGuides();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (_styleGuidesOverlay.Visible || _session.Phase != RunPhase.InRound || _animating)
             return;
 
         switch (key.Keycode)
