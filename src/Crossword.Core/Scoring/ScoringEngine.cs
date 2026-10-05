@@ -23,9 +23,10 @@ public static class ScoringEngine
         public const string Enhancement = "enhancement";
     }
 
-    public static ScoreContext Score(PlayAnalysis play, IReadOnlyList<IDeskItem> deskItemsInSlotOrder, ScoringConfig config)
+    public static ScoreContext Score(PlayAnalysis play, IReadOnlyList<IDeskItem> deskItemsInSlotOrder, ScoringConfig config,
+        ScoreEnvironment? environment = null)
     {
-        var context = ApplyTier(play, config);
+        var context = ApplyTier(play, config) with { Env = environment ?? ScoreEnvironment.Empty };
         context = play.Words.Aggregate(context, (ctx, word) => ApplyWord(ctx, word, config));
         context = play.Words.Aggregate(context, (ctx, word) => ApplyEnhancements(ctx, word, config));
         context = ApplyIntersections(context, config);

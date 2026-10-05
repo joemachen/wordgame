@@ -1,3 +1,5 @@
+using Crossword.Core.Rules;
+
 namespace Crossword.Core.Effects;
 
 public enum DeskItemRarity
@@ -25,4 +27,10 @@ public interface IDeskItem
     DeskItemRarity Rarity => DeskItemRarity.Common;
 
     ScoreContext Apply(ScoreContext context);
+
+    /// <summary>Called after every submitted play. Scaling items return an updated copy; others return themselves.</summary>
+    IDeskItem AfterPlay(PlayAnalysis play) => this;
+
+    /// <summary>Called when a round is won (<paramref name="wasBoss"/> for Sunday Editions).</summary>
+    IDeskItem AfterRoundWon(bool wasBoss) => this;
 }

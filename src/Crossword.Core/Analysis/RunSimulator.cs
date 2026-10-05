@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
+using Crossword.Core.Rules;
 using Crossword.Core.Run;
 
 namespace Crossword.Core.Analysis;
@@ -58,7 +59,8 @@ public static class RunSimulator
         {
             var round = session.Round;
             var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, session.Run.DeskItems,
-                round.Config.EffectiveScoring(session.Scoring), round.Config.MinWordLength);
+                round.Config.EffectiveScoring(session.Scoring), round.Config.MinWordLength,
+                RoundRules.Environment(round, session.Run.Money));
 
             if (ranked.Count == 0)
             {

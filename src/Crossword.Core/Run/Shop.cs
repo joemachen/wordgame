@@ -22,7 +22,10 @@ public sealed record ShopConfig(
     int MinDeckSize = 30,
     int EnhancedTilePercent = 35,
     int StyleGuideOffers = 1,
-    int StyleGuidePrice = 3)
+    int StyleGuidePrice = 3,
+    int CommonWeight = 60,
+    int UncommonWeight = 30,
+    int RareWeight = 10)
 {
     public static ShopConfig Default { get; } = new();
 

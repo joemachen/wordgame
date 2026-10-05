@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
+using Crossword.Core.Effects;
 using Crossword.Core.Random;
 
 namespace Crossword.Core.Run;
@@ -118,9 +119,16 @@ public static class ShopRules
         var offers = ImmutableArray.CreateBuilder<ShopOffer?>();
 
         var unowned = DeskItemCatalog.All.Where(item => run.DeskItems.All(owned => owned.Id != item.Id)).ToList();
-        (var shuffled, rng) = rng.Shuffle(unowned);
-        foreach (var item in shuffled.Take(config.DeskItemOffers))
-            offers.Add(new DeskItemOffer(item, config.PriceOf(item)));
+        for (int i = 0; i < config.DeskItemOffers && unowned.Count > 0; i++)
+        {
+            (var rarity, rng) = RollRarity(config, rng);
+            var pool = unowned.Where(item => item.Rarity == rarity).ToList();
+            if (pool.Count == 0)
+                pool = unowned;
+            (int pick, rng) = rng.NextInt(pool.Count);
+            offers.Add(new DeskItemOffer(pool[pick], config.PriceOf(pool[pick])));
+            unowned.Remove(pool[pick]);
+        }
 
         var letterPool = StartingDeck.Create();
         for (int i = 0; i < config.EditOffers; i++)
@@ -157,6 +165,15 @@ public static class ShopRules
         }
 
         return (offers.ToImmutable(), rng);
+    }
+
+    private static (DeskItemRarity, Rng) RollRarity(ShopConfig config, Rng rng)
+    {
+        var (roll, next) = rng.NextInt(config.CommonWeight + config.UncommonWeight + config.RareWeight);
+        var rarity = roll < config.CommonWeight ? DeskItemRarity.Common
+            : roll < config.CommonWeight + config.UncommonWeight ? DeskItemRarity.Uncommon
+            : DeskItemRarity.Rare;
+        return (rarity, next);
     }
 
     private static (TileEnhancement, Rng) PickEnhancement(Rng rng)

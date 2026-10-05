@@ -14,6 +14,18 @@ public static class DeskItemCatalog
         new CrossReference(),
         new Broadsheet(),
         new RareInk(),
+        new MarginNotes(),
+        new VowelSound(),
+        new ShortStory(),
+        new GridLock(),
+        new SavingsBond(),
+        new WordCount(),
+        new DeadlineRush(),
+        new PremiumStock(),
+        new Syndication(),
+        new Archive(),
+        new EditorInChief(),
+        new Pulitzer(),
     ];
 
     public static IDeskItem? Find(string id) =>

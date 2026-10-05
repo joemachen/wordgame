@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
 using Crossword.Core.Random;
@@ -34,7 +35,7 @@ public static class RunRules
         if (session.Phase != RunPhase.InRound)
             return Result<SessionOutcome, RoundError>.Fail(new RoundError.RoundOver(session.Round.Status));
 
-        var result = RoundRules.Submit(session.Round, placed, lexicon, session.Run.DeskItems, session.Scoring);
+        var result = RoundRules.Submit(session.Round, placed, lexicon, session.Run.DeskItems, session.Scoring, session.Run.Money);
         if (!result.IsOk)
             return Result<SessionOutcome, RoundError>.Fail(result.Error);
 
@@ -42,7 +43,11 @@ public static class RunRules
         var next = session with
         {
             Round = round,
-            Run = session.Run with { Money = session.Run.Money + score.Money },
+            Run = session.Run with
+            {
+                Money = session.Run.Money + score.Money,
+                DeskItems = session.Run.DeskItems.Select(item => item.AfterPlay(score.Play)).ToImmutableArray(),
+            },
         };
         return Result<SessionOutcome, RoundError>.Ok(new SessionOutcome(Settle(next), score));
     }
@@ -90,7 +95,11 @@ public static class RunRules
                 var payout = Economy.Calculate(session.Config.Economy, session.Kind, session.Round, session.Run.Money);
                 var paid = session with
                 {
-                    Run = session.Run with { Money = session.Run.Money + payout.Total },
+                    Run = session.Run with
+                    {
+                        Money = session.Run.Money + payout.Total,
+                        DeskItems = session.Run.DeskItems.Select(item => item.AfterRoundWon(session.Kind.IsBoss)).ToImmutableArray(),
+                    },
                     LastPayout = payout,
                 };
                 return session.Config.IsFinalRound(session.Run.RoundIndex)

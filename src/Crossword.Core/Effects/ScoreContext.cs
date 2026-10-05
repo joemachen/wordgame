@@ -3,6 +3,13 @@ using Crossword.Core.Rules;
 
 namespace Crossword.Core.Effects;
 
+/// <summary>Read-only facts about the run at the moment of a play, for items that react to resources.</summary>
+/// <param name="SubmissionsLeft">Submissions left including the one being played (1 = final submission).</param>
+public sealed record ScoreEnvironment(int MoneyHeld, int SubmissionsLeft, int DiscardsLeft)
+{
+    public static ScoreEnvironment Empty { get; } = new(0, 0, 0);
+}
+
 /// <summary>
 /// Running Chips × Mult for a single play, threaded through scoring steps and Desk Items.
 /// <see cref="Play"/> gives effects read access to the words, tiles, and board of the play.
@@ -11,6 +18,8 @@ public sealed record ScoreContext(long Chips, decimal Mult, PlayAnalysis Play, I
 {
     public static ScoreContext Start(PlayAnalysis play, long chips = 0, decimal mult = 0) =>
         new(chips, mult, play, ImmutableList<EffectEvent>.Empty);
+
+    public ScoreEnvironment Env { get; init; } = ScoreEnvironment.Empty;
 
     /// <summary>Money earned during this play (e.g. Gilded tiles); paid into the run immediately.</summary>
     public int Money { get; init; }

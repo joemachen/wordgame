@@ -82,7 +82,8 @@ public static class RoundRules
         IReadOnlyList<PlacedTile> placed,
         IWordGraph lexicon,
         IReadOnlyList<IDeskItem> deskItems,
-        ScoringConfig scoring)
+        ScoringConfig scoring,
+        int moneyHeld = 0)
     {
         if (state.Status != RoundStatus.InProgress)
             return Result<SubmitOutcome, RoundError>.Fail(new RoundError.RoundOver(state.Status));
@@ -92,7 +93,7 @@ public static class RoundRules
             return Result<SubmitOutcome, RoundError>.Fail(new RoundError.InvalidPlacement(validation.Error));
 
         var play = validation.Value;
-        var score = ScoringEngine.Score(play, deskItems, state.Config.EffectiveScoring(scoring));
+        var score = ScoringEngine.Score(play, deskItems, state.Config.EffectiveScoring(scoring), Environment(state, moneyHeld));
         var next = state with
         {
             Board = play.BoardAfter,
@@ -123,6 +124,10 @@ public static class RoundRules
         };
         return Result<RoundState, RoundError>.Ok(Settle(DrawRules.DrawToHandSize(next), lexicon));
     }
+
+    /// <summary>What Desk Items can see about the round when the next play is scored.</summary>
+    public static ScoreEnvironment Environment(RoundState state, int moneyHeld) =>
+        new(moneyHeld, state.SubmissionsLeft, state.DiscardsLeft);
 
     /// <summary>True if the current hand has at least one legal play on the current board.</summary>
     public static bool HasLegalPlay(RoundState state, IWordGraph lexicon) =>

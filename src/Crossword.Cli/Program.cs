@@ -294,7 +294,7 @@ public static class Program
             return;
 
         var ranked = MoveRanker.Rank(Round.Board, Round.Hand, _lexicon, Run.DeskItems,
-            Round.Config.EffectiveScoring(_session.Scoring), Round.Config.MinWordLength);
+            Round.Config.EffectiveScoring(_session.Scoring), Round.Config.MinWordLength, RoundRules.Environment(Round, Run.Money));
         if (ranked.Count == 0)
         {
             Console.WriteLine("No legal plays with this hand.");
