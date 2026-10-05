@@ -168,7 +168,7 @@ Each phase builds on the ones before it. Core features come with unit tests and 
 
 | Phase | Work | Depends on |
 |---|---|---|
-| **0** | Retune week targets against the evaluating shop bot (it wins ~97% at skill 0.9 with the current targets). *Waiting on user approval.* | — |
+| **0** ✅ | Retune week targets against the evaluating shop bot → 225/800/2400/6500/16000 (skill 0.9 wins ~39%) | — |
 | **1** | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` | — |
 | **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
 | **3** | Stationery consumable system (state, shop, actions, UI) | — |

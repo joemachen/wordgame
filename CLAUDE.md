@@ -13,7 +13,7 @@ Balatro-style crossword roguelike deckbuilder (working title "wordgame"). Target
 4. Every new Desk Item or mechanics feature MUST include unit tests in `tests/Crossword.Tests`.
 
 ## Run Structure (implemented)
-- **5 Weeks × 3 rounds:** Daily (target ×1, $3) → Saturday Stumper (×1.3, $4) → **Sunday Edition** boss (×1.6, $5 + a `BossModifier`). Week targets 150/400/900/1900/3800 (`RunConfig.Default`); endless mode after victory (×2/week).
+- **5 Weeks × 3 rounds:** Daily (target ×1, $3) → Saturday Stumper (×1.3, $4) → **Sunday Edition** boss (×1.6, $5 + a `BossModifier`). Week targets 225/800/2400/6500/16000 (`RunConfig.Default`); endless mode after victory (×2/week).
 - **Bosses** (`Core/Run/BossModifiers.cs`): Black Squares (6 symmetric blocked cells), Pocket Edition (5×5), Strict Editor (3+ letter words), Vowel Tax (vowels −1 chip), Tight Deadline (3 submissions). Play totals are clamped at 0. The week's boss is derived from seed + week (no RNG consumed) so it can be previewed.
 - **Economy:** start $4; paycheck = base + $1/unused submission + overkill ($1 per full 50% over target, cap 3) + interest ($1 per $5 held, cap 5). Gilded tiles pay during play.
 - **Shop** (after each won round): 2 Desk Items (rarity rolled 60/30/10: Common $4 / Uncommon $6 / Rare $8, sell for half), 2 deck edits (add tile, enhance a chosen tile, strike up to 2 tiles; deck min 30), 1 **Style Guide** ($3: permanently levels a word tier, +`LevelChips`/+`LevelMult`, stored in `RunState.TierUpgrades`), reroll $5 +$1 each.
@@ -41,9 +41,9 @@ All numbers live in `ScoringConfig` / `RoundConfig` / `PremiumPairs` / Desk Item
 - `RoundSimulator` (Core/Analysis) plays rounds automatically; `skill` 1.0 = greedy best play (upper bound), 0.9 ≈ strong human proxy.
 - CLI `sim [rounds]` prints per-submission score distribution, intersection rate and submissions-to-target; `hint [n]` lists best plays.
 - `RunSimulator` plays whole runs; CLI `runsim [runs] [skill] [naive]` reports victory %, week reached, unspent money and what killed runs. Default shop bot is `EvaluatingShopBot` (`Core/Analysis/ShopBot.cs`): it records recent decisions (trimmed candidate plays) and values each purchase by re-scoring them with the resulting loadout — every slot position, replacements when full, Style Guides, scaling items projected to mid-run, money effects as reduced price. Thresholds in `ShopBotConfig`. `NaiveShopBot` (priciest item first) kept for comparison.
-- Current numbers (100 runs, current targets): evaluating bot wins ~97% / 83% / 59% at skill 0.9 / 0.8 / 0.7; naive bot ~42% / 29% / 15%. Targets were tuned against the naive bot and are too soft for good shopping — retune pending user decision.
+- Current numbers (150 runs, current targets, tuned against the evaluating bot): wins ~39% / 14% / 3% at skill 0.9 / 0.8 / 0.7 (naive bot ~2% at 0.9). Losses at 0.9 ramp by week (9/12/19/21/30 of 150). The skill gap is now wide (0.9→0.8 ≈ 25 pts) and early weeks punish weaker players (skill 0.7 loses in Week 1 ~65%) — a deliberate choice, revisit after playtests.
 - Findings: shop decisions dominate outcomes; Pulitzer, Margin Notes and Word Count end up in >90% of skill-0.9 evaluating runs; deck edits never pay off for the bot (buying them at any estimated gain lowered win rate). Retune targets with `runsim` whenever scaling content changes.
-- Current tuning rationale: tier Mult 1,1,2,2,3,3 + 3 Mult per intersection so grid-building beats isolated long words; round 1 target 300 (~90% clear rate at skill 0.9); starter items ~+35–55% alone.
+- Current tuning rationale: tier Mult 1,1,2,2,3,3 + 3 Mult per intersection so grid-building beats isolated long words; starter items ~+35–55% alone.
 - Unit tests must pin their own numbers (explicit config / constructor args) so retuning defaults never breaks them.
 
 ## Layout
