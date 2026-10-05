@@ -13,7 +13,8 @@ public sealed record RunState(
     Rng Rng,
     ImmutableArray<Tile> Deck,
     ImmutableArray<IDeskItem> DeskItems,
-    int RoundIndex)
+    int RoundIndex,
+    int Money = 0)
 {
     public static RunState New(ulong seed) => new(
         Seed: seed,

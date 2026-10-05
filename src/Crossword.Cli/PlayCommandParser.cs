@@ -79,6 +79,25 @@ public static class PlayCommandParser
             : Result<IReadOnlyList<PlacedTile>, string>.Ok(placed);
     }
 
+    /// <summary>
+    /// Selects deck tiles by letters for shop edits, e.g. "QV". Plain tiles are preferred so an enhanced tile
+    /// is only picked when it's the only one of that letter left.
+    /// </summary>
+    public static Result<IReadOnlyList<int>, string> ResolveDeckTiles(IReadOnlyList<Tile> deck, string letters)
+    {
+        var available = deck.OrderBy(t => t.Enhancement == TileEnhancement.None ? 0 : 1).ToList();
+        var ids = new List<int>();
+        foreach (char raw in letters.ToUpperInvariant())
+        {
+            var tile = available.FirstOrDefault(t => t.Letter.Char == raw);
+            if (tile is null)
+                return Result<IReadOnlyList<int>, string>.Fail($"No '{raw}' tile left in your deck.");
+            available.Remove(tile);
+            ids.Add(tile.Id);
+        }
+        return Result<IReadOnlyList<int>, string>.Ok(ids);
+    }
+
     /// <summary>Selects hand tiles by letters, e.g. "QXE" (repeat a letter to pick duplicates).</summary>
     public static Result<IReadOnlyList<int>, string> ResolveDiscard(Hand hand, string letters)
     {

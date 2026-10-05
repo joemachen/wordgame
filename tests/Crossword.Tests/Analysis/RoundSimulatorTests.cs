@@ -2,6 +2,7 @@ using Crossword.Core.Analysis;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
 using Crossword.Core.Lexicon;
+using Crossword.Core.Run;
 using Crossword.Core.Scoring;
 
 namespace Crossword.Tests.Analysis;
@@ -9,7 +10,7 @@ namespace Crossword.Tests.Analysis;
 public class RoundSimulatorTests
 {
     private static SimulatedRound Play(ulong seed, double skill = 1.0) =>
-        RoundSimulator.PlayRound(seed, RoundConfig.ForRound(0), LexiconLoader.Enable, Array.Empty<IDeskItem>(), ScoringConfig.Default, skill);
+        RoundSimulator.PlayRound(seed, RunConfig.Default.RoundConfigFor(0), LexiconLoader.Enable, Array.Empty<IDeskItem>(), ScoringConfig.Default, skill);
 
     [Fact]
     public void PlayRound_UsesEverySubmission_AndIsDeterministic()
@@ -17,7 +18,7 @@ public class RoundSimulatorTests
         var a = Play(3);
         var b = Play(3);
 
-        Assert.Equal(RoundConfig.ForRound(0).Submissions, a.Plays.Length);
+        Assert.Equal(RunConfig.Default.RoundConfigFor(0).Submissions, a.Plays.Length);
         Assert.Equal(a.FinalScore, b.FinalScore);
         Assert.Equal(a.Plays.Sum(p => p.Score), a.FinalScore);
     }

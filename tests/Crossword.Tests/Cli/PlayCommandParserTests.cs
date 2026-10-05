@@ -85,4 +85,14 @@ public class PlayCommandParserTests
         Assert.Equal([0, 1], PlayCommandParser.ResolveDiscard(hand, "ee").Value);
         Assert.False(PlayCommandParser.ResolveDiscard(hand, "EEE").IsOk);
     }
+
+    [Fact]
+    public void ResolveDeckTiles_PrefersPlainTiles()
+    {
+        Tile[] deck = [new(0, Letter.From('E'), TileEnhancement.Bold), new(1, Letter.From('E')), new(2, Letter.From('Q'))];
+
+        Assert.Equal([1, 2], PlayCommandParser.ResolveDeckTiles(deck, "eq").Value);
+        Assert.Equal([1, 0], PlayCommandParser.ResolveDeckTiles(deck, "EE").Value);
+        Assert.False(PlayCommandParser.ResolveDeckTiles(deck, "Z").IsOk);
+    }
 }

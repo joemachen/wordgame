@@ -53,6 +53,7 @@ public sealed record CrossReference(int MinIntersections = 2, decimal Factor = 2
 {
     public string Id => "cross-reference";
     public string Name => "Cross-Reference";
+    public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"×{Factor} Mult if the play has {MinIntersections}+ intersections.";
 
     public ScoreContext Apply(ScoreContext c) =>
@@ -66,6 +67,7 @@ public sealed record Broadsheet(int MinLength = 5, decimal Factor = 2) : IDeskIt
 {
     public string Id => "broadsheet";
     public string Name => "Broadsheet";
+    public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"×{Factor} Mult if the longest word has {MinLength}+ letters.";
 
     public ScoreContext Apply(ScoreContext c) =>

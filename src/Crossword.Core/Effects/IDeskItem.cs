@@ -1,5 +1,12 @@
 namespace Crossword.Core.Effects;
 
+public enum DeskItemRarity
+{
+    Common,
+    Uncommon,
+    Rare,
+}
+
 /// <summary>
 /// A Desk Item (Balatro "Joker" equivalent). Implementations MUST be pure:
 /// no mutation, no I/O, no hidden randomness. Log each firing via <see cref="ScoreContext.Record"/>;
@@ -13,6 +20,9 @@ public interface IDeskItem
 
     /// <summary>Player-facing rules text.</summary>
     string Description { get; }
+
+    /// <summary>Sets the shop price (see ShopConfig).</summary>
+    DeskItemRarity Rarity => DeskItemRarity.Common;
 
     ScoreContext Apply(ScoreContext context);
 }

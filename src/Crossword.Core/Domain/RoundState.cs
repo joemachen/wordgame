@@ -20,13 +20,6 @@ public sealed record RoundConfig(
 
     /// <summary>The scoring rules in effect this round (the boss may alter them).</summary>
     public ScoringConfig EffectiveScoring(ScoringConfig scoring) => Boss?.ModifyScoring(scoring) ?? scoring;
-
-    /// <summary>
-    /// Round 1 target 300: in simulation a strong player (skill 0.9) clears it ~90% of the time; skill 0.8 about half.
-    /// Growth of 50% per round is a PLACEHOLDER until Desk Items / shop provide scaling.
-    /// </summary>
-    public static RoundConfig ForRound(int roundIndex) =>
-        new(TargetScore: (long)(300 * Math.Pow(1.5, roundIndex)));
 }
 
 public enum RoundStatus

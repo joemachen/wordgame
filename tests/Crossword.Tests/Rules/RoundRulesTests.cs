@@ -4,6 +4,7 @@ using Crossword.Core.Effects;
 using Crossword.Core.Lexicon;
 using Crossword.Core.Random;
 using Crossword.Core.Rules;
+using Crossword.Core.Run;
 using Crossword.Core.Scoring;
 using static Crossword.Tests.TestSupport.Fixtures;
 
@@ -31,7 +32,7 @@ public class RoundRulesTests
     {
         var run = RunState.New(seed: 7);
 
-        var (round, nextRun) = RoundRules.Start(run, RoundConfig.ForRound(0), LexiconLoader.Enable);
+        var (round, nextRun) = RoundRules.Start(run, RunConfig.Default.RoundConfigFor(0), LexiconLoader.Enable);
 
         Assert.Equal(7, round.Board.Size);
         Assert.True(round.Board.IsEmpty);
@@ -44,9 +45,9 @@ public class RoundRulesTests
     [Fact]
     public void Start_IsDeterministicPerSeed()
     {
-        var (a, _) = RoundRules.Start(RunState.New(42), RoundConfig.ForRound(0), LexiconLoader.Enable);
-        var (b, _) = RoundRules.Start(RunState.New(42), RoundConfig.ForRound(0), LexiconLoader.Enable);
-        var (c, _) = RoundRules.Start(RunState.New(43), RoundConfig.ForRound(0), LexiconLoader.Enable);
+        var (a, _) = RoundRules.Start(RunState.New(42), RunConfig.Default.RoundConfigFor(0), LexiconLoader.Enable);
+        var (b, _) = RoundRules.Start(RunState.New(42), RunConfig.Default.RoundConfigFor(0), LexiconLoader.Enable);
+        var (c, _) = RoundRules.Start(RunState.New(43), RunConfig.Default.RoundConfigFor(0), LexiconLoader.Enable);
 
         Assert.Equal(a.Hand.Tiles.Select(t => t.Id), b.Hand.Tiles.Select(t => t.Id));
         Assert.Equal(a.Board.Premiums, b.Board.Premiums);
@@ -150,7 +151,7 @@ public class RoundRulesTests
     {
         static RoundState Replay()
         {
-            var (round, _) = RoundRules.Start(RunState.New(99), RoundConfig.ForRound(0), LexiconLoader.Enable);
+            var (round, _) = RoundRules.Start(RunState.New(99), RunConfig.Default.RoundConfigFor(0), LexiconLoader.Enable);
             return RoundRules.Discard(round, round.Hand.Tiles.Take(3).Select(t => t.Id).ToArray(), LexiconLoader.Enable).Value;
         }
 
