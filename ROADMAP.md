@@ -216,7 +216,7 @@ modes cheap to build on the core.
 
 | Feature | Design (*proposed*) | Status |
 |---|---|---|
-| **In-run save & resume** | Save on exit, resume on launch: board, hand, bag order, deck, Desk Items (with scaling state), shop offers and every RNG state. All state is immutable records, so this is mostly serialization: `System.Text.Json` (in the BCL, so Core rules allow it) with a **type discriminator** for polymorphic Desk Items/bosses/offers, plus a save **version number** for migrations. Hand arrangement is UI-only today; save it alongside. | 🟡 |
+| **In-run save & resume** | Save on exit, resume on launch: board, hand, bag order, deck, Desk Items (with scaling state), shop offers and every RNG state. All state is immutable records, so this is mostly serialization: `System.Text.Json` (in the BCL, so Core rules allow it) with a **type discriminator** for polymorphic Desk Items/bosses/offers, plus a save **version number** for migrations. Hand arrangement is UI-only today; save it alongside. | ✅ `Core/Save/RunSaveJson` + `RunSaveStore` (`user://saves/<profile>.json`), saved after every change and on close, auto-resumed on launch. The config isn't stored (resumed runs use current tuning). No migrations yet: other versions are rejected. |
 | **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | ✅ profile + player stats (`Core/Profile`, `user://profiles/<name>.json`, Stats popup: per-length word counts, top/bottom 5, newest 10, runs/wins/best play) · 🟡 unlocks, profile picker |
 | **Vocabulary grading** | Grade the player's vocabulary and estimate its size from the words they use (e.g. by how rare each word is). Needs a word-frequency list with a license we can ship (check before use; Wiktionary-derived lists are CC BY-SA). | 🟡 |
 
@@ -244,7 +244,7 @@ tests and a `runsim` balance check.
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** ✅ | 5 new Desk Items (Etymology Tome, Rubber Stamp, Printing Press Roller, Tile Rack, Coffee Stain) + Redundant Copy and The Puzzle Master. Later: Magnifying Glass, Brass Paperclip (deferred, see §3) | 1 |
 | **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
-| **4** | In-run save/resume → profile & unlock tracking (§9) | — |
+| **4** 🟡 | In-run save/resume ✅ → profile & unlock tracking (§9) | — |
 | **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |
 | **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
 | **Wild tiles** ✅ | Play as any letter (chosen when placed), 0 letter chips. 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5), Fountain Pen Stationery. Bots don't buy the wild offers or the Fountain Pen yet. | done 2026-10-05 |

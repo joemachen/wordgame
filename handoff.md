@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `9cb2d1c` (code) · 394 unit tests passing · UI self-test 41/41 passing_
+_Last updated: 2026-10-05 · HEAD `29a50ef` (code) · 409 unit tests passing · UI self-test 45/45 passing_
 
 ---
 
@@ -28,6 +28,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`. The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
+| Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and **auto-resumed on launch** ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. Sidebar New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -61,6 +62,11 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   the Grammarian), drawn in `BossFor` from the preview's stream. **Coffee Stain** stains one *mirrored pair* (keeps the
   grid symmetric). Claude's calls: Rubber Stamp = ×2 Mult on the round's first play (slot order applies, like every
   ×Mult item); `--give` now applies before the first round (so round hooks work at once); new `--week=N` dev flag.
+- **Save & resume** (user's choices, 2026-10-05): **auto-resume** on launch (over a Continue/New prompt) with a
+  two-click New run; the save **doesn't store `RunConfig`**, so a resumed run picks up new tuning (the round in progress
+  keeps its snapshot). Claude's calls: reflection-based JSON over the records with id-tagged Desk Items/Stationery/bosses
+  (no per-type DTOs), version must match exactly (no migrations until a release needs them), a committed fixture save as
+  the rename tripwire, pending (unsubmitted) tiles aren't saved (resume = Recall), saves are per profile.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Current balance snapshot (after Phase 2 content, 2026-10-05)
@@ -174,10 +180,12 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
    deck edits not worth buying. The bot values items by the *best* play per decision (strong-shopper view), not
    the play its skill level would pick. Stationery is bought at fixed per-item gains (`ShopBotConfig.StationeryGain`),
    not by re-scoring, and its in-round use is rule-based (`StationeryBot`) — a floor on what a human gets from it.
-3. **No save/load.** State is immutable records, so it's mostly serialization (Desk Items are polymorphic records — needs a type discriminator).
+3. ~~No save/load~~ ✅ (save & resume, see §2/§3). Saves have no migrations: any change to `RunSaveJson.CurrentVersion`
+   discards players' runs — add a migration before the first external playtest build changes the format. Known quirk:
+   after "Keep going (endless)" the run end is already recorded, so a later endless loss isn't counted in stats.
 4. **UI is first-pass:** no art, sound, or settings (no reduced-motion option for the shake/confetti yet). Animations: scoring ring-up, NEW-tile pop-in, hand-reorder slide. Hand drag confirmed good by the user with a real mouse. The art direction (`art/art-direction.jpg`) is the target for the visual overhaul.
 5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping (the same pass should cover definitions; WordNet glosses include crude senses). "Q without U" is a dead tile (consider a "Qu" tile).
-6. **Hand arrangement is UI-only** (not saved); fine until save/load exists.
+6. **Hand arrangement is UI-only** but saved with the run (pending tiles are not).
 7. **~38% of ENABLE has no definition** (mostly obscure words, e.g. GLEY, the user's own example; 2–5-letter words ~73% covered, every 2-letter word covered). Options if it matters: extend `supplement.txt` for words that come up often, or add a second source after a license check (Wiktionary is CC BY-SA).
 8. **The CLI has no Stationery commands** (dev `give` only covers Desk Items); the game UI is the only way to use it.
 9. **Player profile is one file per name, no picker yet** (`--profile=name`); stats aren't shown in the CLI. Vocabulary grading not started.
@@ -194,7 +202,9 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
-0. **Playtest the current build** (fairer hands, wild tiles, richer economy, targets 510/…/23920): do hands feel playable, does money still feel tight, is the difficulty right? Also: does the ring-up escalate nicely (thresholds in `Juice.cs`: Big ≥25% / Huge ≥60% of the deadline; the stamp fires whenever one play clears the deadline, which is common in Week 1)? Is the week progress clear? Next for stats: vocabulary grading (find + license-check a frequency list), a profile picker, more fun stats.
+0. **Playtest save & resume:** play a submission, close the window, relaunch — the run should come back exactly
+   (board, hand order, Desk Items, money). Also the shop and the victory screen.
+0b. **Playtest the current build** (fairer hands, wild tiles, richer economy, targets 510/…/23920): do hands feel playable, does money still feel tight, is the difficulty right? Also: does the ring-up escalate nicely (thresholds in `Juice.cs`: Big ≥25% / Huge ≥60% of the deadline; the stamp fires whenever one play clears the deadline, which is common in Week 1)? Is the week progress clear? Next for stats: vocabulary grading (find + license-check a frequency list), a profile picker, more fun stats.
 1. **Stationery balance:** Margin Clip raised to $6 (done). If it still dominates in playtests, give it a cost
    (e.g. −1 discard) or make it rarer — price alone stops working above ~$5. The others may need buffs (e.g. Red Ink +5,
    Answer Key $2) — check in playtests, since the bot's use is rule-based. Re-measure with the scratch harness (§7).
@@ -203,13 +213,14 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
    are wanted, try 5 submissions per round with higher targets (targets alone plateau at ~2.5 plays).
 3. ~~ROADMAP phase 2~~ ✅ done (5 items + 2 bosses, see §3/§4). Left from it: Magnifying Glass (rework to "letters left in
    the bag"?) and Brass Paperclip (keep-tiles picker). Remaining Stationery (Highlighter, Correction Tape) can come later
-   on the same targeting system. Next core phase: **4 — save/resume** (ROADMAP §11); cheap parallel track: CI pipeline.
+   on the same targeting system. Phase 4 save/resume ✅; next core work: **profile & unlock tracking** (rest of phase 4), then phase 5 (starting decks,
+   dictionaries + denylist, Press Run stakes). Cheap parallel tracks: CI pipeline, seed entry box, CLI `save`/`load`.
 3b. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
    open-license fonts, legible premium labels, Desk Items as physical objects (needs commissioned/CC0 art), then
    re-enable the clue columns as quiet background.
 4. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;
    make deck edits worth buying.
-5. Save/load (resume a run) — prerequisite for meta-progression.
+5. ~~Save/load~~ ✅ — next: profile picker + unlocks (meta-progression).
 6. UI polish: tile placement/score animations, sound, juice; deck viewer; tooltips for Desk Items/bosses.
 
 ## 7. How to work in this repo (practical tips learned the hard way)
@@ -251,6 +262,9 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+29a50ef Save the run after every move and resume it on launch
+293af88 Serialize a run in progress to JSON for save/resume
+f5caf34 Document Phase 2: roadmap, rules, balance snapshot and handoff
 9cb2d1c Let balance harnesses limit the shop's Desk Item pool
 e3ee7c9 Add the Redundant Copy and The Puzzle Master bosses
 af15c90 Add Tile Rack and Coffee Stain with a round-start Desk Item hook
