@@ -44,6 +44,7 @@ public static class PremiumLayout
 
     /// <summary>
     /// Seeded, rotationally symmetric blocked cells ("black squares"), placed only on cells without premiums.
+    /// Asking for more pairs than fit (e.g. Ink Spill plus Coffee Stain on a 5×5 board) blocks every free pair.
     /// </summary>
     public static (ImmutableHashSet<Position> Blocked, Rng Next) GenerateBlocked(
         int size, int pairs, ImmutableArray<Premium> premiums, Rng rng)
@@ -52,9 +53,6 @@ public static class PremiumLayout
         var candidates = Enumerable.Range(0, cellCount)
             .Where(i => i < cellCount - 1 - i && premiums[i] == Premium.None && premiums[cellCount - 1 - i] == Premium.None)
             .ToList();
-        if (pairs > candidates.Count)
-            throw new ArgumentException($"Only {candidates.Count} blocked pairs fit on this board.", nameof(pairs));
-
         var (shuffled, next) = rng.Shuffle(candidates);
         var blocked = ImmutableHashSet.CreateBuilder<Position>();
         foreach (int index in shuffled.Take(pairs))

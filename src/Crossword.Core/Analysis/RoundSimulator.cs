@@ -27,7 +27,7 @@ public static class RoundSimulator
         if (skill is <= 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(skill), skill, "Skill must be in (0, 1].");
 
-        var uncapped = config with { TargetScore = long.MaxValue };
+        var uncapped = deskItems.Aggregate(config, (c, item) => item.ModifyRound(c)) with { TargetScore = long.MaxValue };
         var (round, _) = RoundRules.Start(RunState.New(seed), uncapped, lexicon);
         var plays = ImmutableArray.CreateBuilder<SimulatedPlay>();
         int submission = 0;

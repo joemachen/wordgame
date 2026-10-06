@@ -16,10 +16,12 @@ public static class RunRules
 {
     private const ulong WeekSalt = 0xD1B54A32D192ED03UL;
 
-    public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon)
+    /// <param name="setup">Optional dev/test adjustment of the starting run (e.g. given Desk Items), applied before
+    /// the first round starts so round hooks such as Tile Rack take effect immediately.</param>
+    public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon, Func<RunState, RunState>? setup = null)
     {
         var run = RunState.New(seed) with { Money = config.Economy.StartingMoney, Deck = config.StartingTiles };
-        return StartRound(config, run, lexicon);
+        return StartRound(config, setup?.Invoke(run) ?? run, lexicon);
     }
 
     /// <summary>
@@ -166,7 +168,8 @@ public static class RunRules
     private static GameSession StartRound(RunConfig config, RunState run, IWordGraph lexicon)
     {
         var boss = BossFor(config, run, config.WeekOf(run.RoundIndex));
-        var (round, nextRun) = RoundRules.Start(run, config.RoundConfigFor(run.RoundIndex, boss), lexicon);
+        var roundConfig = run.DeskItems.Aggregate(config.RoundConfigFor(run.RoundIndex, boss), (c, item) => item.ModifyRound(c));
+        var (round, nextRun) = RoundRules.Start(run, roundConfig, lexicon);
         return new GameSession(config, nextRun, RunPhase.InRound, round);
     }
 

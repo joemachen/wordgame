@@ -1,3 +1,4 @@
+using Crossword.Core.Domain;
 using Crossword.Core.Rules;
 
 namespace Crossword.Core.Effects;
@@ -33,4 +34,10 @@ public interface IDeskItem
 
     /// <summary>Called when a round is won (<paramref name="wasBoss"/> for Sunday Editions).</summary>
     IDeskItem AfterRoundWon(bool wasBoss) => this;
+
+    /// <summary>
+    /// Adjusts the rules of each round as it starts (hand size, blocked cells…), after the boss, in slot order.
+    /// Never changes the deadline, so round previews stay accurate.
+    /// </summary>
+    RoundConfig ModifyRound(RoundConfig config) => config;
 }

@@ -24,6 +24,7 @@ public enum ShopStrategy
 /// Stationery is valued like deck edits, by a fixed estimated gain per item (<see cref="StationeryGain"/>), and
 /// used in rounds by <see cref="StationeryBot"/>. Wild tiles too: <see cref="WildTileGain"/> for a new wild tile,
 /// <see cref="WildEditGain"/> for making the deck's most awkward tile wild (<see cref="NaiveShopBot.WildTarget"/>).
+/// <see cref="DeskItemGain"/> adds a fixed gain for Desk Items whose value re-scoring can't see (Tile Rack's bigger hand).
 /// </summary>
 public sealed record ShopBotConfig(
     int CandidatePlays = 20,
@@ -40,7 +41,8 @@ public sealed record ShopBotConfig(
     double StrikeGain = 0,
     IReadOnlyDictionary<string, double>? StationeryGain = null,
     double WildTileGain = 0,
-    double WildEditGain = 0)
+    double WildEditGain = 0,
+    IReadOnlyDictionary<string, double>? DeskItemGain = null)
 {
     /// <summary>
     /// Wild buying is off: measured at ScoreFraction 0.75 (200 paired runs), a wild tile or wild edit at gain 0.05/0.15
@@ -53,6 +55,9 @@ public sealed record ShopBotConfig(
 
     /// <summary>Fixed estimated gain of buying a Stationery item (by id); 0 = never buy it.</summary>
     public double GainOf(Stationery.IStationery item) => StationeryGain?.GetValueOrDefault(item.Id) ?? 0;
+
+    /// <summary>Fixed gain added to a Desk Item's measured value (by id), for effects outside scoring.</summary>
+    public double GainOf(IDeskItem item) => DeskItemGain?.GetValueOrDefault(item.Id) ?? 0;
 }
 
 /// <summary>
@@ -167,7 +172,7 @@ public static class EvaluatingShopBot
                     {
                         int at = pos;
                         var m = evaluator.Measure(run.DeskItems.Insert(pos, desk.Item), run.TierUpgrades);
-                        yield return new Candidate(index, evaluator.Gain(baseline, m),
+                        yield return new Candidate(index, evaluator.Gain(baseline, m) + config.GainOf(desk.Item),
                             offer.Price - evaluator.Earnings(baseline, m), offer.Price,
                             s => BuyItem(s, index, null, at));
                     }
@@ -184,7 +189,8 @@ public static class EvaluatingShopBot
                         {
                             int sold = slot, at = pos;
                             var m = evaluator.Measure(without.Insert(pos, desk.Item), run.TierUpgrades);
-                            yield return new Candidate(index, evaluator.Gain(baseline, m),
+                            double fixedGain = config.GainOf(desk.Item) - config.GainOf(run.DeskItems[sold]);
+                            yield return new Candidate(index, evaluator.Gain(baseline, m) + fixedGain,
                                 offer.Price - sell - evaluator.Earnings(baseline, m), offer.Price - sell,
                                 s => BuyItem(s, index, sold, at));
                         }

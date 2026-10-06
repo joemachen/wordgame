@@ -101,16 +101,9 @@ public partial class Main : Control
         BuildLayout();
 
         ulong seed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : (ulong)Time.GetTicksUsec();
-        NewRun(seed);
+        NewRun(seed, args.TryGetValue("give", out var give) ? run => Give(run, give) : null);
         if (_profile.Notice is { } notice)
             SetMessage(notice, UiKit.Bad);
-
-        if (args.TryGetValue("give", out var give))
-            foreach (var id in give.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                if (Crossword.Core.DeskItems.DeskItemCatalog.Find(id) is { } item && Run.AddDeskItem(item) is { IsOk: true } added)
-                    _session = _session with { Run = added.Value };
-                else if (Crossword.Core.Stationery.StationeryCatalog.Find(id) is { } stationery && Run.AddStationery(stationery) is { IsOk: true } held)
-                    _session = _session with { Run = held.Value };
 
         if (args.TryGetValue("autoplay", out var auto) && int.TryParse(auto, out int steps))
             Autoplay(steps);
@@ -165,9 +158,20 @@ public partial class Main : Control
         }
     }
 
-    private void NewRun(ulong seed)
+    /// <summary>Dev flag --give: adds Desk Items / Stationery (comma-separated ids) before the first round starts.</summary>
+    private static RunState Give(RunState run, string ids)
     {
-        _session = RunRules.NewGame(seed, _config, _lexicon);
+        foreach (var id in ids.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            if (Crossword.Core.DeskItems.DeskItemCatalog.Find(id) is { } item && run.AddDeskItem(item) is { IsOk: true } added)
+                run = added.Value;
+            else if (Crossword.Core.Stationery.StationeryCatalog.Find(id) is { } stationery && run.AddStationery(stationery) is { IsOk: true } held)
+                run = held.Value;
+        return run;
+    }
+
+    private void NewRun(ulong seed, Func<RunState, RunState>? setup = null)
+    {
+        _session = RunRules.NewGame(seed, _config, _lexicon, setup);
         _selected.Clear();
         _pending.Clear();
         _newTileIds.Clear();

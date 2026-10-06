@@ -29,6 +29,8 @@ public static class DeskItemCatalog
         new EtymologyTome(),
         new RubberStamp(),
         new PrintingPressRoller(),
+        new TileRack(),
+        new CoffeeStain(),
     ];
 
     public static IDeskItem? Find(string id) =>

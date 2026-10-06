@@ -1,3 +1,4 @@
+using Crossword.Core.Domain;
 using Crossword.Core.Effects;
 using Crossword.Core.Rules;
 
@@ -46,4 +47,29 @@ public sealed record PrintingPressRoller(int MinWords = 3, decimal Gain = 0.1m, 
 
     public IDeskItem AfterPlay(PlayAnalysis play) =>
         play.Words.Length >= MinWords ? this with { Factor = Factor + Gain } : this;
+}
+
+/// <summary>One more tile in hand every round.</summary>
+public sealed record TileRack(int ExtraTiles = 1) : IDeskItem
+{
+    public string Id => "tile-rack";
+    public string Name => "Tile Rack";
+    public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
+    public string Description => $"+{ExtraTiles} hand size.";
+
+    public ScoreContext Apply(ScoreContext c) => c;
+
+    public RoundConfig ModifyRound(RoundConfig config) => config with { HandSize = config.HandSize + ExtraTiles };
+}
+
+/// <summary>Flat Mult at the cost of a stained (blocked) pair of squares every round.</summary>
+public sealed record CoffeeStain(decimal Mult = 4, int StainedPairs = 1) : IDeskItem
+{
+    public string Id => "coffee-stain";
+    public string Name => "Coffee Stain";
+    public string Description => $"+{Mult} Mult. Stains {StainedPairs * 2} mirrored squares each round (blocked).";
+
+    public ScoreContext Apply(ScoreContext c) => c.AddMult(Mult).Record(Id, $"{Name}: +{Mult} mult");
+
+    public RoundConfig ModifyRound(RoundConfig config) => config with { BlockedPairs = config.BlockedPairs + StainedPairs };
 }
