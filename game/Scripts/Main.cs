@@ -15,7 +15,9 @@ namespace Wordgame.Godot;
 /// Command-line user args (after "--"): --seed=N, --give=id,id (dev: Desk Items or Stationery, e.g. answer-key), --autoplay=N (play N best moves / leave shops),
 /// --hint (pre-place the best play), --dev (the Hint button shows the best play), --screenshot=path.png (save a screenshot after loading and quit),
 /// --selftest (drive the UI with simulated input, print PASS/FAIL, quit), --profile=name (player profile to load/save;
-/// default "Player"). --selftest, --screenshot and --autoplay keep the profile in memory so QA runs never touch stats.
+/// default "Player"), --week=N (dev: start at week N). --selftest, --screenshot and --autoplay keep the profile in memory
+/// so QA runs never touch stats. The run is saved per profile and resumed on launch, except with --seed (a new seeded
+/// run that replaces the save) and QA / dev-setup flags (--give, --week), which never touch the saved run.
 /// </summary>
 public partial class Main : Control
 {
@@ -103,11 +105,19 @@ public partial class Main : Control
         ulong seed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : (ulong)Time.GetTicksUsec();
         int startWeek = args.TryGetValue("week", out var w) && int.TryParse(w, out int week) && week > 1 ? week - 1 : 0;
         args.TryGetValue("give", out var give);
-        NewRun(seed, startWeek > 0 || give is not null
-            ? run => Give(run with { RoundIndex = startWeek * _config.RoundsPerWeek }, give ?? "")
-            : null);
+        bool devSetup = startWeek > 0 || give is not null;
+        // QA and dev-setup runs never touch the saved run; an explicit --seed starts (and saves) a new run.
+        _runSave = qaRun || devSetup ? RunSaveStore.InMemory() : RunSaveStore.ForProfile(profileName);
+        if (!devSetup && !args.ContainsKey("seed") && _runSave.Load(_config) is { } saved)
+            Resume(saved);
+        else
+            NewRun(seed, devSetup
+                ? run => Give(run with { RoundIndex = startWeek * _config.RoundsPerWeek }, give ?? "")
+                : null);
         if (_profile.Notice is { } notice)
             SetMessage(notice, UiKit.Bad);
+        else if (_runSave.Notice is { } saveNotice)
+            SetMessage(saveNotice, UiKit.Bad);
 
         if (args.TryGetValue("autoplay", out var auto) && int.TryParse(auto, out int steps))
             Autoplay(steps);
@@ -311,9 +321,9 @@ public partial class Main : Control
         _seedLabel = UiKit.MakeLabel("", 13, UiKit.TextMuted);
         _seedLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         footer.AddChild(_seedLabel);
-        var newRun = UiKit.MakeButton("New run", UiKit.PanelRaised, 14);
-        newRun.Pressed += () => NewRun((ulong)Time.GetTicksUsec());
-        footer.AddChild(newRun);
+        _newRunButton = UiKit.MakeButton("New run", UiKit.PanelRaised, 14);
+        _newRunButton.Pressed += PressNewRun;
+        footer.AddChild(_newRunButton);
         var guides = UiKit.MakeButton("Guides  Tab", UiKit.PanelRaised, 14);
         guides.TooltipText = "Style Guides: every word tier's level and chips × mult";
         guides.Pressed += ToggleStyleGuides;
@@ -330,6 +340,7 @@ public partial class Main : Control
     /// <summary>Redraws everything from the current session and visual state.</summary>
     private void Refresh()
     {
+        PersistRunIfChanged();
         RecordRoundWonIfDone();
         RecordRunEndIfOver();
         RefreshSidebar();

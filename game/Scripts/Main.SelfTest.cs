@@ -9,7 +9,8 @@ namespace Wordgame.Godot;
 /// <summary>
 /// --selftest: drives the real UI through Godot's input pipeline (simulated mouse/keyboard events) to check
 /// click-select, drag-to-reorder (ghost slot, sliding tiles, gap drops, cancel), drag-onto-board, shuffle, hints, the Style
-/// Guides popup and every Stationery item (incl. White-Out board targeting). Prints PASS/FAIL lines, exits with code 0/1.
+/// Guides popup, every Stationery item (incl. White-Out board targeting) and save/resume. Prints PASS/FAIL lines, exits
+/// with code 0/1.
 /// </summary>
 public partial class Main
 {
@@ -277,6 +278,45 @@ public partial class Main
             && playedWords.All(w => _profile.Profile.Stats.Words.ContainsKey(w) && statsText.Contains(w)));
         await PressKey(global::Godot.Key.Escape);
         Check("esc closes stats", !_statsOverlay.Visible);
+
+        // 15. Save & resume through a real file: a fresh run, then resuming, restores the run and hand order exactly
+        //     without recording stats twice; a corrupt save is set aside with a notice.
+        string savePath = ProjectSettings.GlobalizePath("user://saves/__selftest.json");
+        var disk = RunSaveStore.AtPath(savePath);
+        if (_session.Phase == Crossword.Core.Run.RunPhase.Shop)
+        {
+            _session = Crossword.Core.Run.RunRules.LeaveShop(_session, _lexicon).Value;
+            Refresh();
+        }
+        var savedSession = _session;
+        var savedOrder = Crossword.Core.Domain.HandArrangement.Reconcile(_handOrder, Round.Hand).Reverse().ToArray();
+        disk.Save(_session, savedOrder);
+        var statsBefore = _profile.Profile.Stats;
+        NewRun(7);
+        bool replaced = !ReferenceEquals(_session, savedSession);
+        if (disk.Load(_config) is { } resumed)
+            Resume(resumed);
+        await Frames(2);
+        var shownOrder = Enumerable.Range(0, _handRow.GetChildCount()).Select(i => HandButton(i).TileId).ToArray();
+        static string json(Crossword.Core.Run.GameSession g) => Crossword.Core.Save.RunSaveJson.Serialize(g);
+        Check("resume restores the saved run and hand order", replaced && json(_session) == json(savedSession)
+            && shownOrder.SequenceEqual(savedOrder) && _messageLabel.Text.StartsWith("Resumed your run"));
+        Check("resume doesn't count stats twice", _profile.Profile.Stats.PlaysRecorded == statsBefore.PlaysRecorded
+            && _profile.Profile.Stats.RunsStarted == statsBefore.RunsStarted + 1 && _profile.Profile.Stats.RunsWon == statsBefore.RunsWon);
+        File.WriteAllText(savePath, "not a save");
+        var corrupt = disk.Load(_config);
+        string saveDir = Path.GetDirectoryName(savePath)!;
+        var backups = Directory.GetFiles(saveDir, "__selftest.json.*.bak");
+        Check("a corrupt save is set aside with a notice", corrupt is null && disk.Notice is not null && !File.Exists(savePath) && backups.Length > 0);
+        foreach (var file in backups)
+            File.Delete(file);
+
+        // 16. Abandoning a run in progress takes a second click on New run.
+        var runBefore = _session;
+        await Click(Centre(_newRunButton));
+        bool armed = ReferenceEquals(_session, runBefore) && _newRunButton.Text.StartsWith("Abandon");
+        await Click(Centre(_newRunButton));
+        Check("new run asks before abandoning a run", armed && !ReferenceEquals(_session, runBefore) && _newRunButton.Text == "New run");
 
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);

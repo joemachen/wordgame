@@ -341,6 +341,9 @@ public partial class Main
 
     public override void _Notification(int what)
     {
+        // Closing the window saves the run (also catching the latest hand arrangement).
+        if (what == NotificationWMCloseRequest && _session is not null)
+            PersistRun();
         // Fired after any drop has been handled. A drag that didn't land on the hand (cancelled, or placed on the
         // board) leaves its ghost behind: rebuild the row. Deferred so no nodes are freed mid-propagation.
         if (what == NotificationDragEnd)

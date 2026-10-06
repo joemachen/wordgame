@@ -63,7 +63,7 @@ public sealed class ProfileStore
         }
     }
 
-    private static string SafeName(string name)
+    internal static string SafeName(string name)
     {
         var chars = name.Where(c => char.IsLetterOrDigit(c) || c is '-' or '_').ToArray();
         return chars.Length == 0 ? "Player" : new string(chars);
