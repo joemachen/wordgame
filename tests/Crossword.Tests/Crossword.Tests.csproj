@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Save\Fixtures\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Crossword.Core\Crossword.Core.csproj" />
     <ProjectReference Include="..\..\src\Crossword.Cli\Crossword.Cli.csproj" />
   </ItemGroup>

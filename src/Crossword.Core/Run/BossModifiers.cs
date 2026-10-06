@@ -145,6 +145,9 @@ public static class BossCatalog
         new PuzzleMaster(),
     ];
 
+    public static BossModifier? Find(string id) =>
+        All.FirstOrDefault(boss => string.Equals(boss.Id, id, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>The bosses The Puzzle Master pairs up: every Early and Mid boss (never The Strict Grammarian).</summary>
     public static ImmutableArray<BossModifier> PuzzleMasterCandidates { get; } =
     [

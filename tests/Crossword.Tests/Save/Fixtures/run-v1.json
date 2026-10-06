@@ -1,0 +1,1452 @@
+{
+  "version": 1,
+  "phase": "Shop",
+  "run": {
+    "seed": 21,
+    "rng": {
+      "state": 8709371129873690729
+    },
+    "deck": [
+      {
+        "id": 0,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 1,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 2,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 3,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 4,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 5,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 6,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 7,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 8,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 9,
+        "letter": "B",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 10,
+        "letter": "B",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 11,
+        "letter": "C",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 12,
+        "letter": "C",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 13,
+        "letter": "C",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 14,
+        "letter": "D",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 15,
+        "letter": "D",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 16,
+        "letter": "D",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 17,
+        "letter": "D",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 18,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 19,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 20,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 21,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 22,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 23,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 24,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 25,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 26,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 27,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 28,
+        "letter": "E",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 29,
+        "letter": "F",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 30,
+        "letter": "F",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 31,
+        "letter": "G",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 32,
+        "letter": "G",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 33,
+        "letter": "H",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 34,
+        "letter": "H",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 35,
+        "letter": "H",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 36,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 37,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 38,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 39,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 40,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 41,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 42,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 43,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 44,
+        "letter": "I",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 45,
+        "letter": "J",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 46,
+        "letter": "K",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 47,
+        "letter": "L",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 48,
+        "letter": "L",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 49,
+        "letter": "L",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 50,
+        "letter": "L",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 51,
+        "letter": "M",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 52,
+        "letter": "M",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 53,
+        "letter": "M",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 54,
+        "letter": "N",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 55,
+        "letter": "N",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 56,
+        "letter": "N",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 57,
+        "letter": "N",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 58,
+        "letter": "N",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 59,
+        "letter": "N",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 60,
+        "letter": "O",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 61,
+        "letter": "O",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 62,
+        "letter": "O",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 63,
+        "letter": "O",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 64,
+        "letter": "O",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 65,
+        "letter": "O",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 66,
+        "letter": "O",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 67,
+        "letter": "O",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 68,
+        "letter": "P",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 69,
+        "letter": "P",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 70,
+        "letter": "Q",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 71,
+        "letter": "R",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 72,
+        "letter": "R",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 73,
+        "letter": "R",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 74,
+        "letter": "R",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 75,
+        "letter": "R",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 76,
+        "letter": "R",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 77,
+        "letter": "S",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 78,
+        "letter": "S",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 79,
+        "letter": "S",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 80,
+        "letter": "S",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 81,
+        "letter": "S",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 82,
+        "letter": "T",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 83,
+        "letter": "T",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 84,
+        "letter": "T",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 85,
+        "letter": "T",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 86,
+        "letter": "T",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 87,
+        "letter": "T",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 88,
+        "letter": "U",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 89,
+        "letter": "U",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 90,
+        "letter": "U",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 91,
+        "letter": "U",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 92,
+        "letter": "V",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 93,
+        "letter": "W",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 94,
+        "letter": "X",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 95,
+        "letter": "Y",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 96,
+        "letter": "Y",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 97,
+        "letter": "Z",
+        "enhancement": "None",
+        "isWild": false
+      },
+      {
+        "id": 98,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": true
+      },
+      {
+        "id": 99,
+        "letter": "A",
+        "enhancement": "None",
+        "isWild": true
+      }
+    ],
+    "deskItems": [
+      {
+        "id": "word-count",
+        "chipsPerTile": 2,
+        "chips": 42
+      },
+      {
+        "id": "printing-press-roller",
+        "minWords": 3,
+        "gain": 0.1,
+        "factor": 1.4
+      },
+      {
+        "id": "inkwell",
+        "chipsPerExtraWord": 10
+      },
+      {
+        "id": "grid-lock",
+        "chipsPerIntersection": 15
+      }
+    ],
+    "roundIndex": 1,
+    "money": 12,
+    "stationery": [
+      {
+        "id": "fountain-pen"
+      }
+    ],
+    "tierUpgrades": {
+      "3": 1,
+      "7": 1
+    }
+  },
+  "round": {
+    "config": {
+      "targetScore": 663,
+      "boardSize": 7,
+      "submissions": 4,
+      "discards": 3,
+      "handSize": 7,
+      "premiums": null,
+      "minWordLength": 2,
+      "blockedPairs": 0,
+      "boss": {
+        "id": "puzzle-master",
+        "first": {
+          "id": "ink-spill",
+          "pairs": 3
+        },
+        "second": {
+          "id": "redundant-copy"
+        },
+        "targetScale": 1
+      },
+      "bonusMult": 3,
+      "draw": {
+        "minVowels": 2,
+        "minConsonants": 2,
+        "maxCopiesPerVowel": 2
+      }
+    },
+    "board": {
+      "size": 7,
+      "cells": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "id": 63,
+          "letter": "O",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 68,
+          "letter": "P",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 18,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 59,
+          "letter": "N",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 25,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 73,
+          "letter": "R",
+          "enhancement": "None",
+          "isWild": false
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "premiums": [
+        "None",
+        "DoubleLetter",
+        "None",
+        "None",
+        "None",
+        "None",
+        "None",
+        "DoubleWord",
+        "None",
+        "None",
+        "None",
+        "None",
+        "None",
+        "None",
+        "None",
+        "DoubleLetter",
+        "None",
+        "None",
+        "None",
+        "TripleLetter",
+        "None",
+        "None",
+        "TripleWord",
+        "DoubleWord",
+        "None",
+        "DoubleWord",
+        "TripleWord",
+        "None",
+        "None",
+        "TripleLetter",
+        "None",
+        "None",
+        "None",
+        "DoubleLetter",
+        "None",
+        "None",
+        "None",
+        "None",
+        "None",
+        "None",
+        "None",
+        "DoubleWord",
+        "None",
+        "None",
+        "None",
+        "None",
+        "None",
+        "DoubleLetter",
+        "None"
+      ],
+      "blocked": []
+    },
+    "bag": {
+      "tiles": [
+        {
+          "id": 0,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 1,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 3,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 4,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 5,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 6,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 7,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 8,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 9,
+          "letter": "B",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 10,
+          "letter": "B",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 11,
+          "letter": "C",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 12,
+          "letter": "C",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 13,
+          "letter": "C",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 14,
+          "letter": "D",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 15,
+          "letter": "D",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 16,
+          "letter": "D",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 17,
+          "letter": "D",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 19,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 21,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 22,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 23,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 24,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 26,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 27,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 28,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 29,
+          "letter": "F",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 31,
+          "letter": "G",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 32,
+          "letter": "G",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 33,
+          "letter": "H",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 34,
+          "letter": "H",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 35,
+          "letter": "H",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 36,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 37,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 38,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 39,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 40,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 41,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 42,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 43,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 44,
+          "letter": "I",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 45,
+          "letter": "J",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 46,
+          "letter": "K",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 47,
+          "letter": "L",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 48,
+          "letter": "L",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 49,
+          "letter": "L",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 50,
+          "letter": "L",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 51,
+          "letter": "M",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 52,
+          "letter": "M",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 53,
+          "letter": "M",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 54,
+          "letter": "N",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 55,
+          "letter": "N",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 56,
+          "letter": "N",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 57,
+          "letter": "N",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 58,
+          "letter": "N",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 60,
+          "letter": "O",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 61,
+          "letter": "O",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 65,
+          "letter": "O",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 66,
+          "letter": "O",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 67,
+          "letter": "O",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 69,
+          "letter": "P",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 70,
+          "letter": "Q",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 71,
+          "letter": "R",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 72,
+          "letter": "R",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 74,
+          "letter": "R",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 75,
+          "letter": "R",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 76,
+          "letter": "R",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 77,
+          "letter": "S",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 78,
+          "letter": "S",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 79,
+          "letter": "S",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 80,
+          "letter": "S",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 81,
+          "letter": "S",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 82,
+          "letter": "T",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 84,
+          "letter": "T",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 85,
+          "letter": "T",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 86,
+          "letter": "T",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 87,
+          "letter": "T",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 88,
+          "letter": "U",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 89,
+          "letter": "U",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 90,
+          "letter": "U",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 91,
+          "letter": "U",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 92,
+          "letter": "V",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 93,
+          "letter": "W",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 94,
+          "letter": "X",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 95,
+          "letter": "Y",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 96,
+          "letter": "Y",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 97,
+          "letter": "Z",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 98,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": true
+        }
+      ]
+    },
+    "hand": {
+      "tiles": [
+        {
+          "id": 2,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 99,
+          "letter": "A",
+          "enhancement": "None",
+          "isWild": true
+        },
+        {
+          "id": 62,
+          "letter": "O",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 20,
+          "letter": "E",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 83,
+          "letter": "T",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 64,
+          "letter": "O",
+          "enhancement": "None",
+          "isWild": false
+        },
+        {
+          "id": 30,
+          "letter": "F",
+          "enhancement": "None",
+          "isWild": false
+        }
+      ]
+    },
+    "rng": {
+      "state": 14281421380742822323
+    },
+    "score": 1461,
+    "submissionsLeft": 3,
+    "discardsLeft": 3,
+    "deadlocked": false,
+    "submissionsMade": 1,
+    "wordsFormed": [
+      "OPENER"
+    ]
+  },
+  "shop": {
+    "offers": [
+      {
+        "type": "desk-item",
+        "item": {
+          "id": "rubber-stamp",
+          "factor": 2
+        },
+        "price": 6
+      },
+      {
+        "type": "desk-item",
+        "item": {
+          "id": "broadsheet",
+          "minLength": 5,
+          "factor": 2
+        },
+        "price": 6
+      },
+      {
+        "type": "add-tile",
+        "letter": "P",
+        "enhancement": "None",
+        "wild": false,
+        "price": 2
+      },
+      {
+        "type": "strike",
+        "maxTiles": 2,
+        "price": 3
+      },
+      {
+        "type": "style-guide",
+        "tierMinLength": 3,
+        "name": "The Pocket Dictionary",
+        "tierLabel": "3-letter",
+        "chips": 5,
+        "mult": 1,
+        "price": 3
+      },
+      {
+        "type": "stationery",
+        "item": {
+          "id": "answer-key"
+        },
+        "price": 3
+      }
+    ],
+    "rerollCost": 5,
+    "rng": {
+      "state": 8290915818559949480
+    }
+  },
+  "lastPayout": {
+    "base": 4,
+    "unusedSubmissions": 3,
+    "overkill": 3,
+    "interest": 0
+  },
+  "handOrder": []
+}
