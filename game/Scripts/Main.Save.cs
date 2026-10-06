@@ -28,6 +28,7 @@ public partial class Main
         // Stats already recorded before the save: the won round in the shop, a finished run.
         _roundWonRecorded = Round.Status == RoundStatus.Won ? Run.RoundIndex : -1;
         _runEndRecorded = _session.Phase is RunPhase.Victory or RunPhase.Defeat;
+        _justUnlockedPressRun = null;
         ClearLog();
         string where = _session.Phase switch
         {
@@ -73,6 +74,6 @@ public partial class Main
         }
         _newRunArmedUntil = 0;
         _newRunButton.Text = "New run";
-        NewRun((ulong)Time.GetTicksUsec());
+        ChooseNewRun();
     }
 }

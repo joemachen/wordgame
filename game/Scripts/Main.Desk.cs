@@ -76,7 +76,7 @@ public partial class Main
             right.Pressed += () => MoveDeskItem(index, index + 1);
             SetMoveHint(left, index, index - 1, "left", play, current);
             SetMoveHint(right, index, index + 1, "right", play, current);
-            var sell = UiKit.MakeButton($"Sell ${_config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money);
+            var sell = UiKit.MakeButton($"Sell ${_session.Config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money);
             sell.Disabled = !canEdit;
             sell.Pressed += () => SellDeskItem(index);
             actions.AddChild(left);
@@ -123,7 +123,7 @@ public partial class Main
             _ => "",
         };
         use.Pressed += () => UseStationery(index);
-        var sell = UiKit.MakeButton($"Sell ${_config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money);
+        var sell = UiKit.MakeButton($"Sell ${_session.Config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money);
         sell.Disabled = !canEdit;
         sell.Pressed += () => SellStationery(index);
         actions.AddChild(use);
@@ -254,7 +254,8 @@ public partial class Main
 
     /// <summary>The pending placement as a validated play, or null when there is none or it is illegal.</summary>
     private PlayAnalysis? PendingPlay() =>
-        _pending.Count > 0 && PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength)
+        _pending.Count > 0 && PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength,
+                Round.Config.CensoredLetter)
             is { IsOk: true } valid
             ? valid.Value
             : null;

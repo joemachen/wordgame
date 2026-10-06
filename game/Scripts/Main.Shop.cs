@@ -37,12 +37,13 @@ public partial class Main
 
         var shop = _session.Shop!;
         int next = Run.RoundIndex + 1;
-        var nextKind = _config.KindOf(next);
-        string nextBoss = nextKind.IsBoss ? $"  —  BOSS: {RunRules.BossFor(_config, Run, _config.WeekOf(next)).Name}" : "";
+        var config = _session.Config;
+        var nextKind = config.KindOf(next);
+        string nextBoss = nextKind.IsBoss ? $"  —  BOSS: {RunRules.BossFor(config, Run, config.WeekOf(next)).Name}" : "";
 
         _shopContent.AddChild(UiKit.MakeLabel("THE SHOP", 30, UiKit.Text));
         _shopContent.AddChild(UiKit.MakeLabel(
-            $"Next: Week {_config.WeekOf(next) + 1} {nextKind.Name}, deadline {RunRules.TargetFor(_config, Run, next):N0}{nextBoss}", 17,
+            $"Next: Week {config.WeekOf(next) + 1} {nextKind.Name}, deadline {RunRules.TargetFor(config, Run, next):N0}{nextBoss}", 17,
             nextKind.IsBoss ? UiKit.Bad : UiKit.TextMuted, wrap: true));
 
         var actions = UiKit.HBox(12);
@@ -250,8 +251,12 @@ public partial class Main
 
     // ---------------------------------------------------------------- end of run
 
+    // The end screen's "Unlocked Press Run" line (read by the self-test); null when it isn't shown.
+    private Label? _endScreenUnlock;
+
     private void BuildEndScreen(bool victory)
     {
+        _endScreenUnlock = null;
         var holder = new CenterContainer { CustomMinimumSize = new Vector2(0, 600) };
         var panel = UiKit.MakePanel(UiKit.Panel, padding: 40, border: victory ? UiKit.Good : UiKit.Bad, borderWidth: 2);
         var box = UiKit.VBox(14);
@@ -266,11 +271,19 @@ public partial class Main
                 ? "No legal plays and no discards left."
                 : $"{Round.Score:N0} of {Round.Config.TargetScore:N0} on Week {_session.Week + 1}, {_session.Kind.Name}.";
         box.AddChild(UiKit.MakeLabel(detail, 20, UiKit.Text, HorizontalAlignment.Center));
-        box.AddChild(UiKit.MakeLabel($"Seed {Run.Seed}   ·   ${Run.Money}   ·   {Run.DeskItems.Length} desk items", 15, UiKit.TextMuted, HorizontalAlignment.Center));
+        if (victory && _justUnlockedPressRun is { } unlocked)
+        {
+            var press = PressRuns.Get(unlocked);
+            _endScreenUnlock = UiKit.MakeLabel($"Unlocked Press Run {press.Level}: {press.Name}. {press.Adds}", 18,
+                new Color(press.Color).Lightened(0.2f), HorizontalAlignment.Center);
+            box.AddChild(_endScreenUnlock);
+        }
+        box.AddChild(UiKit.MakeLabel($"Seed {Run.Seed}   ·   {PressRunText()}   ·   ${Run.Money}   ·   {Run.DeskItems.Length} desk items",
+            15, UiKit.TextMuted, HorizontalAlignment.Center));
 
         var buttons = UiKit.HBox(12);
         var again = UiKit.MakeButton("New run", UiKit.Good.Darkened(0.25f), 22);
-        again.Pressed += () => NewRun((ulong)Time.GetTicksUsec());
+        again.Pressed += ChooseNewRun;
         buttons.AddChild(again);
         if (victory)
         {

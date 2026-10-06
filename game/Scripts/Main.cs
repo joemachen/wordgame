@@ -15,13 +15,16 @@ namespace Wordgame.Godot;
 /// Command-line user args (after "--"): --seed=N, --give=id,id (dev: Desk Items or Stationery, e.g. answer-key), --autoplay=N (play N best moves / leave shops),
 /// --hint (pre-place the best play), --dev (the Hint button shows the best play), --screenshot=path.png (save a screenshot after loading and quit),
 /// --selftest (drive the UI with simulated input, print PASS/FAIL, quit), --profile=name (player profile to load/save;
-/// default "Player"), --week=N (dev: start at week N). --selftest, --screenshot and --autoplay keep the profile in memory
-/// so QA runs never touch stats. The run is saved per profile and resumed on launch, except with --seed (a new seeded
-/// run that replaces the save) and QA / dev-setup flags (--give, --week), which never touch the saved run.
+/// default "Player"), --week=N (dev: start at week N), --press=N (dev: start at Press Run N, locked or not). --selftest,
+/// --screenshot and --autoplay keep the profile in memory so QA runs never touch stats. The run is saved per profile and
+/// resumed on launch, except with --seed (a new seeded run that replaces the save) and QA / dev-setup flags (--give,
+/// --week, --press), which never touch the saved run.
 /// </summary>
 public partial class Main : Control
 {
-    private readonly RunConfig _config = RunConfig.Default;
+    // Tuning before the run's Press Run is applied: only for starting and loading runs. Everything else reads the
+    // session's config (_session.Config), which has the Press Run's rules.
+    private readonly RunConfig _baseConfig = RunConfig.Default;
     private IWordGraph _lexicon = null!;
     private GameSession _session = null!;
 
@@ -105,15 +108,16 @@ public partial class Main : Control
         ulong seed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : (ulong)Time.GetTicksUsec();
         int startWeek = args.TryGetValue("week", out var w) && int.TryParse(w, out int week) && week > 1 ? week - 1 : 0;
         args.TryGetValue("give", out var give);
-        bool devSetup = startWeek > 0 || give is not null;
+        int pressRun = args.TryGetValue("press", out var pr) && int.TryParse(pr, out int level) && PressRuns.IsLevel(level) ? level : PressRuns.Lowest;
+        bool devSetup = startWeek > 0 || give is not null || pressRun > PressRuns.Lowest;
         // QA and dev-setup runs never touch the saved run; an explicit --seed starts (and saves) a new run.
         _runSave = qaRun || devSetup ? RunSaveStore.InMemory() : RunSaveStore.ForProfile(profileName);
-        if (!devSetup && !args.ContainsKey("seed") && _runSave.Load(_config) is { } saved)
+        if (!devSetup && !args.ContainsKey("seed") && _runSave.Load(_baseConfig) is { } saved)
             Resume(saved);
         else
             NewRun(seed, devSetup
-                ? run => Give(run with { RoundIndex = startWeek * _config.RoundsPerWeek }, give ?? "")
-                : null);
+                ? run => Give(run with { RoundIndex = startWeek * _baseConfig.RoundsPerWeek }, give ?? "")
+                : null, pressRun);
         if (_profile.Notice is { } notice)
             SetMessage(notice, UiKit.Bad);
         else if (_runSave.Notice is { } saveNotice)
@@ -183,9 +187,10 @@ public partial class Main : Control
         return run;
     }
 
-    private void NewRun(ulong seed, Func<RunState, RunState>? setup = null)
+    private void NewRun(ulong seed, Func<RunState, RunState>? setup = null, int pressRun = PressRuns.Lowest)
     {
-        _session = RunRules.NewGame(seed, _config, _lexicon, setup);
+        _session = RunRules.NewGame(seed, _baseConfig, _lexicon, setup, pressRun);
+        _justUnlockedPressRun = null;
         _selected.Clear();
         _pending.Clear();
         _newTileIds.Clear();
@@ -252,6 +257,8 @@ public partial class Main : Control
         AddChild(_statsOverlay);
         _wildOverlay = BuildWildOverlay();
         AddChild(_wildOverlay);
+        _pressRunOverlay = BuildPressRunOverlay();
+        AddChild(_pressRunOverlay);
     }
 
     private Control BuildSidebar()
@@ -378,15 +385,17 @@ public partial class Main : Control
         if (!_animating)
             _scoreLabel.Text = Round.Score.ToString("N0");
         _resourcesLabel.Text = $"Submissions {Round.SubmissionsLeft}   ·   Discards {Round.DiscardsLeft}   ·   Bag {Round.Bag.Count}"
-            + (Round.Config.BonusMult > 0 ? $"   ·   Red ink +{Round.Config.BonusMult:0.##} mult" : "");
+            + (Round.Config.BonusMult > 0 ? $"   ·   Red ink +{Round.Config.BonusMult:0.##} mult" : "")
+            + (Round.Config.CensoredLetter is { } censored ? $"   ·   Censored: {censored}" : "");
         _moneyLabel.Text = $"${Run.Money}";
-        _seedLabel.Text = $"Seed {Run.Seed}";
+        _seedLabel.Text = Run.PressRun > PressRuns.Lowest ? $"Seed {Run.Seed}\n{PressRunText()}" : $"Seed {Run.Seed}";
+        _seedLabel.TooltipText = PressRunText() + string.Concat(PressRuns.All.Take(Run.PressRun).Skip(1).Select(p => $"\n· {p.Adds}"));
     }
 
     /// <summary>Week header, week pips, this week's three puzzles and how far away the boss is.</summary>
     private void RefreshProgress()
     {
-        var progress = RunProgress.For(_config, Run.RoundIndex);
+        var progress = RunProgress.For(_session.Config, Run.RoundIndex);
         bool solved = _session.Phase != RunPhase.InRound && Round.Status == RoundStatus.Won;
         var boss = Round.Config.Boss ?? _session.WeekBoss;
         _titleLabel.Text = progress.Endless ? $"ENDLESS · WEEK {progress.Week + 1}" : $"WEEK {progress.Week + 1} OF {progress.WeekCount}";

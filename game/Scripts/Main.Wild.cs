@@ -55,6 +55,8 @@ public partial class Main
     private void AskWildLetter(GridPos pos, Tile tile)
     {
         _wildTarget = (pos, tile);
+        foreach (var button in _wildOverlay.FindChildren("Wild?", nameof(Button), owned: false).OfType<Button>())
+            button.Disabled = button.Name == $"Wild{Round.Config.CensoredLetter}";
         _wildOverlay.Visible = true;
     }
 
@@ -62,6 +64,11 @@ public partial class Main
     {
         if (_wildTarget is not { } target)
             return;
+        if (letter == Round.Config.CensoredLetter)
+        {
+            SetMessage($"{letter} is censored this round.", UiKit.Bad);
+            return;
+        }
         _wildTarget = null;
         _wildOverlay.Visible = false;
         _selected.RemoveAll(t => t.Id == target.Tile.Id);

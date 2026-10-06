@@ -157,7 +157,8 @@ public partial class Main
 
         // 6. Hint places a play; the preview defines every word it forms.
         await Click(Centre(_hintButton));
-        var words = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength)
+        var words = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength,
+            Round.Config.CensoredLetter)
             .Value.Words.Select(w => w.Text).ToList();
         string defined = _definitionsLabel.GetParsedText();
         Check("preview defines each word", words.Count > 0 && words.All(w => defined.Contains(w)));
@@ -294,7 +295,7 @@ public partial class Main
         var statsBefore = _profile.Profile.Stats;
         NewRun(7);
         bool replaced = !ReferenceEquals(_session, savedSession);
-        if (disk.Load(_config) is { } resumed)
+        if (disk.Load(_baseConfig) is { } resumed)
             Resume(resumed);
         await Frames(2);
         var shownOrder = Enumerable.Range(0, _handRow.GetChildCount()).Select(i => HandButton(i).TileId).ToArray();
@@ -304,7 +305,7 @@ public partial class Main
         Check("resume doesn't count stats twice", _profile.Profile.Stats.PlaysRecorded == statsBefore.PlaysRecorded
             && _profile.Profile.Stats.RunsStarted == statsBefore.RunsStarted + 1 && _profile.Profile.Stats.RunsWon == statsBefore.RunsWon);
         File.WriteAllText(savePath, "not a save");
-        var corrupt = disk.Load(_config);
+        var corrupt = disk.Load(_baseConfig);
         string saveDir = Path.GetDirectoryName(savePath)!;
         var backups = Directory.GetFiles(saveDir, "__selftest.json.*.bak");
         Check("a corrupt save is set aside with a notice", corrupt is null && disk.Notice is not null && !File.Exists(savePath) && backups.Length > 0);
@@ -317,6 +318,47 @@ public partial class Main
         bool armed = ReferenceEquals(_session, runBefore) && _newRunButton.Text.StartsWith("Abandon");
         await Click(Centre(_newRunButton));
         Check("new run asks before abandoning a run", armed && !ReferenceEquals(_session, runBefore) && _newRunButton.Text == "New run");
+        Check("with only Proofreader unlocked, new run skips the picker", !_pressRunOverlay.Visible && Run.PressRun == 1);
+
+        // 17. Press Runs: winning a run unlocks the next one (shown on the victory screen); New run then asks which to
+        //     play (locked ones greyed); Censored Press crosses out and refuses its letter; Final Print Run adds a rule
+        //     to the boss.
+        _session = _session with { Phase = Crossword.Core.Run.RunPhase.Victory };
+        Refresh();
+        await Frames(2);
+        Check("a win unlocks the next press run", _profile.Profile.Stats.HighestPressRunWon == 1
+            && _endScreenUnlock is { } unlockLine && unlockLine.Text.StartsWith("Unlocked Press Run 2"));
+        var endNewRun = _shopContent.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "New run");
+        await Click(Centre(endNewRun));
+        Button PressRow(int level) => _pressRunBox.GetNode<Button>($"PressRun{level}");
+        Check("new run opens the press run picker", _pressRunOverlay.Visible && !PressRow(1).Disabled && !PressRow(2).Disabled
+            && PressRow(3).Disabled && PressRow(8).Disabled);
+        await Click(Centre(PressRow(2)));
+        Check("picking a press run starts it", !_pressRunOverlay.Visible && Run.PressRun == 2 && _seedLabel.Text.Contains("First Edition"));
+        ChooseNewRun();
+        await PressKey(global::Godot.Key.Escape);
+        Check("esc closes the press run picker", !_pressRunOverlay.Visible && Run.PressRun == 2);
+
+        NewRun(42, pressRun: 7);
+        await Frames(2);
+        char censored = Round.Config.CensoredLetter ?? '_';
+        var plain = Round.Hand.Tiles.First(t => !t.IsWild);
+        _session = _session with { Round = Round with { Hand = new Crossword.Core.Domain.Hand(Round.Hand.Tiles.Replace(plain, plain with { Letter = Crossword.Core.Domain.Letter.From(censored == '_' ? 'R' : censored) })) } };
+        Refresh();
+        await Frames(2);
+        var censoredButton = _handRow.GetChildren().OfType<TileButton>().First(b => b.TileId == plain.Id);
+        Check("censored press marks its letter", censored != '_' && _resourcesLabel.Text.Contains($"Censored: {censored}")
+            && censoredButton.HasNode("CensoredStrike"));
+        await Click(Centre(censoredButton));
+        await Click(Centre(BoardCell(new GridPos(3, 3))));
+        Check("a censored tile can't be placed", _pending.Count == 1 && _messageLabel.Text.Contains("censored"));
+        await PressKey(global::Godot.Key.Escape);
+
+        NewRun(42, run => run with { RoundIndex = 2 }, pressRun: 8);
+        await Frames(2);
+        string dayText = string.Join("\n", _dayStrip.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
+        Check("final print run adds a rule to the boss", Round.Config.Boss is Crossword.Core.Run.Reprint reprint
+            && reprint.Name.Contains(" + ") && dayText.Contains(reprint.Name));
 
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);

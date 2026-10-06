@@ -169,6 +169,11 @@ public partial class Main
             int value = scoring.ValueOf(tile);
             var button = UiKit.MakeTile(tile, value, HandTileSize, selected ? UiKit.Selected : UiKit.Newsprint, raised: selected, blankWild: true);
             button.TooltipText = "Click to select · drag to reorder or onto the board";
+            if (!tile.IsWild && tile.Letter.Char == Round.Config.CensoredLetter)
+            {
+                UiKit.MarkCensored(button);
+                button.TooltipText = $"{tile.Letter} is censored this round: it can't be placed. Discard it or cut it with Scissors.";
+            }
             button.Pressed += () => ToggleSelected(tile);
             if (!_animating)
             {
@@ -404,7 +409,8 @@ public partial class Main
             return;
         }
 
-        var validation = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength);
+        var validation = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength,
+            Round.Config.CensoredLetter);
         if (!validation.IsOk)
         {
             _chipsLabel.Text = "–";
@@ -432,7 +438,7 @@ public partial class Main
 
     private IReadOnlyList<RankedPlay> RankedPlays() =>
         MoveRanker.Rank(Round.Board, Round.Hand, _lexicon, Run.DeskItems, RoundScoring, Round.Config.MinWordLength,
-            RoundRules.Environment(Round, Run.Money));
+            RoundRules.Environment(Round, Run.Money), Round.Config.CensoredLetter);
 
     private RankedPlay? BestPlay() => Hints.Best(RankedPlays());
 
@@ -644,6 +650,13 @@ public partial class Main
         {
             if (key.Keycode == Key.Escape)
                 ToggleStats();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (_pressRunOverlay.Visible)
+        {
+            if (key.Keycode == Key.Escape)
+                _pressRunOverlay.Visible = false;
             GetViewport().SetInputAsHandled();
             return;
         }

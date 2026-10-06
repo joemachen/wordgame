@@ -156,6 +156,19 @@ public static class UiKit
         return button;
     }
 
+    /// <summary>Strikes through a hand tile whose letter is censored this round (Censored Press).</summary>
+    public static void MarkCensored(TileButton button)
+    {
+        var strike = new ColorRect { Name = "CensoredStrike", Color = Bad, MouseFilter = Control.MouseFilterEnum.Ignore };
+        strike.SetAnchorsPreset(Control.LayoutPreset.HcenterWide);
+        strike.OffsetTop = -2;
+        strike.OffsetBottom = 2;
+        strike.OffsetLeft = 6;
+        strike.OffsetRight = -6;
+        button.AddChild(strike);
+        button.Modulate = new Color(1, 1, 1, 0.75f);
+    }
+
     public static readonly Color Fresh = new("7ee0b5");
 
     /// <summary>Marks a freshly drawn hand tile: an accent outline and a small NEW tag.</summary>

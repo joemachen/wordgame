@@ -113,6 +113,9 @@ public partial class Main
             return;
         _runEndRecorded = true;
         bool won = _session.Phase == RunPhase.Victory;
-        _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1));
+        int unlockedBefore = StatsQueries.UnlockedPressRun(_profile.Profile.Stats);
+        _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1, Run.PressRun));
+        int unlockedNow = StatsQueries.UnlockedPressRun(_profile.Profile.Stats);
+        _justUnlockedPressRun = unlockedNow > unlockedBefore ? unlockedNow : null;
     }
 }
