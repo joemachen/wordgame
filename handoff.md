@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `29a50ef` (code) · 409 unit tests passing · UI self-test 45/45 passing_
+_Last updated: 2026-10-06 · HEAD `7ecc743` (code) · 442 unit tests passing · UI self-test 53/53 passing_
 
 ---
 
@@ -29,6 +29,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`. The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
 | Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and **auto-resumed on launch** ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. Sidebar New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. |
+| Press Runs | 8 stacking difficulty levels (`Core/Run/PressRuns.cs`, numbers in `PressRunConfig`): Proofreader → First Edition (Dailies pay $1) → Late Edition (targets ×1.05/week) → Rush Job (−1 Sunday submission) → Ink Shortage (−1 discard) → Heavy Printing (rerolls +$1) → Censored Press (one of B C F G H M P W Y unplayable per round) → Final Print Run (the Sunday boss adds a second Early/Mid rule, `Reprint`). Level stored in `RunState.PressRun` and re-applied to the config on load. **Unlocks:** winning level N unlocks N+1 (`PlayerStats.HighestPressRunWon`; old profiles with wins start at 1). Game: New run opens a picker once level 2 is unlocked (locked rows greyed), victory screen announces unlocks, sidebar shows the level + censored letter, censored hand tiles struck through; `--press=N` dev flag. CLI: `runsim … press=N`, `new [seed] [press=N]`. |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -67,9 +68,33 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   keeps its snapshot). Claude's calls: reflection-based JSON over the records with id-tagged Desk Items/Stationery/bosses
   (no per-type DTOs), version must match exactly (no migrations until a release needs them), a committed fixture save as
   the rename tripwire, pending (unsubmitted) tiles aren't saved (resume = Recall), saves are per profile.
+- **Press Runs + unlocks** (user's choices, 2026-10-06): built next after save & resume (unlocks needed something to
+  unlock); **an even ladder** (strong player ~55% → ~10%) over the brutal proposal, which measured 0% from level 5.
+  Claude's calls: the level lives on `RunState` and is a `RunConfig` transform (so the "config isn't saved" rule
+  holds); deltas apply after the boss (Tight Deadline under Rush Job = 2 submissions); censored letter and Reprint
+  extra come from salted seed streams (no RNG consumed, previewable, same base boss at every level); New run skips
+  the picker until level 2 is unlocked. **5-vowel hands stay possible** (user's choice: balanced draws keep ≥2
+  consonants, not ≥3).
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
-## 4. Current balance snapshot (after Phase 2 content, 2026-10-05)
+## 4. Press Run ladder (2026-10-06)
+
+`presssim` scratch harness: 200 paired runs per level (seeds 1–200), evaluating bot, ScoreFraction model; Proofreader =
+the snapshot below.
+
+| Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| Strong (0.9) win % | 55 | 44.5 | 36.5 | 23 | 18.5 | 15.5 | 13.5 | 7.5 |
+| Reference (0.75) win % | 39 | 23.5 | 17.5 | 6 | 5 | 4.5 | 2.5 | 1 |
+
+- Each rule alone at 0.9 with the **first** numbers (150 runs, vs 55%): −1 submission every round −34, censoring one
+  of D/L/N/R/S/T −26, Final Print Run −16, targets ×1.1/week −14, no Daily pay −9, Desk Items/rerolls +$1 −9, −1
+  discard −6. Stacked they hit 0% from level 5 (0.75: 0% from level 4).
+- Softening, step by step (0.9 at levels 1–8): Sunday-only Rush Job + rarer consonants + ×1.05 → 55/42/33/18.5/15/
+  6.5/5.5/2; then Dailies $1 + reroll-only Heavy Printing → current. Rush Job is still the biggest step (−13.5).
+- Sunday Edition losses dominate from level 4 up (boss loss rate ~14% → ~31% at level 8).
+
+## 4a. Balance snapshot (after Phase 2 content, 2026-10-05)
 
 Same targets and economy as below; 23 Desk Items, 7 bosses. Scratch harness `p2sim`, 200 paired runs per arm
 (seeds 1–200), evaluating bot, ScoreFraction model. "old" = shop limited to the 18 old items (`ShopConfig.DeskItemIds`)
@@ -199,6 +224,10 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
+00. **Playtest the Press Runs:** win a run (or `--press=N`) and check the picker, the unlock line, Censored Press
+    (struck-through tiles, the wild picker skipping the letter) and a Final Print Run Sunday. Is the ladder's feel
+    right? Rush Job is the steepest step.
+
 Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
 save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
 
@@ -211,7 +240,10 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 2. **Playtest the retune, new Hint and Stationery** via `run_local_qa.bat` — do rounds feel longer, is difficulty right
    (concern #1), is the free Hint useful without being a crutch, do Scissors/White-Out feel worth $3? If 3+ play rounds
    are wanted, try 5 submissions per round with higher targets (targets alone plateau at ~2.5 plays).
-3. ~~ROADMAP phase 2~~ ✅ done (5 items + 2 bosses, see §3/§4). Left from it: Magnifying Glass (rework to "letters left in
+3. ~~Press Runs + unlocks~~ ✅ (phase 4 done). Next core work: **phase 5 starting decks** on the same unlock system
+   (unlock tracking is ready; "highest Press Run per deck" needs `HighestPressRunWon` per deck id), then dictionaries
+   + denylist. Small: a profile picker.
+3a. ~~ROADMAP phase 2~~ ✅ done (5 items + 2 bosses, see §3/§4). Left from it: Magnifying Glass (rework to "letters left in
    the bag"?) and Brass Paperclip (keep-tiles picker). Remaining Stationery (Highlighter, Correction Tape) can come later
    on the same targeting system. Phase 4 save/resume ✅; next core work: **profile & unlock tracking** (rest of phase 4), then phase 5 (starting decks,
    dictionaries + denylist, Press Run stakes). Cheap parallel tracks: CI pipeline, seed entry box, CLI `save`/`load`.
@@ -262,6 +294,10 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+7ecc743 Soften the Press Run ladder to an even descent
+ac50688 Pick and unlock Press Runs in the game UI
+5132a50 Add Press Run difficulty levels with unlock tracking
+ef7b52a Document save and resume in rules, roadmap and handoff
 29a50ef Save the run after every move and resume it on launch
 293af88 Serialize a run in progress to JSON for save/resume
 f5caf34 Document Phase 2: roadmap, rules, balance snapshot and handoff

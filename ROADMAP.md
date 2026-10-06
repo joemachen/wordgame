@@ -151,22 +151,28 @@ Final, and Tight Margins (easiest, ~3%) from Final to Early.
 
 ---
 
-## 5. Difficulty stakes — "Press Runs" (8 tiers) 🟡
+## 5. Difficulty stakes — "Press Runs" (8 tiers) ✅
 
-Unlocked one at a time by winning a run at the previous tier. Each tier **includes all tiers below it**.
-All effects are *proposed*. The ladder copies Balatro's stake structure (a mechanic, which is fine to reuse);
-the effects are our own.
+Unlocked one at a time by winning a run at the previous tier (`PlayerStats.HighestPressRunWon`). Each tier
+**includes all tiers below it**. The ladder copies Balatro's stake structure (a mechanic, which is fine to reuse);
+the effects are our own. ✅ `Core/Run/PressRuns.cs` (numbers in `PressRunConfig`), the run's level in
+`RunState.PressRun` (saved), a picker on New run in the game (locked levels greyed), `runsim … press=N` in the CLI.
 
-| # | Press Run | Color | Adds (*proposed*) |
-|---|---|---|---|
-| 1 | **Proofreader** | White | Base game |
-| 2 | **First Edition** | Red | Daily rounds pay no base pay |
-| 3 | **Late Edition** | Green | Targets grow faster each week |
-| 4 | **Rush Job** *(was "Tight Deadline", which is already a boss name)* | Blue | −1 submission per round |
-| 5 | **Ink Shortage** | Purple | −1 discard per round |
-| 6 | **Heavy Printing** | Yellow | Desk Items cost +$1; rerolls start $1 higher |
-| 7 | **Censored Press** | Orange | One random letter can't be played each round |
-| 8 | **Final Print Run** | Gold | Boss Editors apply a second modifier |
+| # | Press Run | Color | Adds | Strong player wins (0.9) | Reference (0.75) |
+|---|---|---|---|---|---|
+| 1 | **Proofreader** | White | Base game | 55% | 39% |
+| 2 | **First Edition** | Red | Dailies pay $1 base instead of $3 | 44.5% | 23.5% |
+| 3 | **Late Edition** | Green | Week targets ×1.05 compounding per week (Week 5 ×1.22) | 36.5% | 17.5% |
+| 4 | **Rush Job** *(was "Tight Deadline", which is already a boss name)* | Blue | −1 submission in the Sunday Edition | 23% | 6% |
+| 5 | **Ink Shortage** | Purple | −1 discard per round | 18.5% | 5% |
+| 6 | **Heavy Printing** | Yellow | Rerolls start $1 higher | 15.5% | 4.5% |
+| 7 | **Censored Press** | Orange | One of B C F G H M P W Y can't be placed each round (not even by a wild) | 13.5% | 2.5% |
+| 8 | **Final Print Run** | Gold | The Sunday boss adds a second Early/Mid editor's rule (`Reprint`) | 7.5% | 1% |
+
+Win rates: 200 paired runs per level, evaluating shop bot, ScoreFraction skill model (2026-10-06). The first
+proposal (−1 submission every round, D/L/N/R/S/T censored, ×1.1 per week, no Daily pay, Desk Items +$1) left the
+strong player at 0% from level 5; alone, −1 submission cost 34 points, censoring a common consonant 26 and ×1.1
+targets 14. The user chose an even ladder (~55% → ~10%).
 
 ---
 
@@ -217,7 +223,7 @@ modes cheap to build on the core.
 | Feature | Design (*proposed*) | Status |
 |---|---|---|
 | **In-run save & resume** | Save on exit, resume on launch: board, hand, bag order, deck, Desk Items (with scaling state), shop offers and every RNG state. All state is immutable records, so this is mostly serialization: `System.Text.Json` (in the BCL, so Core rules allow it) with a **type discriminator** for polymorphic Desk Items/bosses/offers, plus a save **version number** for migrations. Hand arrangement is UI-only today; save it alongside. | ✅ `Core/Save/RunSaveJson` + `RunSaveStore` (`user://saves/<profile>.json`), saved after every change and on close, auto-resumed on launch. The config isn't stored (resumed runs use current tuning). No migrations yet: other versions are rejected. |
-| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | ✅ profile + player stats (`Core/Profile`, `user://profiles/<name>.json`, Stats popup: per-length word counts, top/bottom 5, newest 10, runs/wins/best play) · 🟡 unlocks, profile picker |
+| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | ✅ profile + player stats (`Core/Profile`, `user://profiles/<name>.json`, Stats popup: per-length word counts, top/bottom 5, newest 10, runs/wins/best play) · ✅ Press Run unlocks (`HighestPressRunWon`; per deck once decks exist) · 🟡 profile picker, deck/dictionary unlocks |
 | **Vocabulary grading** | Grade the player's vocabulary and estimate its size from the words they use (e.g. by how rare each word is). Needs a word-frequency list with a license we can ship (check before use; Wiktionary-derived lists are CC BY-SA). | 🟡 |
 
 ---
@@ -244,8 +250,8 @@ tests and a `runsim` balance check.
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** ✅ | 5 new Desk Items (Etymology Tome, Rubber Stamp, Printing Press Roller, Tile Rack, Coffee Stain) + Redundant Copy and The Puzzle Master. Later: Magnifying Glass, Brass Paperclip (deferred, see §3) | 1 |
 | **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
-| **4** 🟡 | In-run save/resume ✅ → profile & unlock tracking (§9) | — |
-| **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |
+| **4** ✅ | In-run save/resume ✅ → profile & unlock tracking (§9) ✅ with the Press Run stakes (§5), pulled forward from phase 5 so unlocks had something to unlock | — |
+| **5** | Starting decks, dictionary overlays (+ denylist) (Press Run stakes ✅ in phase 4) | 4 |
 | **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
 | **Wild tiles** ✅ | Play as any letter (chosen when placed), 0 letter chips. 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5), Fountain Pen Stationery. Bots don't buy the wild offers or the Fountain Pen yet. | done 2026-10-05 |
 | **Letter mix** ✅ | Balanced draws (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) + starting deck at ~42% vowels. Rough hands at play time 29.5% → 10%. | done 2026-10-05 |
