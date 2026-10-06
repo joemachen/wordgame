@@ -8,7 +8,7 @@ namespace Crossword.Tests.Run;
 public class PressRunTests
 {
     private static readonly PressRunConfig Press = new(
-        DailyBasePay: 1, WeeklyTargetGrowth: 1.5m, SubmissionsDelta: -1, DiscardsDelta: -2,
+        DailyBasePay: 1, WeeklyTargetGrowth: 1.5m, BossSubmissionsDelta: -1, DiscardsDelta: -2,
         DeskItemPriceIncrease: 2, RerollCostIncrease: 3, CensoredLetters: "RS");
 
     private static readonly RunConfig Base = RunConfig.Default with
@@ -37,7 +37,7 @@ public class PressRunTests
         Assert.Equal(level >= 2 ? 1 : Base.Days[0].BasePay, config.Days[0].BasePay);
         Assert.Equal(Base.Days[1], config.Days[1]); // only the Daily loses its pay
         Assert.Equal(level >= 3 ? new long[] { 100, 300, 680 } : [100, 200, 300], config.WeekTargets); // 300 × 1.5² = 675 → 680
-        Assert.Equal(level >= 4 ? -1 : 0, config.SubmissionsDelta);
+        Assert.Equal(level >= 4 ? -1 : 0, config.BossSubmissionsDelta);
         Assert.Equal(level >= 5 ? -2 : 0, config.DiscardsDelta);
         Assert.Equal(level >= 6 ? (6, 8, 10, 8) : (4, 6, 8, 5),
             (config.Shop.CommonPrice, config.Shop.UncommonPrice, config.Shop.RarePrice, config.Shop.RerollBaseCost));
@@ -64,20 +64,20 @@ public class PressRunTests
     [Fact]
     public void Deltas_ApplyAfterTheBoss()
     {
-        var config = Base with { SubmissionsDelta = -1, DiscardsDelta = -1 };
+        var config = Base with { BossSubmissionsDelta = -1, DiscardsDelta = -1 };
         var boss = new TightDeadline(Submissions: 3);
 
         var daily = config.RoundConfigFor(0, boss);
         var sunday = config.RoundConfigFor(2, boss);
 
-        Assert.Equal((3, 2), (daily.Submissions, daily.Discards));
+        Assert.Equal((4, 2), (daily.Submissions, daily.Discards)); // the submission delta is for Sundays only
         Assert.Equal((2, 2), (sunday.Submissions, sunday.Discards)); // Tight Deadline's 3, then −1
     }
 
     [Fact]
     public void Deltas_LeaveOneSubmission_AndNeverNegativeDiscards()
     {
-        var config = (Base with { SubmissionsDelta = -10, DiscardsDelta = -10 }).RoundConfigFor(0);
+        var config = (Base with { BossSubmissionsDelta = -10, DiscardsDelta = -10 }).RoundConfigFor(2, new InkSpill());
 
         Assert.Equal((1, 0), (config.Submissions, config.Discards));
     }
@@ -89,7 +89,7 @@ public class PressRunTests
         var press = PressRunConfig.Default;
 
         Assert.Equal(5, session.Run.PressRun);
-        Assert.Equal(new RoundConfig(0).Submissions + press.SubmissionsDelta, session.Round.SubmissionsLeft);
+        Assert.Equal(new RoundConfig(0).Submissions, session.Round.SubmissionsLeft); // a Daily: Rush Job is Sundays only
         Assert.Equal(new RoundConfig(0).Discards + press.DiscardsDelta, session.Round.DiscardsLeft);
         Assert.Equal(press.DailyBasePay, session.Kind.BasePay);
         Assert.Null(session.Round.Config.CensoredLetter); // Censored Press is level 7

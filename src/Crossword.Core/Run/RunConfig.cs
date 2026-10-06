@@ -46,8 +46,8 @@ public sealed record RunConfig(
     /// <summary>Boss pools by week (see <see cref="BossPoolFor"/>). Ordered by ascending <see cref="BossTier.FirstWeek"/>.</summary>
     public ImmutableArray<BossTier> BossTiers { get; init; } = BossCatalog.DefaultTiers;
 
-    /// <summary>Added to every round's submissions after the boss (Press Runs; at least 1 remains).</summary>
-    public int SubmissionsDelta { get; init; }
+    /// <summary>Added to boss rounds' submissions after the boss (Press Runs; at least 1 remains).</summary>
+    public int BossSubmissionsDelta { get; init; }
 
     /// <summary>Added to every round's discards after the boss (Press Runs; never below 0).</summary>
     public int DiscardsDelta { get; init; }
@@ -108,13 +108,15 @@ public sealed record RunConfig(
     public RoundConfig RoundConfigFor(int roundIndex, BossModifier? boss = null, char? censoredLetter = null)
     {
         var config = new RoundConfig(TargetScore: TargetFor(roundIndex), Draw: Draw, CensoredLetter: censoredLetter);
-        if (KindOf(roundIndex).IsBoss && boss is not null)
+        bool bossRound = KindOf(roundIndex).IsBoss;
+        if (bossRound && boss is not null)
             config = boss.Apply(config);
-        return SubmissionsDelta == 0 && DiscardsDelta == 0
+        int submissionsDelta = bossRound ? BossSubmissionsDelta : 0;
+        return submissionsDelta == 0 && DiscardsDelta == 0
             ? config
             : config with
             {
-                Submissions = Math.Max(1, config.Submissions + SubmissionsDelta),
+                Submissions = Math.Max(1, config.Submissions + submissionsDelta),
                 Discards = Math.Max(0, config.Discards + DiscardsDelta),
             };
     }

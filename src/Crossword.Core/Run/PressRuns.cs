@@ -6,17 +6,21 @@ namespace Crossword.Core.Run;
 public sealed record PressRun(int Level, string Name, string Color, string Adds);
 
 /// <summary>
-/// The numbers behind each Press Run's rule (*proposed*, tuned with <c>runsim … press=N</c>). Each level adds one rule
-/// on top of every level below it.
+/// The numbers behind each Press Run's rule, tuned with <c>runsim … press=N</c>. Each level adds one rule on top of
+/// every level below it. First measured (2026-10-06, strong player = ScoreFraction 0.9, 150 runs, each rule alone vs
+/// 55% wins): −1 submission on every round −34 pts, censoring one of D/L/N/R/S/T −26, targets ×1.1 per week −14 — a
+/// stacked ladder at 0% from level 5. Softened (user's choice: an even ladder, ~55% → ~10% for the strong player) to
+/// −1 submission on Sundays only, rarer consonants, ×1.05 per week, Dailies paying $1 and Heavy Printing raising only
+/// rerolls: 0.9 wins 55 / 44.5 / 36.5 / 23 / 18.5 / 15.5 / 13.5 / 7.5% at levels 1–8 (200 runs each).
 /// </summary>
 public sealed record PressRunConfig(
-    int DailyBasePay = 0,
-    decimal WeeklyTargetGrowth = 1.1m,
-    int SubmissionsDelta = -1,
+    int DailyBasePay = 1,
+    decimal WeeklyTargetGrowth = 1.05m,
+    int BossSubmissionsDelta = -1,
     int DiscardsDelta = -1,
-    int DeskItemPriceIncrease = 1,
+    int DeskItemPriceIncrease = 0,
     int RerollCostIncrease = 1,
-    string CensoredLetters = "DLNRST")
+    string CensoredLetters = "BCFGHMPWY")
 {
     public static PressRunConfig Default { get; } = new();
 }
@@ -50,7 +54,7 @@ public static class PressRuns
         if (level >= 3)
             config = config with { WeekTargets = config.WeekTargets.Select((target, week) => Grow(target, p.WeeklyTargetGrowth, week)).ToImmutableArray() };
         if (level >= 4)
-            config = config with { SubmissionsDelta = config.SubmissionsDelta + p.SubmissionsDelta };
+            config = config with { BossSubmissionsDelta = config.BossSubmissionsDelta + p.BossSubmissionsDelta };
         if (level >= 5)
             config = config with { DiscardsDelta = config.DiscardsDelta + p.DiscardsDelta };
         if (level >= 6)
@@ -80,9 +84,11 @@ public static class PressRuns
         new(1, "Proofreader", "#E8E6E0", "The standard run."),
         new(2, "First Edition", "#C53030", p.DailyBasePay == 0 ? "Dailies pay no base pay." : $"Dailies pay ${p.DailyBasePay} base pay."),
         new(3, "Late Edition", "#2F855A", $"Deadlines grow ×{p.WeeklyTargetGrowth} faster each week."),
-        new(4, "Rush Job", "#2B6CB0", $"{-p.SubmissionsDelta} fewer submission per round."),
+        new(4, "Rush Job", "#2B6CB0", $"{-p.BossSubmissionsDelta} fewer submission in the Sunday Edition."),
         new(5, "Ink Shortage", "#6B46C1", $"{-p.DiscardsDelta} fewer discard per round."),
-        new(6, "Heavy Printing", "#D69E2E", $"Desk Items cost ${p.DeskItemPriceIncrease} more; rerolls start ${p.RerollCostIncrease} higher."),
+        new(6, "Heavy Printing", "#D69E2E", p.DeskItemPriceIncrease == 0
+            ? $"Rerolls start ${p.RerollCostIncrease} higher."
+            : $"Desk Items cost ${p.DeskItemPriceIncrease} more; rerolls start ${p.RerollCostIncrease} higher."),
         new(7, "Censored Press", "#DD6B20", "One letter is censored each round: it can't be placed."),
         new(8, "Final Print Run", "#B7791F", "Every Sunday boss adds a second editor's rule."),
     ];
