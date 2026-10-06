@@ -8,7 +8,8 @@ namespace Crossword.Core.Run;
 
 /// <summary>
 /// Shop prices and offer mix. PLACEHOLDER numbers pending run simulation.
-/// <see cref="StationeryIds"/> limits the Stationery pool to those ids (null = the whole catalog);
+/// <see cref="DeskItemIds"/> / <see cref="StationeryIds"/> limit the Desk Item / Stationery pools to those ids
+/// (null = the whole catalog; used by balance harnesses);
 /// <see cref="StationeryPrices"/> overrides <see cref="StationeryPrice"/> per item id.
 /// Wild tiles: <see cref="WildTilePercent"/> of add-tile offers add a wild tile; <see cref="WildEditPercent"/> of all
 /// edit offers make a chosen deck tile wild.
@@ -40,7 +41,8 @@ public sealed record ShopConfig(
     int WildTilePercent = 12,
     int WildTilePrice = 6,
     int WildEditPercent = 10,
-    int WildEditPrice = 5)
+    int WildEditPrice = 5,
+    IReadOnlySet<string>? DeskItemIds = null)
 {
     /// <summary>
     /// Margin Clip costs $6: at the flat $3 it alone added +13 pts of win rate (ScoreFraction 0.75). Price is a weak lever

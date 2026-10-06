@@ -199,4 +199,19 @@ public class ShopRulesTests
 
         Assert.False(ShopRules.Buy(session, 0).IsOk);
     }
+
+    [Fact]
+    public void DeskItemIds_LimitTheDeskItemPool()
+    {
+        var config = RunConfig.Default with { Shop = RunConfig.Default.Shop with { DeskItemIds = new HashSet<string> { "red-pen", "tile-rack" } } };
+        var rng = Rng.FromSeed(2);
+        var offered = new HashSet<string>();
+        for (int i = 0; i < 30; i++)
+        {
+            (var shop, rng) = ShopRules.Generate(RunState.New(1), config, rng);
+            offered.UnionWith(shop.Offers.OfType<DeskItemOffer>().Select(o => o.Item.Id));
+        }
+
+        Assert.Equal(["red-pen", "tile-rack"], offered.Order());
+    }
 }

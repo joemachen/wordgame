@@ -153,7 +153,10 @@ public static class ShopRules
         var config = runConfig.Shop;
         var offers = ImmutableArray.CreateBuilder<ShopOffer?>();
 
-        var unowned = DeskItemCatalog.All.Where(item => run.DeskItems.All(owned => owned.Id != item.Id)).ToList();
+        var unowned = DeskItemCatalog.All
+            .Where(item => config.DeskItemIds?.Contains(item.Id) ?? true)
+            .Where(item => run.DeskItems.All(owned => owned.Id != item.Id))
+            .ToList();
         for (int i = 0; i < config.DeskItemOffers && unowned.Count > 0; i++)
         {
             (var rarity, rng) = RollRarity(config, rng);
