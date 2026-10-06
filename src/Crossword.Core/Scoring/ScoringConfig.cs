@@ -19,6 +19,7 @@ public sealed record WordTier(int MinLength, long BaseChips, decimal BaseMult, l
 /// intersect). Still provisional pending human playtests.
 /// <see cref="BonusMult"/> is a flat per-play Mult added before Desk Items; it is only set for a round in progress
 /// (Red Ink Bottle, via <see cref="Domain.RoundConfig.EffectiveScoring"/>).
+/// <see cref="RepeatWordsScoreZero"/> (boss Redundant Copy): a word already formed earlier this round adds no letter chips.
 /// </summary>
 public sealed record ScoringConfig(
     ImmutableArray<WordTier> Tiers,
@@ -27,7 +28,8 @@ public sealed record ScoringConfig(
     long BoldChips = 10,
     decimal ItalicMult = 2,
     int GildedMoney = 1,
-    decimal BonusMult = 0)
+    decimal BonusMult = 0,
+    bool RepeatWordsScoreZero = false)
 {
     public static ScoringConfig Default { get; } = new(
         Tiers:

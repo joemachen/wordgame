@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Crossword.Core.Random;
 using Crossword.Core.Run;
 using Crossword.Core.Scoring;
@@ -53,6 +54,12 @@ public sealed record RoundState(
     int DiscardsLeft,
     bool Deadlocked = false)
 {
+    /// <summary>Plays submitted so far this round.</summary>
+    public int SubmissionsMade { get; init; }
+
+    /// <summary>Every word formed by this round's earlier plays (main and cross words, by text).</summary>
+    public ImmutableHashSet<string> WordsFormed { get; init; } = ImmutableHashSet<string>.Empty;
+
     public RoundStatus Status =>
         Score >= Config.TargetScore ? RoundStatus.Won
         : SubmissionsLeft <= 0 || Deadlocked || (Hand.Count == 0 && Bag.IsEmpty) ? RoundStatus.Lost

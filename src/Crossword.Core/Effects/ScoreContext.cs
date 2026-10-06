@@ -8,6 +8,12 @@ namespace Crossword.Core.Effects;
 public sealed record ScoreEnvironment(int MoneyHeld, int SubmissionsLeft, int DiscardsLeft)
 {
     public static ScoreEnvironment Empty { get; } = new(0, 0, 0);
+
+    /// <summary>Plays already submitted this round (0 = this is the round's first play).</summary>
+    public int SubmissionsMade { get; init; }
+
+    /// <summary>Words formed by this round's earlier plays (for Redundant Copy).</summary>
+    public ImmutableHashSet<string> WordsFormed { get; init; } = ImmutableHashSet<string>.Empty;
 }
 
 /// <summary>
@@ -20,6 +26,9 @@ public sealed record ScoreContext(long Chips, decimal Mult, PlayAnalysis Play, I
         new(chips, mult, play, ImmutableList<EffectEvent>.Empty);
 
     public ScoreEnvironment Env { get; init; } = ScoreEnvironment.Empty;
+
+    /// <summary>Each formed word's letter chips as scored in step 2, aligned with <see cref="PlayAnalysis.Words"/>.</summary>
+    public ImmutableArray<long> WordChips { get; init; } = ImmutableArray<long>.Empty;
 
     /// <summary>Money earned during this play (e.g. Gilded tiles); paid into the run immediately.</summary>
     public int Money { get; init; }

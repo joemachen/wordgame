@@ -26,6 +26,9 @@ public static class DeskItemCatalog
         new Archive(),
         new EditorInChief(),
         new Pulitzer(),
+        new EtymologyTome(),
+        new RubberStamp(),
+        new PrintingPressRoller(),
     ];
 
     public static IDeskItem? Find(string id) =>

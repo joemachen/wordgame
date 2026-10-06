@@ -7,7 +7,8 @@ namespace Crossword.Core.Scoring;
 /// <summary>
 /// Scores a validated play as one pooled Chips × Mult:
 /// 1. Tier — longest word sets base Chips and Mult.
-/// 2. Words — every formed word adds its letter chips (DL/TL per tile, then DW/TW per word; new tiles only).
+/// 2. Words — every formed word adds its letter chips (DL/TL per tile, then DW/TW per word; new tiles only);
+///    under Redundant Copy a word already formed this round adds none.
 /// 3. Enhancements — each enhanced tile triggers once per formed word containing it (new or existing tiles).
 /// 4. Intersections — each new tile in both an Across and a Down word adds Mult.
 /// 4b. Round bonus — flat Mult from Stationery used this round (Red Ink Bottle).
@@ -71,9 +72,14 @@ public static class ScoringEngine
 
     private static ScoreContext ApplyWord(ScoreContext context, FormedWord word, ScoringConfig config)
     {
+        if (config.RepeatWordsScoreZero && context.Env.WordsFormed.Contains(word.Text))
+            return (context with { WordChips = context.WordChips.Add(0) })
+                .Record(Sources.Word, $"{word.Text}: already printed this round, 0 chips");
+
         var (chips, wordMultiplier) = WordChips(word, context.Play.BoardAfter, config);
         string suffix = wordMultiplier > 1 ? $" (×{wordMultiplier} word)" : string.Empty;
-        return context.AddChips(chips).Record(Sources.Word, $"{word.Text}: +{chips} chips{suffix}");
+        return (context with { WordChips = context.WordChips.Add(chips) }).AddChips(chips)
+            .Record(Sources.Word, $"{word.Text}: +{chips} chips{suffix}");
     }
 
     private static ScoreContext ApplyEnhancements(ScoreContext context, FormedWord word, ScoringConfig config)

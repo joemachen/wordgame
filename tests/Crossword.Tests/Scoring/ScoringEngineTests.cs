@@ -207,4 +207,33 @@ public class ScoringEngineTests
 
         Assert.Equal(0, config.ValueOf(Letter.From('Q')));
     }
+
+
+    [Fact]
+    public void WordChips_AreRecordedPerFormedWord_InWordOrder()
+    {
+        // TO under AT in CAT forms TO, AT, TO: each 2 chips with the default letter values.
+        var play = Play(BoardFromRows("CAT..", ".....", ".....", ".....", "....."), "TO", 1, 1, Direction.Across, "TO");
+
+        var score = Score(play);
+
+        Assert.Equal(play.Words.Length, score.WordChips.Length);
+        Assert.Equal(play.Words.Select(w => (long)w.Text.Sum(ch => Config.LetterValues[ch])), score.WordChips);
+    }
+
+    [Fact]
+    public void RepeatedWord_UnderRepeatRule_AddsNoLetterChips_ButKeepsItsTier()
+    {
+        var play = Play(Board.Empty(5), "CAT", 0, 0, Direction.Across, "CAT");
+        var env = ScoreEnvironment.Empty with { WordsFormed = ["CAT"] };
+
+        var repeated = ScoringEngine.Score(play, [], Config with { RepeatWordsScoreZero = true }, env);
+        var ruleOff = ScoringEngine.Score(play, [], Config, env);
+        var fresh = ScoringEngine.Score(play, [], Config with { RepeatWordsScoreZero = true });
+
+        Assert.Equal(5, repeated.Chips);
+        Assert.Equal(0, repeated.WordChips.Single());
+        Assert.Equal(5 + 3 + 1 + 1, ruleOff.Chips);
+        Assert.Equal(5 + 3 + 1 + 1, fresh.Chips);
+    }
 }

@@ -187,4 +187,24 @@ public class RoundRulesTests
         Assert.False(next.Deadlocked);
         Assert.Equal(RoundStatus.InProgress, next.Status);
     }
+
+
+    [Fact]
+    public void Submit_TracksSubmissionsMade_AndWordsFormed()
+    {
+        var round = new RoundState(new RoundConfig(TargetScore: 10_000, BoardSize: 5), Board.Empty(5), TileBag.Empty,
+            HandOf("CATS"), Rng.FromSeed(1), Score: 0, SubmissionsLeft: 4, DiscardsLeft: 3);
+        Assert.Equal(0, RoundRules.Environment(round, 0).SubmissionsMade);
+
+        var first = PlayCat(round).Value.State;
+        var second = RoundRules.Submit(first, Spell(first.Board, first.Hand, 0, 0, Direction.Across, "CATS"), Words, NoItems,
+            ScoringConfig.Default).Value.State;
+
+        Assert.Equal(1, first.SubmissionsMade);
+        Assert.Equal(["CAT"], first.WordsFormed.Order());
+        Assert.Equal(1, RoundRules.Environment(first, 0).SubmissionsMade);
+        Assert.Equal(first.WordsFormed, RoundRules.Environment(first, 0).WordsFormed);
+        Assert.Equal(2, second.SubmissionsMade);
+        Assert.Equal(["CAT", "CATS"], second.WordsFormed.Order());
+    }
 }

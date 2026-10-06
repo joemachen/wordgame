@@ -106,6 +106,8 @@ public static class RoundRules
             Hand = state.Hand.Remove(placed.Select(p => p.Tile.Id)),
             Score = state.Score + score.Total,
             SubmissionsLeft = state.SubmissionsLeft - 1,
+            SubmissionsMade = state.SubmissionsMade + 1,
+            WordsFormed = state.WordsFormed.Union(play.Words.Select(w => w.Text)),
         };
 
         return Result<SubmitOutcome, RoundError>.Ok(new SubmitOutcome(CheckDeadlock(DrawRules.DrawToHandSize(next), lexicon, canEscape), score));
@@ -144,7 +146,11 @@ public static class RoundRules
 
     /// <summary>What Desk Items can see about the round when the next play is scored.</summary>
     public static ScoreEnvironment Environment(RoundState state, int moneyHeld) =>
-        new(moneyHeld, state.SubmissionsLeft, state.DiscardsLeft);
+        new(moneyHeld, state.SubmissionsLeft, state.DiscardsLeft)
+        {
+            SubmissionsMade = state.SubmissionsMade,
+            WordsFormed = state.WordsFormed,
+        };
 
     /// <summary>True if the current hand has at least one legal play on the current board.</summary>
     public static bool HasLegalPlay(RoundState state, IWordGraph lexicon) =>
