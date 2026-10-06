@@ -154,7 +154,7 @@ public static class StationeryBot
                 if (!round.Board.IsOccupied(cell))
                     continue;
                 var ranked = MoveRanker.Rank(round.Board.Remove(cell), round.Hand, lexicon, session.Run.DeskItems, scoring,
-                    round.Config.MinWordLength, env);
+                    round.Config.MinWordLength, env, round.Config.CensoredLetter);
                 long score = ranked.Count > 0 ? ranked[0].Score.Total : -1;
                 if (best is null || score > bestScore)
                     (best, bestScore) = (cell, score);

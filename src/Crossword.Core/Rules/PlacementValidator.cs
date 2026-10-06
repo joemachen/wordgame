@@ -9,14 +9,16 @@ namespace Crossword.Core.Rules;
 /// placed as itself with its chosen letter (<see cref="Tile.As"/>); any other tile must be placed unchanged.
 /// Rules: all new tiles in one row/column; the span between them filled (by new or existing tiles);
 /// connected to existing tiles unless the board is empty; at least one 2+ letter word; every formed word at least
-/// <c>minWordLength</c> letters (boss rule) and in the lexicon. Blocked cells cannot be played on.
+/// <c>minWordLength</c> letters (boss rule) and in the lexicon. Blocked cells cannot be played on, and no tile (not even
+/// a wild) may be placed as <c>censoredLetter</c> (Censored Press).
 /// </summary>
 public static class PlacementValidator
 {
     public static Result<PlayAnalysis, PlacementError> Validate(
-        Board board, Hand hand, IReadOnlyList<PlacedTile> placed, ILexicon lexicon, int minWordLength = 2)
+        Board board, Hand hand, IReadOnlyList<PlacedTile> placed, ILexicon lexicon, int minWordLength = 2,
+        char? censoredLetter = null)
     {
-        if (StructuralError(board, hand, placed) is { } error)
+        if (StructuralError(board, hand, placed, censoredLetter) is { } error)
             return Result<PlayAnalysis, PlacementError>.Fail(error);
 
         var boardAfter = board.Place(placed);
@@ -37,7 +39,7 @@ public static class PlacementValidator
         return Result<PlayAnalysis, PlacementError>.Ok(new PlayAnalysis(placed.ToImmutableArray(), words, boardAfter));
     }
 
-    private static PlacementError? StructuralError(Board board, Hand hand, IReadOnlyList<PlacedTile> placed)
+    private static PlacementError? StructuralError(Board board, Hand hand, IReadOnlyList<PlacedTile> placed, char? censoredLetter)
     {
         if (placed.Count == 0)
             return new PlacementError.NoTiles();
@@ -51,6 +53,8 @@ public static class PlacementValidator
                 return new PlacementError.TileNotInHand(tile);
             if (held.IsWild ? tile != held.As(tile.Letter) : tile != held)
                 return new PlacementError.TileChanged(tile);
+            if (tile.Letter.Char == censoredLetter)
+                return new PlacementError.Censored(tile.Letter.Char);
             if (!seenTiles.Add(tile.Id))
                 return new PlacementError.DuplicateTile(tile);
             if (!board.InBounds(position))

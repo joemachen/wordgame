@@ -13,8 +13,8 @@ public static class MoveRanker
     /// <summary>All legal plays scored with the given Desk Items, best first (ties broken by fewer tiles used).</summary>
     public static IReadOnlyList<RankedPlay> Rank(
         Board board, Hand hand, IWordGraph lexicon, IReadOnlyList<IDeskItem> deskItems, ScoringConfig scoring,
-        int minWordLength = 2, ScoreEnvironment? environment = null) =>
-        MoveGenerator.LegalPlays(board, hand, lexicon, minWordLength)
+        int minWordLength = 2, ScoreEnvironment? environment = null, char? censoredLetter = null) =>
+        MoveGenerator.LegalPlays(board, hand, lexicon, minWordLength, censoredLetter)
             .Select(play => new RankedPlay(play, ScoringEngine.Score(play, deskItems, scoring, environment)))
             .OrderByDescending(r => r.Score.Total)
             .ThenBy(r => r.Play.Placed.Length)

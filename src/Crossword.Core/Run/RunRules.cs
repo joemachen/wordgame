@@ -15,12 +15,20 @@ namespace Crossword.Core.Run;
 public static class RunRules
 {
     private const ulong WeekSalt = 0xD1B54A32D192ED03UL;
+    private const ulong ReprintSalt = 0x9E3779B97F4A7C15UL;
+    private const ulong CensorSalt = 0xC2B2AE3D27D4EB4FUL;
 
+    /// <summary>
+    /// Starts a run at Press Run <paramref name="pressRun"/>: its rules are applied to <paramref name="config"/>
+    /// (<see cref="PressRuns.Apply"/>), so pass the base config, and the level is stored in the run.
+    /// </summary>
     /// <param name="setup">Optional dev/test adjustment of the starting run (e.g. given Desk Items), applied before
     /// the first round starts so round hooks such as Tile Rack take effect immediately.</param>
-    public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon, Func<RunState, RunState>? setup = null)
+    public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon, Func<RunState, RunState>? setup = null,
+        int pressRun = PressRuns.Lowest)
     {
-        var run = RunState.New(seed) with { Money = config.Economy.StartingMoney, Deck = config.StartingTiles };
+        config = PressRuns.Apply(config, pressRun);
+        var run = RunState.New(seed) with { Money = config.Economy.StartingMoney, Deck = config.StartingTiles, PressRun = pressRun };
         return StartRound(config, setup?.Invoke(run) ?? run, lexicon);
     }
 
@@ -29,13 +37,34 @@ public static class RunRules
     /// and week (no RNG consumed), so it can be previewed from the start of the week and is identical however the
     /// week is played. The Puzzle Master's pair is drawn from the same seeded stream.
     /// </summary>
+    /// <remarks>With <see cref="RunConfig.BossExtraModifier"/> the boss becomes a <see cref="Reprint"/> with one more Early/Mid
+    /// boss's rule (none it already has), drawn from a separate seeded stream so the base boss stays the same.</remarks>
     public static BossModifier BossFor(RunConfig config, RunState run, int week)
     {
         var pool = config.BossPoolFor(week);
         var (index, rng) = Rng.FromSeed(run.Seed + (ulong)(week + 1) * WeekSalt).NextInt(pool.Length);
-        return pool[index] is PuzzleMaster { First: null } master
+        var boss = pool[index] is PuzzleMaster { First: null } master
             ? master.Pick(BossCatalog.PuzzleMasterCandidates, rng)
             : pool[index];
+        if (!config.BossExtraModifier)
+            return boss;
+
+        var has = boss.Rules().Select(rule => rule.Id).ToHashSet();
+        var extras = BossCatalog.PuzzleMasterCandidates.Where(candidate => !has.Contains(candidate.Id)).ToArray();
+        var (extra, _) = Rng.FromSeed(run.Seed + (ulong)(week + 1) * ReprintSalt).NextInt(extras.Length);
+        return new Reprint(boss, extras[extra]);
+    }
+
+    /// <summary>
+    /// The letter censored in round <paramref name="roundIndex"/> (null when <see cref="RunConfig.CensoredLetters"/> is
+    /// empty), picked from the seed and round only, so it consumes no RNG and leaves the round's draws unchanged.
+    /// </summary>
+    public static char? CensoredLetterFor(RunConfig config, RunState run, int roundIndex)
+    {
+        if (config.CensoredLetters.Length == 0)
+            return null;
+        var (index, _) = Rng.FromSeed(run.Seed + (ulong)(roundIndex + 1) * CensorSalt).NextInt(config.CensoredLetters.Length);
+        return config.CensoredLetters[index];
     }
 
     /// <summary>A round's deadline including its boss's adjustment (for previews before the round starts).</summary>
@@ -98,7 +127,7 @@ public static class RunRules
             case AnswerKey:
                 var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, session.Run.DeskItems,
                     round.Config.EffectiveScoring(session.Scoring), round.Config.MinWordLength,
-                    RoundRules.Environment(round, session.Run.Money));
+                    RoundRules.Environment(round, session.Run.Money), round.Config.CensoredLetter);
                 return Hints.Best(ranked) is { } best
                     ? Result<StationeryUse, string>.Ok(new StationeryUse(used, best))
                     : Result<StationeryUse, string>.Fail("No legal play with this hand — discard some tiles first.");
@@ -170,7 +199,8 @@ public static class RunRules
     private static GameSession StartRound(RunConfig config, RunState run, IWordGraph lexicon)
     {
         var boss = BossFor(config, run, config.WeekOf(run.RoundIndex));
-        var roundConfig = run.DeskItems.Aggregate(config.RoundConfigFor(run.RoundIndex, boss), (c, item) => item.ModifyRound(c));
+        var baseConfig = config.RoundConfigFor(run.RoundIndex, boss, CensoredLetterFor(config, run, run.RoundIndex));
+        var roundConfig = run.DeskItems.Aggregate(baseConfig, (c, item) => item.ModifyRound(c));
         var (round, nextRun) = RoundRules.Start(run, roundConfig, lexicon);
         return new GameSession(config, nextRun, RunPhase.InRound, round);
     }

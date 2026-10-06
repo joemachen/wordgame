@@ -94,7 +94,8 @@ public static class RoundRules
         if (state.Status != RoundStatus.InProgress)
             return Result<SubmitOutcome, RoundError>.Fail(new RoundError.RoundOver(state.Status));
 
-        var validation = PlacementValidator.Validate(state.Board, state.Hand, placed, lexicon, state.Config.MinWordLength);
+        var validation = PlacementValidator.Validate(state.Board, state.Hand, placed, lexicon, state.Config.MinWordLength,
+            state.Config.CensoredLetter);
         if (!validation.IsOk)
             return Result<SubmitOutcome, RoundError>.Fail(new RoundError.InvalidPlacement(validation.Error));
 
@@ -154,7 +155,7 @@ public static class RoundRules
 
     /// <summary>True if the current hand has at least one legal play on the current board.</summary>
     public static bool HasLegalPlay(RoundState state, IWordGraph lexicon) =>
-        MoveGenerator.HasLegalPlay(state.Board, state.Hand, lexicon, state.Config.MinWordLength);
+        MoveGenerator.HasLegalPlay(state.Board, state.Hand, lexicon, state.Config.MinWordLength, state.Config.CensoredLetter);
 
     /// <summary>
     /// Marks the round deadlocked when no legal play exists and no discards remain, unless <paramref name="canEscape"/>

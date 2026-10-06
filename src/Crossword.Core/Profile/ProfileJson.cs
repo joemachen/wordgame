@@ -42,6 +42,7 @@ public static class ProfileJson
                 BossesBeaten = stats.BossesBeaten.Count == 0 ? null : stats.BossesBeaten.OrderBy(kv => kv.Key, StringComparer.Ordinal)
                     .ToDictionary(kv => kv.Key, kv => kv.Value),
                 FullSpreadRounds = stats.FullSpreadRounds,
+                HighestPressRunWon = stats.HighestPressRunWon,
             },
         };
         return JsonSerializer.Serialize(dto, Options);
@@ -79,6 +80,8 @@ public static class ProfileJson
             CloseCalls = s.CloseCalls,
             BossesBeaten = (s.BossesBeaten ?? new Dictionary<string, int>()).ToImmutableDictionary(),
             FullSpreadRounds = s.FullSpreadRounds,
+            // Profiles from before Press Runs: every win so far was at the base level.
+            HighestPressRunWon = s.HighestPressRunWon ?? (s.RunsWon > 0 ? 1 : 0),
         };
         return Result<PlayerProfile, string>.Ok(new PlayerProfile(dto.Name ?? "Player", stats) { Version = PlayerProfile.CurrentVersion });
     }
@@ -104,6 +107,7 @@ public static class ProfileJson
         public int CloseCalls { get; set; }
         public Dictionary<string, int>? BossesBeaten { get; set; }
         public int FullSpreadRounds { get; set; }
+        public int? HighestPressRunWon { get; set; }
     }
 
     private sealed class WordUseDto

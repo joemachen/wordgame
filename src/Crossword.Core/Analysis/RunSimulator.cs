@@ -51,11 +51,13 @@ public sealed record SimulatedRun(
 /// </summary>
 public static class RunSimulator
 {
+    /// <param name="pressRun">The run's Press Run, applied to <paramref name="config"/> (pass the base config).</param>
     public static SimulatedRun PlayRun(ulong seed, RunConfig config, IWordGraph lexicon, double skill = 1.0,
-        ShopStrategy strategy = ShopStrategy.Evaluating, ShopBotConfig? bot = null, SkillModel model = SkillModel.Percentile)
+        ShopStrategy strategy = ShopStrategy.Evaluating, ShopBotConfig? bot = null, SkillModel model = SkillModel.Percentile,
+        int pressRun = PressRuns.Lowest)
     {
         bot ??= ShopBotConfig.Default;
-        var session = RunRules.NewGame(seed, config, lexicon);
+        var session = RunRules.NewGame(seed, config, lexicon, pressRun: pressRun);
         var rounds = ImmutableArray.CreateBuilder<SimulatedRunRound>();
         var history = ShopHistory.Empty;
         var stationeryUsed = ImmutableArray.CreateBuilder<string>();
@@ -108,7 +110,7 @@ public static class RunSimulator
             var scoring = round.Config.EffectiveScoring(session.Scoring);
             var env = RoundRules.Environment(round, session.Run.Money);
             var ranked = MoveRanker.Rank(round.Board, round.Hand, lexicon, session.Run.DeskItems, scoring,
-                round.Config.MinWordLength, env);
+                round.Config.MinWordLength, env, round.Config.CensoredLetter);
 
             if (ranked.Count == 0)
             {

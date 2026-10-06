@@ -30,6 +30,9 @@ public sealed record RunState(
     /// <summary>One-shot Stationery held for later use; duplicates are allowed.</summary>
     public ImmutableArray<IStationery> Stationery { get; init; } = ImmutableArray<IStationery>.Empty;
 
+    /// <summary>The run's difficulty level (1 = Proofreader … 8; see <see cref="Run.PressRuns"/>).</summary>
+    public int PressRun { get; init; } = 1;
+
     /// <summary>Style Guide upgrades bought: word tier MinLength → number of upgrades.</summary>
     public ImmutableDictionary<int, int> TierUpgrades { get; init; } = ImmutableDictionary<int, int>.Empty;
 

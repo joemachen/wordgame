@@ -8,6 +8,7 @@ namespace Crossword.Core.Domain;
 /// <summary>
 /// Rules for one round. <see cref="Boss"/> (Sunday rounds) has already been applied to the other fields.
 /// <see cref="Draw"/> null = plain uniform draws (runs set <see cref="Run.RunConfig.Draw"/>).
+/// <see cref="CensoredLetter"/> can't be placed this round, not even by a wild tile (Censored Press).
 /// </summary>
 public sealed record RoundConfig(
     long TargetScore,
@@ -20,7 +21,8 @@ public sealed record RoundConfig(
     int BlockedPairs = 0,
     BossModifier? Boss = null,
     decimal BonusMult = 0,
-    DrawConfig? Draw = null)
+    DrawConfig? Draw = null,
+    char? CensoredLetter = null)
 {
     public PremiumPairs PremiumPairs => Premiums ?? PremiumPairs.Default;
 

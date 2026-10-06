@@ -636,7 +636,6 @@
         "id": "fountain-pen"
       }
     ],
-    "pressRun": 1,
     "tierUpgrades": {
       "3": 1,
       "7": 1
@@ -668,8 +667,7 @@
         "minVowels": 2,
         "minConsonants": 2,
         "maxCopiesPerVowel": 2
-      },
-      "censoredLetter": null
+      }
     },
     "board": {
       "size": 7,

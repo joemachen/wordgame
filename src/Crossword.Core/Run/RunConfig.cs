@@ -46,6 +46,21 @@ public sealed record RunConfig(
     /// <summary>Boss pools by week (see <see cref="BossPoolFor"/>). Ordered by ascending <see cref="BossTier.FirstWeek"/>.</summary>
     public ImmutableArray<BossTier> BossTiers { get; init; } = BossCatalog.DefaultTiers;
 
+    /// <summary>Added to every round's submissions after the boss (Press Runs; at least 1 remains).</summary>
+    public int SubmissionsDelta { get; init; }
+
+    /// <summary>Added to every round's discards after the boss (Press Runs; never below 0).</summary>
+    public int DiscardsDelta { get; init; }
+
+    /// <summary>
+    /// Letters one of which is censored each round (can't be placed; see <see cref="RunRules.CensoredLetterFor"/>).
+    /// Empty = no censoring (Press Runs).
+    /// </summary>
+    public string CensoredLetters { get; init; } = "";
+
+    /// <summary>The week's boss adds one more Early/Mid boss's rule (<see cref="Reprint"/>; Press Runs).</summary>
+    public bool BossExtraModifier { get; init; }
+
     public static RunConfig Default { get; } = new(
         WeekTargets: [510, 1790, 5380, 14580, 23920],
         Days:
@@ -86,10 +101,21 @@ public sealed record RunConfig(
         return (long)(weekTarget * KindOf(roundIndex).TargetMultiplier);
     }
 
-    /// <summary>Round rules for a round; <paramref name="boss"/> is applied only on boss rounds.</summary>
-    public RoundConfig RoundConfigFor(int roundIndex, BossModifier? boss = null)
+    /// <summary>
+    /// Round rules for a round; <paramref name="boss"/> is applied only on boss rounds. The submission and discard
+    /// deltas apply after the boss, so they stack with it (Tight Deadline's 3 submissions minus 1 = 2).
+    /// </summary>
+    public RoundConfig RoundConfigFor(int roundIndex, BossModifier? boss = null, char? censoredLetter = null)
     {
-        var config = new RoundConfig(TargetScore: TargetFor(roundIndex), Draw: Draw);
-        return KindOf(roundIndex).IsBoss && boss is not null ? boss.Apply(config) : config;
+        var config = new RoundConfig(TargetScore: TargetFor(roundIndex), Draw: Draw, CensoredLetter: censoredLetter);
+        if (KindOf(roundIndex).IsBoss && boss is not null)
+            config = boss.Apply(config);
+        return SubmissionsDelta == 0 && DiscardsDelta == 0
+            ? config
+            : config with
+            {
+                Submissions = Math.Max(1, config.Submissions + SubmissionsDelta),
+                Discards = Math.Max(0, config.Discards + DiscardsDelta),
+            };
     }
 }

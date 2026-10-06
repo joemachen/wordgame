@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Crossword.Core.Domain;
 using Crossword.Core.Profile;
+using Crossword.Core.Run;
 using static Crossword.Tests.TestSupport.Fixtures;
 
 namespace Crossword.Tests.Profile;
@@ -54,13 +55,36 @@ public class ProfileTests
     public void RecordRunStartAndEnd_TrackRunsWinsAndFurthestWeek()
     {
         var stats = StatsRules.RecordRunStart(StatsRules.RecordRunStart(PlayerStats.Empty));
-        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 3);
-        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5);
-        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 2);
+        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 3, pressRun: 1);
+        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 1);
+        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 2, pressRun: 1);
 
         Assert.Equal(2, stats.RunsStarted);
         Assert.Equal(1, stats.RunsWon);
         Assert.Equal(5, stats.BestWeekReached);
+    }
+
+    [Fact]
+    public void RecordRunEnd_AWinUnlocksTheNextPressRun()
+    {
+        Assert.Equal(1, StatsQueries.UnlockedPressRun(PlayerStats.Empty));
+
+        var stats = StatsRules.RecordRunEnd(PlayerStats.Empty, won: true, weekReached: 5, pressRun: 1);
+        Assert.Equal(1, stats.HighestPressRunWon);
+        Assert.Equal(2, StatsQueries.UnlockedPressRun(stats));
+
+        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 5, pressRun: 2);
+        Assert.Equal(2, StatsQueries.UnlockedPressRun(stats)); // a loss unlocks nothing
+
+        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 3);
+        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 1);
+        Assert.Equal(3, stats.HighestPressRunWon); // winning a lower level never lowers it
+    }
+
+    [Fact]
+    public void UnlockedPressRun_StopsAtTheTopLevel()
+    {
+        Assert.Equal(PressRuns.Highest, StatsQueries.UnlockedPressRun(PlayerStats.Empty with { HighestPressRunWon = PressRuns.Highest }));
     }
 
     // ---------------------------------------------------------------- queries
@@ -111,6 +135,7 @@ public class ProfileTests
             CloseCalls = 2,
             BossesBeaten = new Dictionary<string, int> { ["Ink Spill"] = 2 }.ToImmutableDictionary(),
             FullSpreadRounds = 1,
+            HighestPressRunWon = 3,
         };
         var profile = PlayerProfile.New("Joe") with { Stats = stats };
 
@@ -156,6 +181,17 @@ public class ProfileTests
         Assert.Equal("Player", loaded.Name);
         Assert.Equal(4, loaded.Stats.RunsStarted);
         Assert.Empty(loaded.Stats.Words);
+        Assert.Equal(0, loaded.Stats.HighestPressRunWon);
+    }
+
+    [Fact]
+    public void Json_ProfilesFromBeforePressRuns_CountTheirWinsAsProofreader()
+    {
+        var withWins = ProfileJson.Deserialize("""{ "version": 1, "stats": { "runsWon": 2 } }""").Value;
+        var saved = ProfileJson.Deserialize("""{ "version": 1, "stats": { "runsWon": 2, "highestPressRunWon": 4 } }""").Value;
+
+        Assert.Equal(1, withWins.Stats.HighestPressRunWon);
+        Assert.Equal(4, saved.Stats.HighestPressRunWon);
     }
 
     [Theory]

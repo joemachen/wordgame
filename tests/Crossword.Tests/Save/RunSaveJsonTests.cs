@@ -225,6 +225,49 @@ public class RunSaveJsonTests
         Assert.Equal(current, RunSaveJson.Serialize(loaded).ReplaceLineEndings("\n"));
     }
 
+    /// <summary>Saves from before Press Runs (no <c>pressRun</c>, no <c>censoredLetter</c>) load as Proofreader runs.</summary>
+    [Fact]
+    public void FixtureFromBeforePressRuns_LoadsAsProofreader()
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, "Save", "Fixtures", "run-v1-before-press-runs.json");
+        string legacy = File.ReadAllText(path);
+        Assert.DoesNotContain("pressRun", legacy);
+
+        var loaded = Load(legacy).Session;
+
+        Assert.Equal(PressRuns.Lowest, loaded.Run.PressRun);
+        Assert.Same(Config, loaded.Config);
+        Assert.Null(loaded.Round.Config.CensoredLetter);
+        Assert.Equal(RunSaveJson.Serialize(FixtureSession()), RunSaveJson.Serialize(loaded));
+    }
+
+    [Fact]
+    public void PressRun_SurvivesSaveAndLoad_AndItsRulesAreReapplied()
+    {
+        // Final Print Run at a Sunday: a Reprint boss and a censored letter in the round.
+        var session = RunRules.NewGame(9, Config, LexiconLoader.Enable, run => run with { RoundIndex = 2 }, pressRun: 8);
+        Assert.IsType<Reprint>(session.Round.Config.Boss);
+        Assert.NotNull(session.Round.Config.CensoredLetter);
+
+        var loaded = RoundTrip(session);
+
+        Assert.Equal(8, loaded.Run.PressRun);
+        Assert.Equal(session.Round.Config.Boss, loaded.Round.Config.Boss);
+        Assert.Equal(session.Round.Config.CensoredLetter, loaded.Round.Config.CensoredLetter);
+        Assert.Equal(PressRuns.Apply(Config, 8).Shop, loaded.Config.Shop);
+        Assert.True(loaded.Config.BossExtraModifier);
+        Assert.Equal(session.WeekBoss, loaded.WeekBoss);
+    }
+
+    [Fact]
+    public void SaveWithAnUnknownPressRun_FailsWithoutThrowing()
+    {
+        string json = RunSaveJson.Serialize(RunRules.NewGame(3, Config, LexiconLoader.Enable));
+        Assert.Contains("\"pressRun\": 1", json);
+
+        Assert.False(RunSaveJson.Deserialize(json.Replace("\"pressRun\": 1", "\"pressRun\": 9"), Config).IsOk);
+    }
+
     /// <summary>The state in <c>Save/Fixtures/run-v1.json</c>: a few rounds into seed 21, in the shop.</summary>
     internal static GameSession FixtureSession()
     {
@@ -250,7 +293,7 @@ public class RunSaveJsonTests
         var round = session.Round;
         return MoveRanker.Rank(round.Board, round.Hand, LexiconLoader.Enable, session.Run.DeskItems,
             round.Config.EffectiveScoring(session.Scoring), round.Config.MinWordLength,
-            RoundRules.Environment(round, session.Run.Money));
+            RoundRules.Environment(round, session.Run.Money), round.Config.CensoredLetter);
     }
 
     /// <summary>One deterministic transition: shop like the naive bot and leave, or play the best move (else discard all).</summary>

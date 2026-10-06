@@ -38,6 +38,11 @@ public abstract record PlacementError
         public override string Message => $"{Position} is a black square.";
     }
 
+    public sealed record Censored(char Letter) : PlacementError
+    {
+        public override string Message => $"{Letter} is censored this round.";
+    }
+
     public sealed record WordsTooShort(ImmutableArray<string> Words, int MinLength) : PlacementError
     {
         public override string Message => $"Words must be at least {MinLength} letters: {string.Join(", ", Words)}.";

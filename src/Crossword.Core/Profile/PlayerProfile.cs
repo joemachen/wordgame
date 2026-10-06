@@ -44,6 +44,9 @@ public sealed record PlayerStats
 
     /// <summary>Rounds won whose final board used all five vowels or ten or more distinct letters.</summary>
     public int FullSpreadRounds { get; init; }
+
+    /// <summary>The highest Press Run won (0 = none yet); the next one up is unlocked (<see cref="StatsQueries.UnlockedPressRun"/>).</summary>
+    public int HighestPressRunWon { get; init; }
 }
 
 /// <summary>A named player profile. <see cref="Version"/> lets later releases migrate old files.</summary>
@@ -104,9 +107,11 @@ public static class StatsRules
     public static PlayerStats RecordRunStart(PlayerStats stats) => stats with { RunsStarted = stats.RunsStarted + 1 };
 
     /// <param name="weekReached">1-based week the run ended in (or the last week, for a win).</param>
-    public static PlayerStats RecordRunEnd(PlayerStats stats, bool won, int weekReached) => stats with
+    /// <param name="pressRun">The run's Press Run; a win there unlocks the next one.</param>
+    public static PlayerStats RecordRunEnd(PlayerStats stats, bool won, int weekReached, int pressRun) => stats with
     {
         RunsWon = stats.RunsWon + (won ? 1 : 0),
         BestWeekReached = Math.Max(stats.BestWeekReached, weekReached),
+        HighestPressRunWon = won ? Math.Max(stats.HighestPressRunWon, pressRun) : stats.HighestPressRunWon,
     };
 }

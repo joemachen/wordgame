@@ -79,7 +79,8 @@ public static class Program
                 SimulateRuns(rest.Length > 0 && int.TryParse(rest[0], out var runs) ? runs : 50,
                     rest.Length > 1 && double.TryParse(rest[1], System.Globalization.CultureInfo.InvariantCulture, out var skill) ? skill : 0.9,
                     rest.Skip(2).Any(a => a.Equals("naive", StringComparison.OrdinalIgnoreCase)) ? ShopStrategy.Naive : ShopStrategy.Evaluating,
-                    rest.Skip(2).Any(a => a.Equals("frac", StringComparison.OrdinalIgnoreCase)) ? SkillModel.ScoreFraction : SkillModel.Percentile);
+                    rest.Skip(2).Any(a => a.Equals("frac", StringComparison.OrdinalIgnoreCase)) ? SkillModel.ScoreFraction : SkillModel.Percentile,
+                    PressRunArg(rest.Skip(2)) ?? PressRuns.Lowest);
                 break;
             case "shop":
                 PrintPhase();
@@ -125,7 +126,7 @@ public static class Program
                 Console.WriteLine($"Seed: {Run.Seed}");
                 break;
             case "new" or "n":
-                NewRun(rest.Length > 0 && ulong.TryParse(rest[0], out var s) ? s : RandomSeed());
+                NewRun(rest.Length > 0 && ulong.TryParse(rest[0], out var s) ? s : RandomSeed(), PressRunArg(rest) ?? Run.PressRun);
                 break;
             case "quit" or "q" or "exit":
                 return false;
@@ -138,11 +139,26 @@ public static class Program
 
     private static ulong RandomSeed() => (ulong)Environment.TickCount64;
 
-    private static void NewRun(ulong seed)
+    private static void NewRun(ulong seed, int pressRun = PressRuns.Lowest)
     {
-        Console.WriteLine($"\nStarting new run with seed {seed}");
-        _session = RunRules.NewGame(seed, Config, _lexicon);
+        var press = PressRuns.Get(pressRun);
+        Console.WriteLine($"\nStarting new run with seed {seed} at Press Run {press.Level} ({press.Name})");
+        _session = RunRules.NewGame(seed, Config, _lexicon, pressRun: pressRun);
         PrintPhase();
+    }
+
+    /// <summary>A "press=N" argument (N = 1–8), or null when absent or out of range (which is reported).</summary>
+    private static int? PressRunArg(IEnumerable<string> args)
+    {
+        foreach (string arg in args)
+        {
+            if (!arg.StartsWith("press=", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (int.TryParse(arg["press=".Length..], out int level) && PressRuns.IsLevel(level))
+                return level;
+            Console.WriteLine($"Press Run must be {PressRuns.Lowest}–{PressRuns.Highest}; using the default.");
+        }
+        return null;
     }
 
     /// <summary>Swaps in a successful session or prints the error.</summary>
@@ -282,12 +298,12 @@ public static class Program
 
     private static void PrintDesk(bool showCatalog)
     {
-        Console.WriteLine(ConsoleRenderer.Desk(Run, Config.Shop));
+        Console.WriteLine(ConsoleRenderer.Desk(Run, _session.Config.Shop));
         if (!showCatalog)
             return;
         Console.WriteLine("Catalog (dev: 'give <id>'):");
         foreach (var item in DeskItemCatalog.All)
-            Console.WriteLine($"  {item.Id,-16} {item.Name,-16} ${Config.Shop.PriceOf(item)} {item.Description}");
+            Console.WriteLine($"  {item.Id,-16} {item.Name,-16} ${_session.Config.Shop.PriceOf(item)} {item.Description}");
     }
 
     private static void Hint(int count)
@@ -296,7 +312,8 @@ public static class Program
             return;
 
         var ranked = MoveRanker.Rank(Round.Board, Round.Hand, _lexicon, Run.DeskItems,
-            Round.Config.EffectiveScoring(_session.Scoring), Round.Config.MinWordLength, RoundRules.Environment(Round, Run.Money));
+            Round.Config.EffectiveScoring(_session.Scoring), Round.Config.MinWordLength, RoundRules.Environment(Round, Run.Money),
+            Round.Config.CensoredLetter);
         if (ranked.Count == 0)
         {
             Console.WriteLine("No legal plays with this hand.");
@@ -326,20 +343,20 @@ public static class Program
         Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
     }
 
-    private static void SimulateRuns(int runs, double skill, ShopStrategy strategy, SkillModel model)
+    private static void SimulateRuns(int runs, double skill, ShopStrategy strategy, SkillModel model, int pressRun)
     {
         if (skill is <= 0 or > 1)
         {
             Console.WriteLine("Skill must be in (0, 1], e.g. 'runsim 50 0.9'.");
             return;
         }
-        Console.WriteLine($"Simulating {runs} full runs at skill {skill:0.00}...");
+        Console.WriteLine($"Simulating {runs} full runs at skill {skill:0.00}, Press Run {pressRun} ({PressRuns.Get(pressRun).Name})...");
         var sw = Stopwatch.StartNew();
         var results = Enumerable.Range(1, runs)
             .AsParallel()
-            .Select(seed => RunSimulator.PlayRun((ulong)seed, Config, _lexicon, skill, strategy, model: model))
+            .Select(seed => RunSimulator.PlayRun((ulong)seed, Config, _lexicon, skill, strategy, model: model, pressRun: pressRun))
             .ToList();
-        Console.WriteLine(SimulationReport.FormatRuns(results, Config, skill, strategy, model));
+        Console.WriteLine(SimulationReport.FormatRuns(results, PressRuns.Apply(Config, pressRun), skill, strategy, model));
         Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
     }
 
@@ -354,7 +371,7 @@ public static class Program
                 Console.WriteLine(ConsoleRenderer.Board(Round.Board));
                 Console.WriteLine(ConsoleRenderer.Status(Round));
                 if (!Run.DeskItems.IsEmpty)
-                    Console.WriteLine(ConsoleRenderer.Desk(Run, Config.Shop));
+                    Console.WriteLine(ConsoleRenderer.Desk(Run, _session.Config.Shop));
                 Console.WriteLine(ConsoleRenderer.Hand(Round.Hand, Round.Config.EffectiveScoring(_session.Scoring)));
                 if (!RoundRules.HasLegalPlay(Round, _lexicon))
                     Console.WriteLine("(!) No legal play with this hand - discard some tiles.");
@@ -362,12 +379,12 @@ public static class Program
 
             case RunPhase.Shop:
                 Console.WriteLine(ConsoleRenderer.Header(_session));
-                Console.WriteLine(ConsoleRenderer.Desk(Run, Config.Shop));
+                Console.WriteLine(ConsoleRenderer.Desk(Run, _session.Config.Shop));
                 Console.WriteLine(ConsoleRenderer.Shop(_session));
                 break;
 
             case RunPhase.Victory:
-                Console.WriteLine($"*** YOU WON THE RUN! All {Config.WeekTargets.Length} weeks published. " +
+                Console.WriteLine($"*** YOU WON THE RUN! All {_session.Config.WeekTargets.Length} weeks published. " +
                                   "'continue' for endless mode, 'new' for a new run. ***");
                 break;
 
@@ -402,8 +419,9 @@ public static class Program
               discard | x <LETTERS>          Discard tiles (costs a discard), e.g. 'discard QV'
               hint [n]                       Show the n best legal plays (dev/QA aid)
               sim [rounds]                   Greedy-play simulation of the current round settings
-              runsim [runs] [skill] [naive] [frac]  Full-run simulation with a shop bot (default 50, 0.9, smart bot;
-                                    frac = skill is a fraction of the best play's score, not a percentile)
+              runsim [runs] [skill] [naive] [frac] [press=N]  Full-run simulation with a shop bot (default 50, 0.9,
+                                    smart bot; frac = skill is a fraction of the best play's score, not a percentile;
+                                    press=N plays at Press Run N, 1-8)
             In the shop:
               buy <n> [LETTERS]              Buy offer n; LETTERS picks deck tiles for Enhance/Strike
               reroll                         New offers (cost rises each reroll)
@@ -416,7 +434,7 @@ public static class Program
               give <id>                      (dev) Add a Desk Item for free
               board | status                 Redraw the current screen
               continue                       Endless mode after winning
-              new [seed] / seed / quit
+              new [seed] [press=N] / seed / quit  (press=N: Press Run 1-8, default the current run's)
             Scoring: longest word sets base chips x mult; every word formed adds letter chips;
                      enhanced tiles trigger per word they're in; each new tile completing both an
                      across and a down word adds +{Config.Scoring.IntersectionMult} mult.

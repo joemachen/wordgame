@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Crossword.Core.Run;
 
 namespace Crossword.Core.Profile;
 
@@ -55,4 +56,8 @@ public static class StatsQueries
             .Take(count)
             .Select(kv => kv.Key)
             .ToImmutableArray();
+
+    /// <summary>The highest Press Run this player may start: one above the highest won (Proofreader on a new profile).</summary>
+    public static int UnlockedPressRun(PlayerStats stats) =>
+        Math.Clamp(stats.HighestPressRunWon + 1, PressRuns.Lowest, PressRuns.Highest);
 }

@@ -67,12 +67,14 @@ public static class ConsoleRenderer
         string boss = session.Round.Config.Boss is { } b
             ? $"BOSS: {b.Name} — {b.Description}"
             : $"Sunday boss: {session.WeekBoss.Name} — {session.WeekBoss.Description}";
-        return $"Week {session.Week + 1}/{session.Config.WeekTargets.Length} · {session.Kind.Name} · ${session.Run.Money} | {boss}";
+        string press = session.Run.PressRun > PressRuns.Lowest ? $"Press Run {session.Run.PressRun} · " : "";
+        return $"{press}Week {session.Week + 1}/{session.Config.WeekTargets.Length} · {session.Kind.Name} · ${session.Run.Money} | {boss}";
     }
 
     public static string Status(RoundState round) =>
         $"Score {round.Score}/{round.Config.TargetScore} | Submissions {round.SubmissionsLeft} | " +
-        $"Discards {round.DiscardsLeft} | Bag {round.Bag.Count}";
+        $"Discards {round.DiscardsLeft} | Bag {round.Bag.Count}" +
+        (round.Config.CensoredLetter is { } censored ? $" | Censored: {censored}" : "");
 
     public static string Desk(RunState run, ShopConfig shop) =>
         run.DeskItems.IsEmpty

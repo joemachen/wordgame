@@ -10,30 +10,32 @@ namespace Crossword.Core.Analysis;
 /// Enumerates every legal play for a board and hand. For each line and start cell it walks the word
 /// graph letter by letter — consuming board letters and trying hand letters on empty cells — pruning
 /// dead prefixes and invalid cross words immediately. Wild tiles fill in for a letter only when no real tile of that
-/// letter is left (they score 0 chips). Results are re-checked by <see cref="PlacementValidator"/>.
+/// letter is left (they score 0 chips). A censored letter is never placed. Results are re-checked by
+/// <see cref="PlacementValidator"/>.
 /// </summary>
 public static class MoveGenerator
 {
-    public static IEnumerable<PlayAnalysis> LegalPlays(Board board, Hand hand, IWordGraph lexicon, int minWordLength = 2)
+    public static IEnumerable<PlayAnalysis> LegalPlays(Board board, Hand hand, IWordGraph lexicon, int minWordLength = 2,
+        char? censoredLetter = null)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var candidate in Candidates(board, hand, lexicon, minWordLength))
+        foreach (var candidate in Candidates(board, hand, lexicon, minWordLength, censoredLetter))
         {
             var placed = AssignTiles(hand, candidate);
             if (!seen.Add(Key(placed)))
                 continue; // single-tile plays are found once per direction; wild-letter variants once per placement
 
-            var result = PlacementValidator.Validate(board, hand, placed, lexicon, minWordLength);
+            var result = PlacementValidator.Validate(board, hand, placed, lexicon, minWordLength, censoredLetter);
             if (result.IsOk)
                 yield return result.Value;
         }
     }
 
-    public static bool HasLegalPlay(Board board, Hand hand, IWordGraph lexicon, int minWordLength = 2) =>
-        LegalPlays(board, hand, lexicon, minWordLength).Any();
+    public static bool HasLegalPlay(Board board, Hand hand, IWordGraph lexicon, int minWordLength = 2, char? censoredLetter = null) =>
+        LegalPlays(board, hand, lexicon, minWordLength, censoredLetter).Any();
 
     private static IEnumerable<IReadOnlyList<(Position Position, char Letter, bool Wild)>> Candidates(
-        Board board, Hand hand, IWordGraph lexicon, int minWordLength)
+        Board board, Hand hand, IWordGraph lexicon, int minWordLength, char? censoredLetter)
     {
         var counts = new int[26];
         int wilds = 0;
@@ -45,7 +47,8 @@ public static class MoveGenerator
                 counts[tile.Letter.Char - 'A']++;
         }
 
-        var search = new Search(board, lexicon, counts, wilds, hand.Count, board.IsEmpty, minWordLength);
+        int censored = censoredLetter is { } c ? char.ToUpperInvariant(c) - 'A' : -1;
+        var search = new Search(board, lexicon, counts, wilds, hand.Count, board.IsEmpty, minWordLength, censored);
         foreach (var direction in new[] { Direction.Across, Direction.Down })
         {
             for (int row = 0; row < board.Size; row++)
@@ -62,7 +65,8 @@ public static class MoveGenerator
         }
     }
 
-    private sealed class Search(Board board, IWordGraph lexicon, int[] counts, int wilds, int handSize, bool boardEmpty, int minWordLength)
+    private sealed class Search(Board board, IWordGraph lexicon, int[] counts, int wilds, int handSize, bool boardEmpty, int minWordLength,
+        int censored)
     {
         private readonly Dictionary<(Position, Direction), int> _fillsToTouch = new();
         private readonly List<(Position, char, bool)> _placed = new();
@@ -103,6 +107,8 @@ public static class MoveGenerator
 
             for (int i = 0; i < 26; i++)
             {
+                if (i == censored)
+                    continue;
                 bool wild = counts[i] == 0;
                 if (wild && _wilds == 0)
                     continue;

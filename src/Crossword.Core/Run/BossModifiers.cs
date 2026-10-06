@@ -21,6 +21,9 @@ public abstract record BossModifier
 
     /// <summary>Applies this boss to a round and records it on the config.</summary>
     public RoundConfig Apply(RoundConfig config) => ModifyRound(config) with { Boss = this };
+
+    /// <summary>The single bosses whose rules this one applies (itself, or the bosses a composite combines).</summary>
+    public virtual IEnumerable<BossModifier> Rules() => [this];
 }
 
 /// <summary>Seeded symmetric ink blots block cells, like a real crossword's black squares.</summary>
@@ -118,6 +121,9 @@ public sealed record PuzzleMaster(BossModifier? First = null, BossModifier? Seco
     public override ScoringConfig ModifyScoring(ScoringConfig scoring) =>
         Second?.ModifyScoring(First?.ModifyScoring(scoring) ?? scoring) ?? scoring;
 
+    public override IEnumerable<BossModifier> Rules() =>
+        First is null || Second is null ? [] : First.Rules().Concat(Second.Rules());
+
     /// <summary>This boss with two different bosses drawn from <paramref name="candidates"/>.</summary>
     public PuzzleMaster Pick(IReadOnlyList<BossModifier> candidates, Rng rng)
     {
@@ -127,6 +133,30 @@ public sealed record PuzzleMaster(BossModifier? First = null, BossModifier? Seco
             second++;
         return this with { First = candidates[first], Second = candidates[second] };
     }
+}
+
+/// <summary>
+/// The Final Print Run Press Run: the week's boss (<see cref="Main"/>) plus one more Early/Mid boss's rule
+/// (<see cref="Extra"/>), drawn in <see cref="RunRules.BossFor"/> so it can be previewed. Round changes apply Main then
+/// Extra; scoring changes chain the same way. Never in a boss pool; <see cref="BossCatalog.Find"/> knows it for saves.
+/// </summary>
+public sealed record Reprint(BossModifier? Main = null, BossModifier? Extra = null) : BossModifier
+{
+    public override string Id => "reprint";
+    public override string Name => Main is null || Extra is null ? "Reprint" : $"{Main.Name} + {Extra.Name}";
+
+    public override string Description => Main is null || Extra is null
+        ? "A boss with a second editor's rule."
+        : $"{Main.Description} Plus {Extra.Name}: {Extra.Description}";
+
+    protected override RoundConfig ModifyRound(RoundConfig config) =>
+        Main is null || Extra is null ? config : Extra.Apply(Main.Apply(config));
+
+    public override ScoringConfig ModifyScoring(ScoringConfig scoring) =>
+        Extra?.ModifyScoring(Main?.ModifyScoring(scoring) ?? scoring) ?? scoring;
+
+    public override IEnumerable<BossModifier> Rules() =>
+        Main is null || Extra is null ? [] : Main.Rules().Concat(Extra.Rules());
 }
 
 /// <summary>A pool of bosses used from week index <see cref="FirstWeek"/> until the next tier starts.</summary>
@@ -145,8 +175,9 @@ public static class BossCatalog
         new PuzzleMaster(),
     ];
 
+    /// <summary>Finds a boss by id, including composites that are never in a pool (<see cref="Reprint"/>).</summary>
     public static BossModifier? Find(string id) =>
-        All.FirstOrDefault(boss => string.Equals(boss.Id, id, StringComparison.OrdinalIgnoreCase));
+        All.Append(new Reprint()).FirstOrDefault(boss => string.Equals(boss.Id, id, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>The bosses The Puzzle Master pairs up: every Early and Mid boss (never The Strict Grammarian).</summary>
     public static ImmutableArray<BossModifier> PuzzleMasterCandidates { get; } =
