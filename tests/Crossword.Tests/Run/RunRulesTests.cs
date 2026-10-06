@@ -203,4 +203,17 @@ public class RunRulesTests
         Assert.Equal(a.Round.Hand.Tiles.Select(t => t.Id), b.Round.Hand.Tiles.Select(t => t.Id));
         Assert.Equal(a.Round.Board.Premiums, b.Round.Board.Premiums);
     }
+
+    [Fact]
+    public void BossFor_ResolvesThePuzzleMaster_Deterministically()
+    {
+        var config = Config with { BossTiers = [new BossTier("Final", FirstWeek: 0, [new PuzzleMaster()])] };
+
+        var bosses = Enumerable.Range(1, 30).Select(seed => (PuzzleMaster)RunRules.BossFor(config, RunState.New((ulong)seed), 0)).ToList();
+
+        Assert.All(bosses, b => Assert.NotNull(b.First));
+        Assert.All(bosses, b => Assert.NotEqual(b.First, b.Second));
+        Assert.Equal(RunRules.BossFor(config, RunState.New(4), 0), RunRules.BossFor(config, RunState.New(4), 0));
+        Assert.True(bosses.Select(b => (b.First!.Id, b.Second!.Id)).Distinct().Count() > 3);
+    }
 }

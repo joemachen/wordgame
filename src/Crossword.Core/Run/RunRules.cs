@@ -27,13 +27,15 @@ public static class RunRules
     /// <summary>
     /// The week's boss, picked from that week's tier pool (<see cref="RunConfig.BossPoolFor"/>) using only the seed
     /// and week (no RNG consumed), so it can be previewed from the start of the week and is identical however the
-    /// week is played.
+    /// week is played. The Puzzle Master's pair is drawn from the same seeded stream.
     /// </summary>
     public static BossModifier BossFor(RunConfig config, RunState run, int week)
     {
         var pool = config.BossPoolFor(week);
-        var (index, _) = Rng.FromSeed(run.Seed + (ulong)(week + 1) * WeekSalt).NextInt(pool.Length);
-        return pool[index];
+        var (index, rng) = Rng.FromSeed(run.Seed + (ulong)(week + 1) * WeekSalt).NextInt(pool.Length);
+        return pool[index] is PuzzleMaster { First: null } master
+            ? master.Pick(BossCatalog.PuzzleMasterCandidates, rng)
+            : pool[index];
     }
 
     /// <summary>A round's deadline including its boss's adjustment (for previews before the round starts).</summary>

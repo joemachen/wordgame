@@ -101,7 +101,11 @@ public partial class Main : Control
         BuildLayout();
 
         ulong seed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : (ulong)Time.GetTicksUsec();
-        NewRun(seed, args.TryGetValue("give", out var give) ? run => Give(run, give) : null);
+        int startWeek = args.TryGetValue("week", out var w) && int.TryParse(w, out int week) && week > 1 ? week - 1 : 0;
+        args.TryGetValue("give", out var give);
+        NewRun(seed, startWeek > 0 || give is not null
+            ? run => Give(run with { RoundIndex = startWeek * _config.RoundsPerWeek }, give ?? "")
+            : null);
         if (_profile.Notice is { } notice)
             SetMessage(notice, UiKit.Bad);
 

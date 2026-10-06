@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Crossword.Core.Domain;
+using Crossword.Core.Random;
 using Crossword.Core.Scoring;
 
 namespace Crossword.Core.Run;
@@ -81,6 +82,53 @@ public sealed record TightDeadline(int Submissions = 3) : BossModifier
     protected override RoundConfig ModifyRound(RoundConfig config) => config with { Submissions = Submissions };
 }
 
+/// <summary>Repeating yourself doesn't pay: a word already formed this round adds no letter chips (tier, intersections
+/// and tile enhancements still count). Matched by text, so extending CAT to CATS is a new word.</summary>
+public sealed record RedundantCopy : BossModifier
+{
+    public override string Id => "redundant-copy";
+    public override string Name => "Redundant Copy";
+    public override string Description => "Words already printed this round score no letter chips.";
+
+    public override ScoringConfig ModifyScoring(ScoringConfig scoring) => scoring with { RepeatWordsScoreZero = true };
+}
+
+/// <summary>
+/// Two other bosses at once. The catalog holds an unresolved template (no effect); <see cref="RunRules.BossFor"/>
+/// resolves it per run and week with <see cref="Pick"/>, so the pair is seeded and previewable. Round changes apply
+/// <see cref="First"/> then <see cref="Second"/>, then <see cref="TargetScale"/> scales the deadline.
+/// </summary>
+public sealed record PuzzleMaster(BossModifier? First = null, BossModifier? Second = null, decimal TargetScale = 1) : BossModifier
+{
+    public override string Id => "puzzle-master";
+    public override string Name => "The Puzzle Master";
+
+    public override string Description => First is null || Second is null
+        ? "Two editors' rules at once."
+        : $"Two editors at once. {First.Name}: {First.Description} {Second.Name}: {Second.Description}";
+
+    protected override RoundConfig ModifyRound(RoundConfig config)
+    {
+        if (First is null || Second is null)
+            return config;
+        var both = Second.Apply(First.Apply(config));
+        return TargetScale == 1 ? both : both with { TargetScore = (long)(both.TargetScore * TargetScale) };
+    }
+
+    public override ScoringConfig ModifyScoring(ScoringConfig scoring) =>
+        Second?.ModifyScoring(First?.ModifyScoring(scoring) ?? scoring) ?? scoring;
+
+    /// <summary>This boss with two different bosses drawn from <paramref name="candidates"/>.</summary>
+    public PuzzleMaster Pick(IReadOnlyList<BossModifier> candidates, Rng rng)
+    {
+        var (first, next) = rng.NextInt(candidates.Count);
+        var (second, _) = next.NextInt(candidates.Count - 1);
+        if (second >= first)
+            second++;
+        return this with { First = candidates[first], Second = candidates[second] };
+    }
+}
+
 /// <summary>A pool of bosses used from week index <see cref="FirstWeek"/> until the next tier starts.</summary>
 public sealed record BossTier(string Name, int FirstWeek, ImmutableArray<BossModifier> Bosses);
 
@@ -93,6 +141,18 @@ public static class BossCatalog
         new StrictGrammarian(),
         new VowelDrought(),
         new TightDeadline(),
+        new RedundantCopy(),
+        new PuzzleMaster(),
+    ];
+
+    /// <summary>The bosses The Puzzle Master pairs up: every Early and Mid boss (never The Strict Grammarian).</summary>
+    public static ImmutableArray<BossModifier> PuzzleMasterCandidates { get; } =
+    [
+        new InkSpill(),
+        new TightMargins(),
+        new VowelDrought(),
+        new TightDeadline(),
+        new RedundantCopy(),
     ];
 
     /// <summary>
@@ -102,7 +162,7 @@ public static class BossCatalog
     public static ImmutableArray<BossTier> DefaultTiers { get; } =
     [
         new BossTier("Early", FirstWeek: 0, [new InkSpill(), new TightMargins()]),
-        new BossTier("Mid", FirstWeek: 2, [new VowelDrought(), new TightDeadline()]),
-        new BossTier("Final", FirstWeek: 4, [new StrictGrammarian()]),
+        new BossTier("Mid", FirstWeek: 2, [new VowelDrought(), new TightDeadline(), new RedundantCopy()]),
+        new BossTier("Final", FirstWeek: 4, [new StrictGrammarian(), new PuzzleMaster()]),
     ];
 }
