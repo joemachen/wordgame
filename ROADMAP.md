@@ -58,19 +58,24 @@ or a Desk Item, and each one comes with a tradeoff. Dictionaries are never perma
 
 ---
 
-## 2. Unlockable starting decks 🟡
+## 2. Unlockable starting decks 🟡 (3 of 5 ✅)
 
-Each deck changes the starting setup, with an upside and a cost. All effects are *proposed*.
+Each deck changes the starting setup, with an upside and a cost. Built decks live in `Core/Run/Decks.cs` (numbers in
+`DeckConfig`); the others' effects are *proposed*.
 
-| Deck | Upside | Cost |
-|---|---|---|
-| **The Tabloid Deck** | Slang dictionary is legal | Round targets ×1.1 |
-| **The Crossword Draft Deck** | +1 Mult per intersection | 2-letter words are illegal (minimum word length 3) |
-| **The Redactor Deck** | Thin deck at the 30-tile minimum (more predictable draws) | −1 discard per round |
-| **The Copy Editor's Deck** | Starts with Red Pen and +1 discard per round | Only 4 Desk Item slots |
-| **The Lexicographer's Deck** | Pick one unlocked dictionary at run start | Only 4 Desk Item slots |
+| Deck | Upside | Cost | Status |
+|---|---|---|---|
+| **The Crossword Draft Deck** | +1 Mult per intersection; deadlines ×0.7 | 2-letter words are illegal (minimum word length 3); The Strict Grammarian is left out of its boss pool (its rule would cost nothing), so the finale is always The Puzzle Master | ✅ |
+| **The Redactor Deck** | Thin 30-tile deck at the shop minimum: predictable draws (12 vowels, 1 wild) | Q, Z, X and J are in it, so they come up every round; −1 discard per round | ✅ |
+| **The Copy Editor's Deck** | Starts with Red Pen and +1 discard per round | Only 4 Desk Item slots | ✅ |
+| **The Tabloid Deck** | Slang dictionary is legal | Round targets ×1.1 | 🟡 needs the Slang dictionary |
+| **The Lexicographer's Deck** | Pick one unlocked dictionary at run start | Only 4 Desk Item slots | 🟡 needs dictionaries |
 
-The current standard starting deck (`StartingDeck.Create`) stays as the default deck.
+The standard starting deck (`StartingDeck.Create`) stays as the default deck. **Unlocks** (user's choice, 2026-10-06):
+every run won, with any deck at any Press Run, unlocks the next deck in table order. Tuning (user's choices): the
+first Crossword Draft Deck won 10% (its 3-letter rule bans the 2-letter cross words most intersections form), so its
+deadlines went ×0.7; the first Redactor Deck (no rare letters) won 61%, so Q, Z, X and J went in. Numbers in `handoff.md` §4. Press Run unlocks are tracked
+**per deck**. The game's New-run screen picks the deck and the Press Run together.
 
 ---
 
@@ -223,15 +228,15 @@ modes cheap to build on the core.
 | Feature | Design (*proposed*) | Status |
 |---|---|---|
 | **In-run save & resume** | Save on exit, resume on launch: board, hand, bag order, deck, Desk Items (with scaling state), shop offers and every RNG state. All state is immutable records, so this is mostly serialization: `System.Text.Json` (in the BCL, so Core rules allow it) with a **type discriminator** for polymorphic Desk Items/bosses/offers, plus a save **version number** for migrations. Hand arrangement is UI-only today; save it alongside. | ✅ `Core/Save/RunSaveJson` + `RunSaveStore` (`user://saves/<profile>.json`), saved after every change and on close, auto-resumed on launch. The config isn't stored (resumed runs use current tuning). No migrations yet: other versions are rejected. |
-| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | ✅ profile + player stats (`Core/Profile`, `user://profiles/<name>.json`, Stats popup: per-length word counts, top/bottom 5, newest 10, runs/wins/best play) · ✅ Press Run unlocks (`HighestPressRunWon`; per deck once decks exist) · 🟡 profile picker, deck/dictionary unlocks |
+| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | ✅ profile + player stats (`Core/Profile`, `user://profiles/<name>.json`, Stats popup: per-length word counts, top/bottom 5, newest 10, runs/wins/best play) · ✅ Press Run unlocks per deck (`HighestPressRunWon`: deck id → level) · ✅ deck unlocks (one per run won, `StatsQueries.UnlockedDecks`) · 🟡 profile picker, dictionary unlocks |
 | **Vocabulary grading** | Grade the player's vocabulary and estimate its size from the words they use (e.g. by how rare each word is). Needs a word-frequency list with a license we can ship (check before use; Wiktionary-derived lists are CC BY-SA). | 🟡 |
 
 ---
 
 ## 10. Suggested additions (not yet requested; Claude's recommendations)
 
-- **Tutorial / onboarding:** with current targets the reference simulated player (ScoreFraction 0.75) wins ~31% of
-  runs and a weaker one (0.6) ~13%, so a guided first round would matter before external playtests.
+- **Tutorial / onboarding:** with current targets the reference simulated player (ScoreFraction 0.75) wins ~39% of
+  runs and a weaker one (0.6) ~14%, so a guided first round would matter before external playtests.
 - **Settings & accessibility:** volume, text size, colorblind-safe palette, reduced motion, key rebinding.
 - **Localization:** UI text can be translated, but **gameplay in another language needs its own licensed word
   list and letter values**, which is a major project per language. Plan for English-only at launch.
@@ -251,7 +256,7 @@ tests and a `runsim` balance check.
 | **2** ✅ | 5 new Desk Items (Etymology Tome, Rubber Stamp, Printing Press Roller, Tile Rack, Coffee Stain) + Redundant Copy and The Puzzle Master. Later: Magnifying Glass, Brass Paperclip (deferred, see §3) | 1 |
 | **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
 | **4** ✅ | In-run save/resume ✅ → profile & unlock tracking (§9) ✅ with the Press Run stakes (§5), pulled forward from phase 5 so unlocks had something to unlock | — |
-| **5** | Starting decks, dictionary overlays (+ denylist) (Press Run stakes ✅ in phase 4) | 4 |
+| **5** 🟡 | Starting decks (✅ Crossword Draft, Redactor, Copy Editor's, with per-deck Press Run unlocks; Tabloid and Lexicographer wait for dictionaries), dictionary overlays (+ denylist) (Press Run stakes ✅ in phase 4) | 4 |
 | **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
 | **Wild tiles** ✅ | Play as any letter (chosen when placed), 0 letter chips. 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5), Fountain Pen Stationery. Bots don't buy the wild offers or the Fountain Pen yet. | done 2026-10-05 |
 | **Letter mix** ✅ | Balanced draws (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) + starting deck at ~42% vowels. Rough hands at play time 29.5% → 10%. | done 2026-10-05 |
@@ -271,7 +276,7 @@ tests and a `runsim` balance check.
 - **Slang dictionary source:** find a word list we can legally ship (or build our own), and plan how to keep slurs out of it.
 - **Vowel Drought:** keep the Vowel Tax effect, or rework it to fewer vowels in the bag?
 - **Press Run effects:** confirm after playtesting; check each tier's difficulty step with `runsim`.
-- **Early-game difficulty:** keep the current curve (reference player wins ~31%), or soften it and let Press Runs
+- **Early-game difficulty:** keep the current curve (reference player wins ~39%), or soften it and let Press Runs
   carry the challenge? Decide after playtests.
 - **Balance outliers** found by the evaluating shop bot: Pulitzer, Margin Notes and Word Count are picked in almost
-  every run, and deck edits are never worth buying (see `handoff.md` §4).
+  every run, and deck edits are never worth buying (see `handoff.md` §4c).

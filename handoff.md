@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-06 · HEAD `7ecc743` (code) · 442 unit tests passing · UI self-test 53/53 passing_
+_Last updated: 2026-10-06 · HEAD `2618be7` (code) · 461 unit tests passing · UI self-test 58/58 passing_
 
 ---
 
@@ -30,6 +30,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
 | Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and **auto-resumed on launch** ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. Sidebar New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. |
 | Press Runs | 8 stacking difficulty levels (`Core/Run/PressRuns.cs`, numbers in `PressRunConfig`): Proofreader → First Edition (Dailies pay $1) → Late Edition (targets ×1.05/week) → Rush Job (−1 Sunday submission) → Ink Shortage (−1 discard) → Heavy Printing (rerolls +$1) → Censored Press (one of B C F G H M P W Y unplayable per round) → Final Print Run (the Sunday boss adds a second Early/Mid rule, `Reprint`). Level stored in `RunState.PressRun` and re-applied to the config on load. **Unlocks:** winning level N unlocks N+1 (`PlayerStats.HighestPressRunWon`; old profiles with wins start at 1). Game: New run opens a picker once level 2 is unlocked (locked rows greyed), victory screen announces unlocks, sidebar shows the level + censored letter, censored hand tiles struck through; `--press=N` dev flag. CLI: `runsim … press=N`, `new [seed] [press=N]`. |
+| Starting decks | `Core/Run/Decks.cs` (numbers in `DeckConfig`): **Standard**, **The Crossword Draft Deck** (+1 Mult per intersection, deadlines ×0.7; words need 3+ letters; no Strict Grammarian), **The Redactor Deck** (thin 30-tile deck incl. Q Z X J; −1 discard), **The Copy Editor's Deck** (starts with Red Pen, +1 discard; 4 Desk Item slots). A deck is a `RunConfig` transform applied before the Press Run (`RunRules.ConfigFor`); the run stores `RunState.DeckId`. New knobs: `RunConfig.MinWordLength`, `DeskSlots`, `StartingDeskItems`, `ExcludedBosses`. **Unlocks:** one deck per run won (`StatsQueries.UnlockedDecks`); Press Run unlocks are **per deck** (`PlayerStats.HighestPressRunWon`: deck id → level; old profiles count theirs for Standard). Game: one New-run screen (decks left, the deck's Press Runs right), `--deck=id`; victory screen announces deck unlocks. CLI: `runsim … deck=id`, `new … deck=id`. Each deck wins within ~±7 pts of Standard (§4). Tabloid and Lexicographer wait for dictionaries. |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -75,9 +76,38 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   extra come from salted seed streams (no RNG consumed, previewable, same base boss at every level); New run skips
   the picker until level 2 is unlocked. **5-vowel hands stay possible** (user's choice: balanced draws keep ≥2
   consonants, not ≥3).
+- **Starting decks** (user's choices, 2026-10-06): the three decks that need no dictionary first; **one deck unlocked
+  per run won** (any deck, any Press Run) over per-deck challenges; **Press Run unlocks per deck** with **one New-run
+  screen** (deck + level); The Crossword Draft Deck **drops The Strict Grammarian** from its pool (its rule would cost
+  nothing there). Tuning after measuring (all decks should win about as often as Standard): Crossword Draft's 3-letter
+  rule bans 2-letter cross words, so intersections mostly vanish and it won 10% → **deadlines ×0.7** (kept the rule
+  over dropping it for "+1 intersection Mult, −1 discard", which measured 39.5% but had little identity); the
+  no-rare-letter Redactor Deck won 61% → **Q Z X J swapped in** (over −3 discards, 54%). Claude's calls: a deck is a
+  `RunConfig` transform like a Press Run (config still not saved; deck applied first); the Redactor tiles are
+  hand-picked; clicking a Press Run row starts the run (no separate Start button); a starting Red Pen can be sold.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
-## 4. Press Run ladder (2026-10-06)
+## 4. Starting decks (2026-10-06)
+
+CLI `runsim 200 <skill> frac deck=<id>` (seeds 1–200, evaluating bot, ScoreFraction model):
+
+| Deck | 0.6 | 0.75 (reference) | 0.9 | 0.9 at Press Run 8 |
+|---|---|---|---|---|
+| Standard | 14% | 39% | 55% | 7.5% |
+| The Crossword Draft Deck | 17% | 37% | 62% | 8% |
+| The Redactor Deck | 17% | 39% | 57% | 7% |
+| The Copy Editor's Deck | 16% | 42% | 62% | 7% |
+
+- First versions: Crossword Draft (no deadline cut) **10 / 26%** at 0.75 / 0.9 — +2 or +4 intersection Mult and/or +1
+  discard only reached 9.5–12.5%; deadlines ×0.75 → 30%, ×0.6 → 57% (0.9: 71.5%), ×0.5 → 68.5%. Redactor (no rare
+  letters) **61 / 76%** — −2 discards 58.5%, −3 54%, J X swapped in 53% (0.9: 68.5%). Copy Editor's 42 / 62%; with 3
+  slots 17.5%, so 4 stays.
+- Crossword Draft and Copy Editor's run +7 at 0.9 — watch in playtests. Crossword Draft's losses shift to The Puzzle
+  Master (19 of 200 at 0.75), its only finale.
+- Scratch harness `decksweep` (arms = `Decks.Apply(base, id, new DeckConfig(...))` or a hand-edited config, played
+  with the Standard deck id so `NewGame` doesn't re-apply the deck; `RunConfig.StartingDeskItems` is still honoured).
+
+## 4a. Press Run ladder (2026-10-06)
 
 `presssim` scratch harness: 200 paired runs per level (seeds 1–200), evaluating bot, ScoreFraction model; Proofreader =
 the snapshot below.
@@ -94,7 +124,7 @@ the snapshot below.
   6.5/5.5/2; then Dailies $1 + reroll-only Heavy Printing → current. Rush Job is still the biggest step (−13.5).
 - Sunday Edition losses dominate from level 4 up (boss loss rate ~14% → ~31% at level 8).
 
-## 4a. Balance snapshot (after Phase 2 content, 2026-10-05)
+## 4b. Balance snapshot (after Phase 2 content, 2026-10-05)
 
 Same targets and economy as below; 23 Desk Items, 7 bosses. Scratch harness `p2sim`, 200 paired runs per arm
 (seeds 1–200), evaluating bot, ScoreFraction model. "old" = shop limited to the 18 old items (`ShopConfig.DeskItemIds`)
@@ -117,7 +147,7 @@ and the old boss tiers.
 - **Coffee Stain's downside is invisible to the bot** (it only sees +4 Mult): Tight Margins losses rose 9 → 17 of ~170
   at 0.75 in the arms with new items (2 blocked squares on a 5×5 board hurt), not at 0.9/0.6 — possibly noise.
 
-## 4b. Previous snapshot (after the economy change + targets ×1.15, 2026-10-05)
+## 4c. Previous snapshot (after the economy change + targets ×1.15, 2026-10-05)
 
 Week targets **510/1790/5380/14580/23920**, day multipliers ×1/×1.3/×1.6, The Strict Grammarian's deadline ×0.75,
 balanced draws, 100-tile deck with 2 wilds, Margin Clip $6 (the bot buys it), overkill every 25%, interest $1 per $4.
@@ -195,13 +225,13 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 
 ## 5. Open concerns / known gaps
 
-1. **Overall difficulty** (see §4): the reference player wins ~37%, a weaker one ~15%, a strong one ~60% — after
-   balanced draws, wild tiles, the richer economy and targets ×1.3 × 1.15. Check in playtests; the Press Run stakes
-   (ROADMAP §5) could carry extra difficulty.
+1. **Overall difficulty** (see §4b): the reference player wins ~39%, a weaker one ~14%, a strong one ~55% — after
+   balanced draws, wild tiles, the richer economy and targets ×1.3 × 1.15. Check in playtests; the Press Runs (§4a)
+   now carry the extra difficulty, and every deck sits near Standard (§4).
    **Margin Clip is still the strongest Stationery at $6** (+9.5 pts when always offered, ~+6 in the real pool); if
    it stays too strong, price won't fix it — give it a cost instead (see §6). The other four don't pay for themselves
    for the bot.
-2. **Possible dominant items / weak deck edits** (see §4): Pulitzer, Margin Notes, Word Count near-universal picks;
+2. **Possible dominant items / weak deck edits** (see §4c): Pulitzer, Margin Notes, Word Count near-universal picks;
    deck edits not worth buying. The bot values items by the *best* play per decision (strong-shopper view), not
    the play its skill level would pick. Stationery is bought at fixed per-item gains (`ShopBotConfig.StationeryGain`),
    not by re-scoring, and its in-round use is rule-based (`StationeryBot`) — a floor on what a human gets from it.
@@ -224,36 +254,33 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
-00. **Playtest the Press Runs:** win a run (or `--press=N`) and check the picker, the unlock line, Censored Press
-    (struck-through tiles, the wild picker skipping the letter) and a Final Print Run Sunday. Is the ladder's feel
-    right? Rush Job is the steepest step.
+Longer-term phases live in `ROADMAP.md` §11 (phases 0–4 ✅, phase 5 🟡: decks ✅ except Tabloid/Lexicographer,
+dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding).
 
-Longer-term phases live in `ROADMAP.md` §11 (phase 0 retune ✅ → phase 1 naming pass ✅ → new items/bosses → Stationery →
-save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding). §6–§10 cover infra, modes, presentation, persistence and suggested additions.
+**Playtests (the user's side):**
+1. **Starting decks + Press Runs:** win a run to unlock The Crossword Draft Deck, check the New-run screen (deck cards,
+   per-deck ladder), and play each deck — does Crossword Draft feel fair with ×0.7 deadlines and no 2-letter words?
+   Does the Redactor's Q Z X J every round feel like a fun cost? Is Copy Editor's too strong (+7 at 0.9)? Also the
+   Press Run ladder (Rush Job is the steepest step), Censored Press and a Final Print Run Sunday. Dev flags:
+   `--deck=id`, `--press=N`.
+2. **Save & resume:** play a submission, close the window, relaunch — the run should come back exactly (board, hand
+   order, Desk Items, money, deck). Also the shop and the victory screen.
+3. **General feel:** hands, money, difficulty, ring-up escalation (`Juice.cs` thresholds), week progress, the free Hint,
+   Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
-0. **Playtest save & resume:** play a submission, close the window, relaunch — the run should come back exactly
-   (board, hand order, Desk Items, money). Also the shop and the victory screen.
-0b. **Playtest the current build** (fairer hands, wild tiles, richer economy, targets 510/…/23920): do hands feel playable, does money still feel tight, is the difficulty right? Also: does the ring-up escalate nicely (thresholds in `Juice.cs`: Big ≥25% / Huge ≥60% of the deadline; the stamp fires whenever one play clears the deadline, which is common in Week 1)? Is the week progress clear? Next for stats: vocabulary grading (find + license-check a frequency list), a profile picker, more fun stats.
-1. **Stationery balance:** Margin Clip raised to $6 (done). If it still dominates in playtests, give it a cost
-   (e.g. −1 discard) or make it rarer — price alone stops working above ~$5. The others may need buffs (e.g. Red Ink +5,
-   Answer Key $2) — check in playtests, since the bot's use is rule-based. Re-measure with the scratch harness (§7).
-2. **Playtest the retune, new Hint and Stationery** via `run_local_qa.bat` — do rounds feel longer, is difficulty right
-   (concern #1), is the free Hint useful without being a crutch, do Scissors/White-Out feel worth $3? If 3+ play rounds
-   are wanted, try 5 submissions per round with higher targets (targets alone plateau at ~2.5 plays).
-3. ~~Press Runs + unlocks~~ ✅ (phase 4 done). Next core work: **phase 5 starting decks** on the same unlock system
-   (unlock tracking is ready; "highest Press Run per deck" needs `HighestPressRunWon` per deck id), then dictionaries
-   + denylist. Small: a profile picker.
-3a. ~~ROADMAP phase 2~~ ✅ done (5 items + 2 bosses, see §3/§4). Left from it: Magnifying Glass (rework to "letters left in
-   the bag"?) and Brass Paperclip (keep-tiles picker). Remaining Stationery (Highlighter, Correction Tape) can come later
-   on the same targeting system. Phase 4 save/resume ✅; next core work: **profile & unlock tracking** (rest of phase 4), then phase 5 (starting decks,
-   dictionaries + denylist, Press Run stakes). Cheap parallel tracks: CI pipeline, seed entry box, CLI `save`/`load`.
-3b. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
-   open-license fonts, legible premium labels, Desk Items as physical objects (needs commissioned/CC0 art), then
-   re-enable the clue columns as quiet background.
-4. Balance pass on outliers: re-measure item pick rates at the new targets; Pulitzer / Margin Notes / Word Count;
-   make deck edits worth buying.
-5. ~~Save/load~~ ✅ — next: profile picker + unlocks (meta-progression).
-6. UI polish: tile placement/score animations, sound, juice; deck viewer; tooltips for Desk Items/bosses.
+**Build next (Claude's recommendation first):**
+1. **Word denylist** (release blocker; ENABLE slurs + crude WordNet glosses) — also unblocks the dictionary overlays
+   and with them the Tabloid and Lexicographer decks (phase 5).
+2. **Cheap parallel tracks:** GitHub Actions CI (build + `dotnet test`), a seed entry box on the New-run screen, a
+   profile picker, CLI `save`/`load` and Stationery commands.
+3. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
+   open-license fonts, legible premium labels, Desk Items as physical objects, then re-enable the clue columns as
+   quiet background.
+4. **Balance pass on outliers:** item pick rates at current targets (Pulitzer / Margin Notes / Word Count), deck edits
+   worth buying, Margin Clip (give it a cost if it still dominates), Tile Rack.
+5. **Deferred content:** Magnifying Glass (rework to "letters left in the bag"?), Brass Paperclip (keep-tiles picker),
+   Highlighter, Correction Tape.
+6. **UI polish:** tile placement animation, sound, deck viewer, tooltips for Desk Items/bosses, reduced-motion option.
 
 ## 7. How to work in this repo (practical tips learned the hard way)
 
@@ -294,6 +321,9 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+2618be7 Tune the Crossword Draft and Redactor decks to the Standard Deck's win rate
+9463a16 Add starting decks with per-deck Press Run unlocks
+b40f540 Document Press Runs and unlocks in rules, roadmap and handoff
 7ecc743 Soften the Press Run ladder to an even descent
 ac50688 Pick and unlock Press Runs in the game UI
 5132a50 Add Press Run difficulty levels with unlock tracking
