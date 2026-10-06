@@ -78,18 +78,19 @@ The current standard starting deck (`StartingDeck.Create`) stays as the default 
 
 ### Desk Items (passives)
 
-These are in addition to the 18 Desk Items already in `DeskItemCatalog`. Rarity is a first guess.
+Phase 2 added five of these to `DeskItemCatalog` (23 items in all). Rarity is a first guess. Round-changing items
+use the Desk Item round hook (`IDeskItem.ModifyRound`, applied when each round starts, after the boss).
 
 | Desk Item | Effect (*proposed*) | Rarity | Status |
 |---|---|---|---|
 | **Red Pen** | +2 Mult | Common | ✅ |
-| **Etymology Tome** | The longest word's letter chips count twice. Rewards rare letters and long words, which addresses the skill-gap concern. | Uncommon | 🟡 |
-| **Coffee Stain** | +4 Mult, but one random empty cell is stained (blocked) each round | Common | 🟡 |
-| **Tile Rack** *(was "Scrabble Board", renamed because Scrabble is a trademark)* | +1 hand size | Uncommon | 🟡 |
-| **Rubber Stamp** | The first submission of each round scores twice | Uncommon | 🟡 |
-| **Magnifying Glass** | See the next 3 tiles in the bag; +2 Mult | Common | 🟡 |
-| **Brass Paperclip** | Keep up to 2 hand tiles between rounds; they start in your next hand | Uncommon | 🟡 |
-| **Printing Press Roller** | Scaling: gains ×0.1 Mult each time a play forms 3+ words | Rare | 🟡 |
+| **Etymology Tome** | The longest word's letter chips count twice. Rewards rare letters and long words, which addresses the skill-gap concern. | Uncommon | ✅ |
+| **Coffee Stain** | +4 Mult; stains one mirrored pair of empty squares (blocked) each round. A pair rather than one cell keeps the grid symmetric (user's call). | Common | ✅ |
+| **Tile Rack** *(was "Scrabble Board", renamed because Scrabble is a trademark)* | +1 hand size | Uncommon | ✅ |
+| **Rubber Stamp** | ×2 Mult on the first submission of each round | Uncommon | ✅ |
+| **Magnifying Glass** | See the next 3 tiles in the bag; +2 Mult. **Deferred:** balanced draws pick tiles based on the hand at draw time, so there are no fixed "next 3" without a pre-shuffled bag (which would change every seed). Rework idea: show the letters left in the bag. | Common | 🟡 |
+| **Brass Paperclip** | Keep up to 2 hand tiles between rounds; they start in your next hand. **Deferred:** needs a "keep which tiles" picker after a win plus a carry-over in `RunState` (filtered against deck edits made in the shop). | Uncommon | 🟡 |
+| **Printing Press Roller** | Scaling: gains ×0.1 Mult each time a play forms 3+ words | Rare | ✅ |
 
 ### Stationery (consumables) 🟡 — new system
 
@@ -143,10 +144,10 @@ Final, and Tight Margins (easiest, ~3%) from Final to Early.
 | Early | **Ink Spill** | 6 symmetric blocked cells | Rename of *Black Squares* | ✅ |
 | Early | **Tight Margins** | 5×5 board | Rename of *Pocket Edition*; moved from Final (easiest boss) | ✅ |
 | Mid | **Vowel Drought** | Vowels score −1 chip (*option:* rework to fewer vowels in the bag) | Rename of *Vowel Tax* | ✅ |
-| Mid | **Redundant Copy** | Words already formed this round score 0 chips (*proposed*) | New | 🟡 |
+| Mid | **Redundant Copy** | A word already formed this round (same text, main or cross word) adds no letter chips; tier, intersections and enhancements still count. Extending CAT to CATS is a new word. | New | ✅ |
 | Mid | **Tight Deadline** | Only 3 submissions | Kept as is | ✅ |
 | Final | **The Strict Grammarian** | Only 3+ letter words count | Rename of *Strict Editor*; moved from Early (hardest boss) | ✅ |
-| Final | **The Puzzle Master** | Applies two boss effects at once (*proposed*) | New. Renamed from "Saturday Stumper", which is already the name of the middle round of each week | 🟡 |
+| Final | **The Puzzle Master** | Two different Early/Mid bosses at once (never The Strict Grammarian), drawn per run and week from the boss preview's seeded stream | New. Renamed from "Saturday Stumper", which is already the name of the middle round of each week | ✅ |
 
 ---
 
@@ -241,7 +242,7 @@ tests and a `runsim` balance check.
 |---|---|---|
 | **0** ✅ | Retune week targets → 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75 (ScoreFraction model), then ×1.3 after balanced draws, then ×1.15 → 510/1790/5380/14580/23920 after the richer economy (overkill every 25%, interest per $4); reference skill 0.75 wins ~37% | — |
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
-| **2** | New Desk Items + new bosses (Redundant Copy, The Puzzle Master) | 1 |
+| **2** ✅ | 5 new Desk Items (Etymology Tome, Rubber Stamp, Printing Press Roller, Tile Rack, Coffee Stain) + Redundant Copy and The Puzzle Master. Later: Magnifying Glass, Brass Paperclip (deferred, see §3) | 1 |
 | **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
 | **4** | In-run save/resume → profile & unlock tracking (§9) | — |
 | **5** | Starting decks, dictionary overlays (+ denylist), Press Run stakes | 4 |

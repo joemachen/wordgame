@@ -24,7 +24,8 @@ public enum ShopStrategy
 /// Stationery is valued like deck edits, by a fixed estimated gain per item (<see cref="StationeryGain"/>), and
 /// used in rounds by <see cref="StationeryBot"/>. Wild tiles too: <see cref="WildTileGain"/> for a new wild tile,
 /// <see cref="WildEditGain"/> for making the deck's most awkward tile wild (<see cref="NaiveShopBot.WildTarget"/>).
-/// <see cref="DeskItemGain"/> adds a fixed gain for Desk Items whose value re-scoring can't see (Tile Rack's bigger hand).
+/// <see cref="DeskItemGain"/> adds a fixed gain for Desk Items whose value re-scoring can't see (Tile Rack's bigger hand);
+/// off by default: Tile Rack at a fixed gain of 0.05 / 0.1 / 0.2 was bought in ≤6% of runs and changed wins by ≤0.5 pts.
 /// </summary>
 public sealed record ShopBotConfig(
     int CandidatePlays = 20,

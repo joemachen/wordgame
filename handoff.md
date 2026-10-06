@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-05 · HEAD `88faed4` (code) · 374 unit tests passing · UI self-test 41/41 passing_
+_Last updated: 2026-10-05 · HEAD `9cb2d1c` (code) · 394 unit tests passing · UI self-test 41/41 passing_
 
 ---
 
@@ -23,8 +23,8 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
-| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5). Endless mode. |
-| Content | 18 Desk Items (Common/Uncommon/Rare, incl. scaling items), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 5 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, The Strict Grammarian), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each except Margin Clip $6, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round), **Fountain Pen** (a hand tile turns wild this round). **Wild tiles**: any letter (picked when placed), 0 letter chips; 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5). Holding Scissors/White-Out/Fountain Pen keeps a stuck round alive. Lifetime **player stats** in a saved profile (words by length, newest words, runs/wins, best play, intersections, close calls, bosses beaten, full-spread rounds). |
+| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5). Endless mode. |
+| Content | 23 Desk Items (Common/Uncommon/Rare, incl. scaling items; Phase 2 added **Etymology Tome**, **Rubber Stamp**, **Printing Press Roller**, **Tile Rack**, **Coffee Stain** — the last two via the round-start hook `IDeskItem.ModifyRound`), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 7 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, **Redundant Copy**, The Strict Grammarian, **The Puzzle Master** = two Early/Mid bosses at once), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each except Margin Clip $6, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round), **Fountain Pen** (a hand tile turns wild this round). **Wild tiles**: any letter (picked when placed), 0 letter chips; 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5). Holding Scissors/White-Out/Fountain Pen keeps a stuck round alive. Lifetime **player stats** in a saved profile (words by length, newest words, runs/wins, best play, intersections, close calls, bosses beaten, full-spread rounds). |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`. The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
@@ -53,9 +53,40 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Stationery batch (user's choice, 2026-10-05):** Margin Clip, Scissors, White-Out, Red Ink Bottle, $3 each except
   **Margin Clip $6** (user's call after it measured +13 pts at $3; per-item prices via `ShopConfig.StationeryPrices`). Red Ink is a round-level `RoundConfig.BonusMult` (scoring step 4b, before Desk Items, so ×Mult items multiply it). White-Out's tile is gone for the round (not returned); leftover fragments are only checked when a later play crosses them. **Deadlock escape** (Claude's call, flagged to the user): holding Scissors/White-Out postpones the "no play, no discards" loss, since otherwise the round would end while the player holds the way out.
 - **Playtest batch (user's choices, 2026-10-05):** only *pending* tiles can be moved (submitted tiles stay — White-Out is the way to remove one); Desk Item order is explained by a live score preview on the ◀ ▶ arrows (Stationery isn't reorderable); stats = profile + core stats now, **vocabulary grading later** (needs a licensed word-frequency list). Stats count **every word a play forms** (main + cross). QA flags (`--selftest`, `--screenshot`, `--autoplay`) never write the profile.
+- **Phase 2 content** (user's choices, 2026-10-05): ship 5 of the 7 proposed Desk Items; **Magnifying Glass deferred**
+  (balanced draws have no fixed "next 3 tiles"; a pre-shuffled bag would change every seed — rework idea: show the
+  letters left in the bag) and **Brass Paperclip deferred** (needs a keep-tiles picker + `RunState` carry-over).
+  **Redundant Copy** zeroes only a repeated word's *letter chips* (tier, intersections, enhancements still count; matched
+  by text, so CAT → CATS is new). **The Puzzle Master** = a seeded random pair of two different Early/Mid bosses (never
+  the Grammarian), drawn in `BossFor` from the preview's stream. **Coffee Stain** stains one *mirrored pair* (keeps the
+  grid symmetric). Claude's calls: Rubber Stamp = ×2 Mult on the round's first play (slot order applies, like every
+  ×Mult item); `--give` now applies before the first round (so round hooks work at once); new `--week=N` dev flag.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
-## 4. Current balance snapshot (after the economy change + targets ×1.15, 2026-10-05)
+## 4. Current balance snapshot (after Phase 2 content, 2026-10-05)
+
+Same targets and economy as below; 23 Desk Items, 7 bosses. Scratch harness `p2sim`, 200 paired runs per arm
+(seeds 1–200), evaluating bot, ScoreFraction model. "old" = shop limited to the 18 old items (`ShopConfig.DeskItemIds`)
+and the old boss tiers.
+
+| Skill | old | new items only | new bosses only | **all new (current)** |
+|---|---|---|---|---|
+| 0.9 | 56.5% | — | — | **55%** |
+| 0.75 (reference) | 36% | 32% | 42% | **39%** |
+| 0.6 | 13% | — | — | **14%** |
+
+- All within noise (±3.5) of the old content, so **targets stay**. Rounds unchanged (~2.5 subs per won round, 55% won in 1–2).
+- New items alone −4 (pool dilution); new bosses alone +6: the Final tier now splits between The Strict Grammarian
+  (27% loss rate when reached, 0.75) and the softer **Puzzle Master (~8–13%)**. **Redundant Copy ~10%** (Mid, between
+  Vowel Drought ~6% and Tight Deadline ~15%).
+- Final-desk rates at 0.75: Coffee Stain 31%, Printing Press Roller 16%, Rubber Stamp 15%, Etymology Tome 9%, Tile Rack
+  0%. Pulitzer fell 63% → 44% (the bigger pool dilutes the old dominant picks).
+- **Tile Rack is never bought:** re-scoring can't see a bigger hand. Forcing a fixed gain (`ShopBotConfig.DeskItemGain`
+  0.05 / 0.1 / 0.2) got it bought in ≤6% of runs and changed wins by ≤0.5 pts → default off.
+- **Coffee Stain's downside is invisible to the bot** (it only sees +4 Mult): Tight Margins losses rose 9 → 17 of ~170
+  at 0.75 in the arms with new items (2 blocked squares on a 5×5 board hurt), not at 0.9/0.6 — possibly noise.
+
+## 4b. Previous snapshot (after the economy change + targets ×1.15, 2026-10-05)
 
 Week targets **510/1790/5380/14580/23920**, day multipliers ×1/×1.3/×1.6, The Strict Grammarian's deadline ×0.75,
 balanced draws, 100-tile deck with 2 wilds, Margin Clip $6 (the bot buys it), overkill every 25%, interest $1 per $4.
@@ -152,7 +183,11 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 9. **Player profile is one file per name, no picker yet** (`--profile=name`); stats aren't shown in the CLI. Vocabulary grading not started.
 10. **Wild items don't pay off for the bot**: wild tile / wild edit ±0.5 pts, Fountain Pen −1.5, all three −5 (200 paired runs), so its buying gains stay 0 — a human may value the flexibility more; check prices ($6 / $5 / $3) in playtests. The CLI plays a wild automatically for a missing letter; `?` selects one in discard/strike letters.
 11. **Rerolls are ~30% of shop spending** for the bot ($2.11 of ~$7.30 per shop). Not a problem yet, but watch whether players feel rerolls are mandatory.
-12. **Clue columns hidden**: the engine runs (stats keep updating) but `Main.ShowClueColumns = false`; the self-test checks they stay hidden. Restyle them as background before turning them on.
+12. **Phase 2 items to watch in playtests:** Tile Rack (+1 hand size) is worthless to the bot — a human may value it
+    more; if not, buff it (e.g. +2, or +1 hand size and +1 discard). Coffee Stain is the most-bought new item but its
+    stained squares are a real cost on Tight Margins' 5×5 board. The Puzzle Master is softer than The Strict Grammarian;
+    if the finale should be hard, give it a `TargetScale` above 1 or exclude its easiest pairs.
+13. **Clue columns hidden**: the engine runs (stats keep updating) but `Main.ShowClueColumns = false`; the self-test checks they stay hidden. Restyle them as background before turning them on.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
@@ -166,8 +201,9 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 2. **Playtest the retune, new Hint and Stationery** via `run_local_qa.bat` — do rounds feel longer, is difficulty right
    (concern #1), is the free Hint useful without being a crutch, do Scissors/White-Out feel worth $3? If 3+ play rounds
    are wanted, try 5 submissions per round with higher targets (targets alone plateau at ~2.5 plays).
-3. ROADMAP phase 2: new Desk Items + Redundant Copy (Mid) and The Puzzle Master (Final) bosses. Remaining Stationery
-   (Highlighter, Correction Tape) can come later on the same targeting system.
+3. ~~ROADMAP phase 2~~ ✅ done (5 items + 2 bosses, see §3/§4). Left from it: Magnifying Glass (rework to "letters left in
+   the bag"?) and Brass Paperclip (keep-tiles picker). Remaining Stationery (Highlighter, Correction Tape) can come later
+   on the same targeting system. Next core phase: **4 — save/resume** (ROADMAP §11); cheap parallel track: CI pipeline.
 3b. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
    open-license fonts, legible premium labels, Desk Items as physical objects (needs commissioned/CC0 art), then
    re-enable the clue columns as quiet background.
@@ -195,7 +231,8 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
   offers it) and `ShopBotConfig.StationeryGain = {id: g}`, paired seeds against a no-Stationery baseline. A full
   5-item × 2-gain sweep at 200 runs/arm takes ~18 min on 20 cores.
 - Scratch harnesses used on 2026-10-05 (not in the repo; the scratchpad is per-session — recreate from this pattern):
-  `stsim` (per-item Stationery value / prices), `drawsim` (letter-mix arms + hand quality per play), `targetsim`
+  `p2sim` (Phase 2: old vs new content arms via `ShopConfig.DeskItemIds` + old `BossTiers`, Tile Rack gains, boss
+  loss rates and final-desk pick rates; `bosses <week>` lists each seed's boss), `stsim` (per-item Stationery value / prices), `drawsim` (letter-mix arms + hand quality per play), `targetsim`
   (`[runs] [skill] [scales…]` → win %, subs per won round, % won in 1–2), `wildsim` (wild buying gains), `econsim`
   (income per round by source + shop spending by category, from `SimulatedRunRound.Payout`/`InRoundMoney`/`Shop`).
   Each is a console app referencing `src/Crossword.Core` running `RunSimulator.PlayRun` over paired seeds with
@@ -214,6 +251,12 @@ save/load + meta → decks/dictionaries/stakes), plus parallel tracks (CI, seed 
 ## 9. Commit history (newest first)
 
 ```
+9cb2d1c Let balance harnesses limit the shop's Desk Item pool
+e3ee7c9 Add the Redundant Copy and The Puzzle Master bosses
+af15c90 Add Tile Rack and Coffee Stain with a round-start Desk Item hook
+367622e Add Etymology Tome, Rubber Stamp and Printing Press Roller
+c825b27 Update CLAUDE.md balance numbers and bot notes
+2a3001d Bring handoff fully up to date with this session
 238db48 Fix self-test count in handoff
 b267860 Record economy and clue commits in handoff
 88faed4 Pay overkill every 25% and interest per $4; raise targets x1.15

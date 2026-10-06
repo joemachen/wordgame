@@ -158,6 +158,8 @@ public static class BossCatalog
     /// <summary>
     /// Bosses get harder through the run. Ordered by measured difficulty (evaluating-bot boss loss rates):
     /// Ink Spill / Tight Margins ~3–4%, Vowel Drought ~4%, Tight Deadline ~9%, The Strict Grammarian ~12%.
+    /// Phase 2 (ScoreFraction 0.75, 200 runs): Redundant Copy ~10% (between Vowel Drought and Tight Deadline),
+    /// The Puzzle Master ~8–13% (softer than The Strict Grammarian, so its deadline isn't scaled).
     /// </summary>
     public static ImmutableArray<BossTier> DefaultTiers { get; } =
     [
