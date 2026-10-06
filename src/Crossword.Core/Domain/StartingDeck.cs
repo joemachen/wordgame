@@ -18,13 +18,14 @@ public static class StartingDeck
     ];
 
     /// <summary>
-    /// The Redactor Deck's tiles: 29 common letters (12 vowels, ~41%; no Q, Z, X, J, K, V, W, Y or F) plus one wild = 30,
-    /// the shop's minimum deck size.
+    /// The Redactor Deck's tiles: 29 letters (12 vowels, ~41%, incl. Q, Z, X and J) plus one wild = 30, the shop's
+    /// minimum deck size. A thin deck cycles every round, so without the rare letters it was far too easy (see
+    /// <see cref="Run.DeckConfig"/>).
     /// </summary>
     private static readonly (char Letter, int Count)[] ThinDistribution =
     [
-        ('A', 3), ('B', 1), ('C', 1), ('D', 1), ('E', 4), ('G', 1), ('H', 1), ('I', 2), ('L', 2), ('M', 1),
-        ('N', 2), ('O', 2), ('P', 1), ('R', 2), ('S', 2), ('T', 2), ('U', 1),
+        ('A', 3), ('C', 1), ('D', 1), ('E', 4), ('H', 1), ('I', 2), ('J', 1), ('L', 2), ('N', 2), ('O', 2),
+        ('Q', 1), ('R', 2), ('S', 2), ('T', 2), ('U', 1), ('X', 1), ('Z', 1),
     ];
 
     public const int Wilds = 2;

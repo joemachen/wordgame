@@ -10,7 +10,7 @@ namespace Crossword.Tests.Run;
 public class DeckTests
 {
     private static readonly DeckConfig Numbers = new(
-        CrosswordDraftIntersectionBonus: 2, CrosswordDraftMinWordLength: 4, RedactorDiscardsDelta: -2,
+        CrosswordDraftIntersectionBonus: 2, CrosswordDraftMinWordLength: 4, CrosswordDraftTargetScale: 0.5m, RedactorDiscardsDelta: -2,
         CopyEditorDiscardsDelta: 3, CopyEditorDeskSlots: 3, CopyEditorStartingItem: "red-pen");
 
     private static readonly RunConfig Base = RunConfig.Default with
@@ -33,11 +33,13 @@ public class DeckTests
     }
 
     [Fact]
-    public void CrosswordDraft_AddsIntersectionMult_RaisesMinLength_AndDropsTheGrammarian()
+    public void CrosswordDraft_AddsIntersectionMult_RaisesMinLength_CutsDeadlines_AndDropsTheGrammarian()
     {
         var config = Decks.Apply(Base, Decks.CrosswordDraftId, Numbers);
 
         Assert.Equal(7, config.Scoring.IntersectionMult);
+        Assert.Equal(Base.WeekTargets.Select(t => (long)Math.Round(t * 0.5m / 10m, MidpointRounding.AwayFromZero) * 10), config.WeekTargets);
+        Assert.Equal(260, Decks.Apply(Base with { WeekTargets = [515] }, Decks.CrosswordDraftId, Numbers).WeekTargets[0]); // 257.5 → 260
         Assert.Equal(4, config.RoundConfigFor(0).MinWordLength);
         for (int week = 0; week < 8; week++) // every tier and endless weeks
             Assert.DoesNotContain(config.BossPoolFor(week), boss => boss is StrictGrammarian);
@@ -75,7 +77,7 @@ public class DeckTests
     }
 
     [Fact]
-    public void ThinDeck_Is30Tiles_WithAFairVowelShare_AndNoRareLetters()
+    public void ThinDeck_Is30Tiles_WithAFairVowelShare_AndTheRareLetters()
     {
         var tiles = StartingDeck.Thin();
         var lettered = tiles.Where(t => !t.IsWild).ToList();
@@ -83,7 +85,7 @@ public class DeckTests
         Assert.Equal(ShopConfig.Default.MinDeckSize, tiles.Length);
         Assert.Equal(StartingDeck.ThinWilds, tiles.Count(t => t.IsWild));
         Assert.InRange(lettered.Count(t => "AEIOU".Contains(t.Letter.Char)) / (double)lettered.Count, 0.38, 0.45);
-        Assert.DoesNotContain(lettered, t => "QZXJ".Contains(t.Letter.Char));
+        Assert.All("QZXJ", rare => Assert.Contains(lettered, t => t.Letter.Char == rare));
         Assert.Equal(tiles.Length, tiles.Select(t => t.Id).Distinct().Count());
     }
 

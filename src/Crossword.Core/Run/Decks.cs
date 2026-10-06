@@ -8,10 +8,17 @@ namespace Crossword.Core.Run;
 /// <summary>A starting deck: a run setup with an upside and a cost (empty for the Standard Deck). <see cref="Color"/> is a hex color for the UI.</summary>
 public sealed record DeckDefinition(string Id, string Name, string Color, string Upside, string Cost);
 
-/// <summary>The numbers behind each starting deck's rules, tuned with <c>runsim … deck=id</c>.</summary>
+/// <summary>
+/// The numbers behind each starting deck's rules, tuned with <c>runsim … deck=id</c> (2026-10-06, 200 runs, ScoreFraction
+/// 0.75 / 0.9 vs the Standard Deck's 39 / 55%). The first Crossword Draft Deck (no deadline cut) won 10 / 26%: the
+/// 3-letter rule bans the 2-letter cross words most intersections form, so a bigger intersection bonus barely helped
+/// (+4 Mult: 12.5%); deadlines ×0.75 → 30%, ×0.6 → 57%. The first Redactor Deck (no rare letters) won 61 / 76%: a thin
+/// deck cycles every round, so Q, Z, X and J went in (37 / 57%).
+/// </summary>
 public sealed record DeckConfig(
     decimal CrosswordDraftIntersectionBonus = 1,
     int CrosswordDraftMinWordLength = 3,
+    decimal CrosswordDraftTargetScale = 0.7m,
     int RedactorDiscardsDelta = -1,
     int CopyEditorDiscardsDelta = 1,
     int CopyEditorDeskSlots = 4,
@@ -55,6 +62,7 @@ public static class Decks
                     Scoring = config.Scoring with { IntersectionMult = config.Scoring.IntersectionMult + d.CrosswordDraftIntersectionBonus },
                     MinWordLength = Math.Max(config.MinWordLength, d.CrosswordDraftMinWordLength),
                     ExcludedBosses = config.ExcludedBosses.Add(new StrictGrammarian().Id),
+                    WeekTargets = config.WeekTargets.Select(target => Scale(target, d.CrosswordDraftTargetScale)).ToImmutableArray(),
                 };
             case RedactorId:
                 return config with { StartingTiles = StartingDeck.Thin(), DiscardsDelta = config.DiscardsDelta + d.RedactorDiscardsDelta };
@@ -70,6 +78,10 @@ public static class Decks
         }
     }
 
+    /// <summary><paramref name="target"/> × <paramref name="scale"/>, rounded to 10.</summary>
+    private static long Scale(long target, decimal scale) =>
+        (long)Math.Round(target * scale / 10m, MidpointRounding.AwayFromZero) * 10;
+
     private static IDeskItem StartingItem(string id) =>
         DeskItemCatalog.Find(id) ?? throw new InvalidOperationException($"No Desk Item '{id}'.");
 
@@ -77,11 +89,11 @@ public static class Decks
     [
         new(StandardId, "Standard Deck", "#E8E6E0", "The standard 100-tile deck.", ""),
         new(CrosswordDraftId, "The Crossword Draft Deck", "#2B6CB0",
-            $"+{d.CrosswordDraftIntersectionBonus} Mult per intersection.",
+            $"+{d.CrosswordDraftIntersectionBonus} Mult per intersection; deadlines ×{d.CrosswordDraftTargetScale}.",
             $"Words need {d.CrosswordDraftMinWordLength}+ letters."),
         new(RedactorId, "The Redactor Deck", "#C53030",
-            $"A thin {StartingDeck.Thin().Length}-tile deck: no Q, Z, X or J.",
-            $"{-d.RedactorDiscardsDelta} fewer discard per round."),
+            $"A thin {StartingDeck.Thin().Length}-tile deck: predictable draws.",
+            $"Q, Z, X and J come up every round; {-d.RedactorDiscardsDelta} fewer discard per round."),
         new(CopyEditorId, "The Copy Editor's Deck", "#2F855A",
             $"Starts with {StartingItem(d.CopyEditorStartingItem).Name} and +{d.CopyEditorDiscardsDelta} discard per round.",
             $"Only {d.CopyEditorDeskSlots} Desk Item slots."),
