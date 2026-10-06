@@ -57,7 +57,22 @@ public static class StatsQueries
             .Select(kv => kv.Key)
             .ToImmutableArray();
 
-    /// <summary>The highest Press Run this player may start: one above the highest won (Proofreader on a new profile).</summary>
-    public static int UnlockedPressRun(PlayerStats stats) =>
-        Math.Clamp(stats.HighestPressRunWon + 1, PressRuns.Lowest, PressRuns.Highest);
+    /// <summary>
+    /// The highest Press Run this player may start with <paramref name="deck"/>: one above the highest won with that deck
+    /// (Proofreader for a deck never won with).
+    /// </summary>
+    public static int UnlockedPressRun(PlayerStats stats, string deck) =>
+        Math.Clamp(stats.HighestPressRunWon.GetValueOrDefault(deck) + 1, PressRuns.Lowest, PressRuns.Highest);
+
+    /// <summary>The decks this player may start with: the Standard Deck plus one more per run won, in <see cref="Decks.All"/> order.</summary>
+    public static ImmutableArray<DeckDefinition> UnlockedDecks(PlayerStats stats) =>
+        Decks.All.Take(1 + Math.Max(0, stats.RunsWon)).ToImmutableArray();
+
+    /// <summary>Wins still needed to unlock <paramref name="deck"/> (0 = unlocked).</summary>
+    public static int WinsToUnlock(PlayerStats stats, DeckDefinition deck) =>
+        Math.Max(0, Decks.All.IndexOf(deck) - stats.RunsWon);
+
+    /// <summary>Whether a new run has anything to choose: a second deck or a second Press Run.</summary>
+    public static bool HasRunChoices(PlayerStats stats) =>
+        UnlockedDecks(stats).Length > 1 || UnlockedPressRun(stats, Decks.StandardId) > PressRuns.Lowest;
 }

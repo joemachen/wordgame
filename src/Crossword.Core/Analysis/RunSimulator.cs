@@ -52,12 +52,13 @@ public sealed record SimulatedRun(
 public static class RunSimulator
 {
     /// <param name="pressRun">The run's Press Run, applied to <paramref name="config"/> (pass the base config).</param>
+    /// <param name="deck">The run's starting deck (<see cref="Decks"/>), applied before the Press Run.</param>
     public static SimulatedRun PlayRun(ulong seed, RunConfig config, IWordGraph lexicon, double skill = 1.0,
         ShopStrategy strategy = ShopStrategy.Evaluating, ShopBotConfig? bot = null, SkillModel model = SkillModel.Percentile,
-        int pressRun = PressRuns.Lowest)
+        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId)
     {
         bot ??= ShopBotConfig.Default;
-        var session = RunRules.NewGame(seed, config, lexicon, pressRun: pressRun);
+        var session = RunRules.NewGame(seed, config, lexicon, pressRun: pressRun, deck: deck);
         var rounds = ImmutableArray.CreateBuilder<SimulatedRunRound>();
         var history = ShopHistory.Empty;
         var stationeryUsed = ImmutableArray.CreateBuilder<string>();

@@ -67,7 +67,8 @@ public static class ConsoleRenderer
         string boss = session.Round.Config.Boss is { } b
             ? $"BOSS: {b.Name} — {b.Description}"
             : $"Sunday boss: {session.WeekBoss.Name} — {session.WeekBoss.Description}";
-        string press = session.Run.PressRun > PressRuns.Lowest ? $"Press Run {session.Run.PressRun} · " : "";
+        string press = (session.Run.DeckId != Decks.StandardId ? $"{Decks.Get(session.Run.DeckId).Name} · " : "")
+            + (session.Run.PressRun > PressRuns.Lowest ? $"Press Run {session.Run.PressRun} · " : "");
         return $"{press}Week {session.Week + 1}/{session.Config.WeekTargets.Length} · {session.Kind.Name} · ${session.Run.Money} | {boss}";
     }
 
@@ -76,10 +77,10 @@ public static class ConsoleRenderer
         $"Discards {round.DiscardsLeft} | Bag {round.Bag.Count}" +
         (round.Config.CensoredLetter is { } censored ? $" | Censored: {censored}" : "");
 
-    public static string Desk(RunState run, ShopConfig shop) =>
+    public static string Desk(RunState run, ShopConfig shop, int slots = RunState.MaxDeskSlots) =>
         run.DeskItems.IsEmpty
-            ? $"Desk: (empty, {RunState.MaxDeskSlots} slots)"
-            : $"Desk ({run.DeskItems.Length}/{RunState.MaxDeskSlots}): " +
+            ? $"Desk: (empty, {slots} slots)"
+            : $"Desk ({run.DeskItems.Length}/{slots}): " +
               string.Join("  ", run.DeskItems.Select((item, i) =>
                   $"[{i + 1}] {item.Name}: {item.Description} (sell ${shop.SellValueOf(item)})"));
 

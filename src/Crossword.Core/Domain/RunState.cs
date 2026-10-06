@@ -33,6 +33,9 @@ public sealed record RunState(
     /// <summary>The run's difficulty level (1 = Proofreader … 8; see <see cref="Run.PressRuns"/>).</summary>
     public int PressRun { get; init; } = 1;
 
+    /// <summary>The run's starting deck (see <see cref="Run.Decks"/>).</summary>
+    public string DeckId { get; init; } = "standard";
+
     /// <summary>Style Guide upgrades bought: word tier MinLength → number of upgrades.</summary>
     public ImmutableDictionary<int, int> TierUpgrades { get; init; } = ImmutableDictionary<int, int>.Empty;
 
@@ -41,11 +44,14 @@ public sealed record RunState(
 
     public RunState AdvanceRound() => this with { RoundIndex = RoundIndex + 1 };
 
-    /// <summary>Adds an item to the rightmost slot. Duplicates (same Id) are not allowed.</summary>
-    public Result<RunState, string> AddDeskItem(IDeskItem item)
+    /// <summary>
+    /// Adds an item to the rightmost slot of <paramref name="slots"/> (the run's <see cref="Run.RunConfig.DeskSlots"/>).
+    /// Duplicates (same Id) are not allowed.
+    /// </summary>
+    public Result<RunState, string> AddDeskItem(IDeskItem item, int slots = MaxDeskSlots)
     {
-        if (DeskItems.Length >= MaxDeskSlots)
-            return Result<RunState, string>.Fail($"All {MaxDeskSlots} desk slots are full.");
+        if (DeskItems.Length >= slots)
+            return Result<RunState, string>.Fail($"All {slots} desk slots are full.");
         if (DeskItems.Any(d => d.Id == item.Id))
             return Result<RunState, string>.Fail($"You already have {item.Name}.");
         return Result<RunState, string>.Ok(this with { DeskItems = DeskItems.Add(item) });

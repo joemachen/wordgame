@@ -19,18 +19,29 @@ public static class RunRules
     private const ulong CensorSalt = 0xC2B2AE3D27D4EB4FUL;
 
     /// <summary>
-    /// Starts a run at Press Run <paramref name="pressRun"/>: its rules are applied to <paramref name="config"/>
-    /// (<see cref="PressRuns.Apply"/>), so pass the base config, and the level is stored in the run.
+    /// Starts a run with deck <paramref name="deck"/> at Press Run <paramref name="pressRun"/>: their rules are applied
+    /// to <paramref name="config"/> (<see cref="ConfigFor"/>), so pass the base config, and both are stored in the run.
     /// </summary>
     /// <param name="setup">Optional dev/test adjustment of the starting run (e.g. given Desk Items), applied before
     /// the first round starts so round hooks such as Tile Rack take effect immediately.</param>
     public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon, Func<RunState, RunState>? setup = null,
-        int pressRun = PressRuns.Lowest)
+        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId)
     {
-        config = PressRuns.Apply(config, pressRun);
-        var run = RunState.New(seed) with { Money = config.Economy.StartingMoney, Deck = config.StartingTiles, PressRun = pressRun };
+        config = ConfigFor(config, deck, pressRun);
+        var run = RunState.New(seed) with
+        {
+            Money = config.Economy.StartingMoney,
+            Deck = config.StartingTiles,
+            DeskItems = config.StartingDeskItems,
+            PressRun = pressRun,
+            DeckId = Decks.Get(deck).Id,
+        };
         return StartRound(config, setup?.Invoke(run) ?? run, lexicon);
     }
+
+    /// <summary>The base <paramref name="config"/> with a deck's rules applied, then a Press Run's (both unchanged = the same instance).</summary>
+    public static RunConfig ConfigFor(RunConfig config, string deck, int pressRun) =>
+        PressRuns.Apply(Decks.Apply(config, deck), pressRun);
 
     /// <summary>
     /// The week's boss, picked from that week's tier pool (<see cref="RunConfig.BossPoolFor"/>) using only the seed

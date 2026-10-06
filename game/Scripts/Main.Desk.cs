@@ -42,7 +42,7 @@ public partial class Main
         var play = _session.Phase == RunPhase.InRound ? PendingPlay() : null;
         long current = play is null ? 0 : ScoreWith(play, Run.DeskItems);
 
-        for (int slot = 0; slot < RunState.MaxDeskSlots; slot++)
+        for (int slot = 0; slot < _session.Config.DeskSlots; slot++)
         {
             if (slot >= Run.DeskItems.Length)
             {

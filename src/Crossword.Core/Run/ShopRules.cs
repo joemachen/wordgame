@@ -34,7 +34,7 @@ public static class ShopRules
         if (session.Run.Money < offer.Price)
             return Fail($"Costs ${offer.Price}; you have ${session.Run.Money}.");
 
-        var applied = Apply(session.Run, offer, tileIds ?? [], session.Config.Shop);
+        var applied = Apply(session.Run, offer, tileIds ?? [], session.Config.Shop, session.Config.DeskSlots);
         if (!applied.IsOk)
             return Fail(applied.Error);
 
@@ -89,12 +89,13 @@ public static class ShopRules
         });
     }
 
-    private static Result<RunState, string> Apply(RunState run, ShopOffer offer, IReadOnlyCollection<int> tileIds, ShopConfig config)
+    private static Result<RunState, string> Apply(RunState run, ShopOffer offer, IReadOnlyCollection<int> tileIds, ShopConfig config,
+        int deskSlots)
     {
         switch (offer)
         {
             case DeskItemOffer desk:
-                return run.AddDeskItem(desk.Item);
+                return run.AddDeskItem(desk.Item, deskSlots);
 
             case AddTileOffer add:
                 int id = run.Deck.IsEmpty ? 0 : run.Deck.Max(t => t.Id) + 1;

@@ -253,10 +253,12 @@ public partial class Main
 
     // The end screen's "Unlocked Press Run" line (read by the self-test); null when it isn't shown.
     private Label? _endScreenUnlock;
+    private Label? _endScreenDeckUnlock;
 
     private void BuildEndScreen(bool victory)
     {
         _endScreenUnlock = null;
+        _endScreenDeckUnlock = null;
         var holder = new CenterContainer { CustomMinimumSize = new Vector2(0, 600) };
         var panel = UiKit.MakePanel(UiKit.Panel, padding: 40, border: victory ? UiKit.Good : UiKit.Bad, borderWidth: 2);
         var box = UiKit.VBox(14);
@@ -277,6 +279,12 @@ public partial class Main
             _endScreenUnlock = UiKit.MakeLabel($"Unlocked Press Run {press.Level}: {press.Name}. {press.Adds}", 18,
                 new Color(press.Color).Lightened(0.2f), HorizontalAlignment.Center);
             box.AddChild(_endScreenUnlock);
+        }
+        if (victory && _justUnlockedDeck is { } deck)
+        {
+            _endScreenDeckUnlock = UiKit.MakeLabel($"Unlocked {deck.Name}: {deck.Upside} {deck.Cost}", 18,
+                new Color(deck.Color).Lightened(0.2f), HorizontalAlignment.Center);
+            box.AddChild(_endScreenDeckUnlock);
         }
         box.AddChild(UiKit.MakeLabel($"Seed {Run.Seed}   ·   {PressRunText()}   ·   ${Run.Money}   ·   {Run.DeskItems.Length} desk items",
             15, UiKit.TextMuted, HorizontalAlignment.Center));

@@ -109,7 +109,8 @@ public partial class Main : Control
         int startWeek = args.TryGetValue("week", out var w) && int.TryParse(w, out int week) && week > 1 ? week - 1 : 0;
         args.TryGetValue("give", out var give);
         int pressRun = args.TryGetValue("press", out var pr) && int.TryParse(pr, out int level) && PressRuns.IsLevel(level) ? level : PressRuns.Lowest;
-        bool devSetup = startWeek > 0 || give is not null || pressRun > PressRuns.Lowest;
+        string deck = args.TryGetValue("deck", out var d) && Decks.Find(d) is { } found ? found.Id : Decks.StandardId;
+        bool devSetup = startWeek > 0 || give is not null || pressRun > PressRuns.Lowest || deck != Decks.StandardId;
         // QA and dev-setup runs never touch the saved run; an explicit --seed starts (and saves) a new run.
         _runSave = qaRun || devSetup ? RunSaveStore.InMemory() : RunSaveStore.ForProfile(profileName);
         if (!devSetup && !args.ContainsKey("seed") && _runSave.Load(_baseConfig) is { } saved)
@@ -117,7 +118,7 @@ public partial class Main : Control
         else
             NewRun(seed, devSetup
                 ? run => Give(run with { RoundIndex = startWeek * _baseConfig.RoundsPerWeek }, give ?? "")
-                : null, pressRun);
+                : null, pressRun, deck);
         if (_profile.Notice is { } notice)
             SetMessage(notice, UiKit.Bad);
         else if (_runSave.Notice is { } saveNotice)
@@ -177,20 +178,22 @@ public partial class Main : Control
     }
 
     /// <summary>Dev flag --give: adds Desk Items / Stationery (comma-separated ids) before the first round starts.</summary>
-    private static RunState Give(RunState run, string ids)
+    private RunState Give(RunState run, string ids)
     {
+        int slots = RunRules.ConfigFor(_baseConfig, run.DeckId, run.PressRun).DeskSlots;
         foreach (var id in ids.Split(',', StringSplitOptions.RemoveEmptyEntries))
-            if (Crossword.Core.DeskItems.DeskItemCatalog.Find(id) is { } item && run.AddDeskItem(item) is { IsOk: true } added)
+            if (Crossword.Core.DeskItems.DeskItemCatalog.Find(id) is { } item && run.AddDeskItem(item, slots) is { IsOk: true } added)
                 run = added.Value;
             else if (Crossword.Core.Stationery.StationeryCatalog.Find(id) is { } stationery && run.AddStationery(stationery) is { IsOk: true } held)
                 run = held.Value;
         return run;
     }
 
-    private void NewRun(ulong seed, Func<RunState, RunState>? setup = null, int pressRun = PressRuns.Lowest)
+    private void NewRun(ulong seed, Func<RunState, RunState>? setup = null, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId)
     {
-        _session = RunRules.NewGame(seed, _baseConfig, _lexicon, setup, pressRun);
+        _session = RunRules.NewGame(seed, _baseConfig, _lexicon, setup, pressRun, deck);
         _justUnlockedPressRun = null;
+        _justUnlockedDeck = null;
         _selected.Clear();
         _pending.Clear();
         _newTileIds.Clear();
@@ -388,8 +391,11 @@ public partial class Main : Control
             + (Round.Config.BonusMult > 0 ? $"   ·   Red ink +{Round.Config.BonusMult:0.##} mult" : "")
             + (Round.Config.CensoredLetter is { } censored ? $"   ·   Censored: {censored}" : "");
         _moneyLabel.Text = $"${Run.Money}";
-        _seedLabel.Text = Run.PressRun > PressRuns.Lowest ? $"Seed {Run.Seed}\n{PressRunText()}" : $"Seed {Run.Seed}";
-        _seedLabel.TooltipText = PressRunText() + string.Concat(PressRuns.All.Take(Run.PressRun).Skip(1).Select(p => $"\n· {p.Adds}"));
+        _seedLabel.Text = IsCustomRun ? $"Seed {Run.Seed}\n{PressRunText()}" : $"Seed {Run.Seed}";
+        var deckInfo = Decks.Get(Run.DeckId);
+        _seedLabel.TooltipText = PressRunText()
+            + (Run.DeckId != Decks.StandardId ? $"\n· {deckInfo.Upside}\n· {deckInfo.Cost}" : "")
+            + string.Concat(PressRuns.All.Take(Run.PressRun).Skip(1).Select(p => $"\n· {p.Adds}"));
     }
 
     /// <summary>Week header, week pips, this week's three puzzles and how far away the boss is.</summary>

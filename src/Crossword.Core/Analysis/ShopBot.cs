@@ -138,7 +138,7 @@ public static class EvaluatingShopBot
                 continue;
             }
 
-            if (rerolls < config.MaxRerolls && (config.RerollWhenFull || session.Run.DeskItems.Length < RunState.MaxDeskSlots)
+            if (rerolls < config.MaxRerolls && (config.RerollWhenFull || session.Run.DeskItems.Length < session.Config.DeskSlots)
                 && session.Run.Money - session.Shop!.RerollCost >= reserve + config.RerollSlack)
             {
                 session = ShopRules.Reroll(session).Value;
@@ -166,7 +166,7 @@ public static class EvaluatingShopBot
 
             switch (offer)
             {
-                case DeskItemOffer desk when run.DeskItems.Length < RunState.MaxDeskSlots:
+                case DeskItemOffer desk when run.DeskItems.Length < session.Config.DeskSlots:
                     if (run.Money < offer.Price)
                         break;
                     for (int pos = 0; pos <= run.DeskItems.Length; pos++)

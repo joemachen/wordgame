@@ -1,6 +1,7 @@
 using Crossword.Core.Clues;
 using System.Collections.Immutable;
 using Crossword.Core.Rules;
+using Crossword.Core.Run;
 using Godot;
 using GridPos = Crossword.Core.Domain.Position;
 
@@ -326,18 +327,37 @@ public partial class Main
         _session = _session with { Phase = Crossword.Core.Run.RunPhase.Victory };
         Refresh();
         await Frames(2);
-        Check("a win unlocks the next press run", _profile.Profile.Stats.HighestPressRunWon == 1
+        Check("a win unlocks the next press run", _profile.Profile.Stats.HighestPressRunWon.GetValueOrDefault(Decks.StandardId) == 1
             && _endScreenUnlock is { } unlockLine && unlockLine.Text.StartsWith("Unlocked Press Run 2"));
+        Check("a win unlocks the next deck", _endScreenDeckUnlock is { } deckLine
+            && deckLine.Text.StartsWith($"Unlocked {Decks.Get(Decks.CrosswordDraftId).Name}"));
         var endNewRun = _shopContent.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "New run");
         await Click(Centre(endNewRun));
-        Button PressRow(int level) => _pressRunBox.GetNode<Button>($"PressRun{level}");
+        Button PressRow(int level) => _pressRunBox.FindChild($"PressRun{level}", owned: false) as Button ?? throw new InvalidOperationException($"No PressRun{level}");
+        Button DeckCard(string id) => _pressRunBox.FindChild($"Deck_{id}", owned: false) as Button ?? throw new InvalidOperationException($"No Deck_{id}");
         Check("new run opens the press run picker", _pressRunOverlay.Visible && !PressRow(1).Disabled && !PressRow(2).Disabled
             && PressRow(3).Disabled && PressRow(8).Disabled);
+        Check("the picker shows the unlocked decks", !DeckCard(Decks.StandardId).Disabled && !DeckCard(Decks.CrosswordDraftId).Disabled
+            && DeckCard(Decks.RedactorId).Disabled && DeckCard(Decks.CopyEditorId).Disabled);
         await Click(Centre(PressRow(2)));
         Check("picking a press run starts it", !_pressRunOverlay.Visible && Run.PressRun == 2 && _seedLabel.Text.Contains("First Edition"));
         ChooseNewRun();
         await PressKey(global::Godot.Key.Escape);
         Check("esc closes the press run picker", !_pressRunOverlay.Visible && Run.PressRun == 2);
+
+        // 18. Decks: picking one shows its own Press Run ladder (unlocks are per deck) and starts a run by its rules.
+        ChooseNewRun();
+        await Frames(2);
+        await Click(Centre(DeckCard(Decks.CrosswordDraftId)));
+        Check("press runs are unlocked per deck", _pressRunOverlay.Visible && !PressRow(1).Disabled && PressRow(2).Disabled);
+        await Click(Centre(PressRow(1)));
+        Check("picking a deck starts a run with its rules", !_pressRunOverlay.Visible && Run.DeckId == Decks.CrosswordDraftId
+            && Round.Config.MinWordLength == 3 && _seedLabel.Text.Contains("Crossword Draft"));
+        NewRun(42, deck: Decks.CopyEditorId);
+        await Frames(2);
+        int emptySlots = _deskRow.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Count(l => l.Text == "empty desk slot");
+        Check("the copy editor's deck has 4 desk slots and a red pen", Run.DeskItems.Length == 1 && Run.DeskItems[0].Id == "red-pen"
+            && emptySlots == 3);
 
         NewRun(42, pressRun: 7);
         await Frames(2);

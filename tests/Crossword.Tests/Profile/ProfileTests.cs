@@ -55,36 +55,69 @@ public class ProfileTests
     public void RecordRunStartAndEnd_TrackRunsWinsAndFurthestWeek()
     {
         var stats = StatsRules.RecordRunStart(StatsRules.RecordRunStart(PlayerStats.Empty));
-        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 3, pressRun: 1);
-        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 1);
-        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 2, pressRun: 1);
+        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 3, pressRun: 1, Standard);
+        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 1, Standard);
+        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 2, pressRun: 1, Standard);
 
         Assert.Equal(2, stats.RunsStarted);
         Assert.Equal(1, stats.RunsWon);
         Assert.Equal(5, stats.BestWeekReached);
     }
 
+    private const string Standard = Decks.StandardId;
+
+    private static ImmutableDictionary<string, int> Won(params (string Deck, int Level)[] levels) =>
+        levels.ToImmutableDictionary(l => l.Deck, l => l.Level);
+
     [Fact]
     public void RecordRunEnd_AWinUnlocksTheNextPressRun()
     {
-        Assert.Equal(1, StatsQueries.UnlockedPressRun(PlayerStats.Empty));
+        Assert.Equal(1, StatsQueries.UnlockedPressRun(PlayerStats.Empty, Standard));
 
-        var stats = StatsRules.RecordRunEnd(PlayerStats.Empty, won: true, weekReached: 5, pressRun: 1);
-        Assert.Equal(1, stats.HighestPressRunWon);
-        Assert.Equal(2, StatsQueries.UnlockedPressRun(stats));
+        var stats = StatsRules.RecordRunEnd(PlayerStats.Empty, won: true, weekReached: 5, pressRun: 1, Standard);
+        Assert.Equal(1, stats.HighestPressRunWon[Standard]);
+        Assert.Equal(2, StatsQueries.UnlockedPressRun(stats, Standard));
 
-        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 5, pressRun: 2);
-        Assert.Equal(2, StatsQueries.UnlockedPressRun(stats)); // a loss unlocks nothing
+        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 5, pressRun: 2, Standard);
+        Assert.Equal(2, StatsQueries.UnlockedPressRun(stats, Standard)); // a loss unlocks nothing
 
-        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 3);
-        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 1);
-        Assert.Equal(3, stats.HighestPressRunWon); // winning a lower level never lowers it
+        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 3, Standard);
+        stats = StatsRules.RecordRunEnd(stats, won: true, weekReached: 5, pressRun: 1, Standard);
+        Assert.Equal(3, stats.HighestPressRunWon[Standard]); // winning a lower level never lowers it
+    }
+
+    [Fact]
+    public void PressRunUnlocks_AreTrackedPerDeck()
+    {
+        var stats = StatsRules.RecordRunEnd(PlayerStats.Empty, won: true, weekReached: 5, pressRun: 3, Decks.RedactorId);
+
+        Assert.Equal(4, StatsQueries.UnlockedPressRun(stats, Decks.RedactorId));
+        Assert.Equal(1, StatsQueries.UnlockedPressRun(stats, Standard)); // a win with another deck doesn't count
+        Assert.Equal(1, StatsQueries.UnlockedPressRun(stats, Decks.CopyEditorId));
+    }
+
+    [Fact]
+    public void UnlockedDecks_OnePerRunWon_InCatalogOrder()
+    {
+        Assert.Equal(new[] { Standard }, StatsQueries.UnlockedDecks(PlayerStats.Empty).Select(d => d.Id));
+        Assert.False(StatsQueries.HasRunChoices(PlayerStats.Empty));
+
+        var stats = StatsRules.RecordRunEnd(PlayerStats.Empty, won: true, weekReached: 5, pressRun: 1, Standard);
+        Assert.Equal(new[] { Standard, Decks.CrosswordDraftId }, StatsQueries.UnlockedDecks(stats).Select(d => d.Id));
+        Assert.True(StatsQueries.HasRunChoices(stats));
+        Assert.Equal(0, StatsQueries.WinsToUnlock(stats, Decks.Get(Decks.CrosswordDraftId)));
+        Assert.Equal(2, StatsQueries.WinsToUnlock(stats, Decks.Get(Decks.CopyEditorId)));
+
+        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 2, pressRun: 1, Standard);
+        Assert.Equal(2, StatsQueries.UnlockedDecks(stats).Length); // a loss unlocks nothing
+
+        Assert.Equal(Decks.All, StatsQueries.UnlockedDecks(PlayerStats.Empty with { RunsWon = 50 }));
     }
 
     [Fact]
     public void UnlockedPressRun_StopsAtTheTopLevel()
     {
-        Assert.Equal(PressRuns.Highest, StatsQueries.UnlockedPressRun(PlayerStats.Empty with { HighestPressRunWon = PressRuns.Highest }));
+        Assert.Equal(PressRuns.Highest, StatsQueries.UnlockedPressRun(PlayerStats.Empty with { HighestPressRunWon = Won((Standard, PressRuns.Highest)) }, Standard));
     }
 
     // ---------------------------------------------------------------- queries
@@ -135,7 +168,7 @@ public class ProfileTests
             CloseCalls = 2,
             BossesBeaten = new Dictionary<string, int> { ["Ink Spill"] = 2 }.ToImmutableDictionary(),
             FullSpreadRounds = 1,
-            HighestPressRunWon = 3,
+            HighestPressRunWon = Won((Standard, 3), (Decks.RedactorId, 1)),
         };
         var profile = PlayerProfile.New("Joe") with { Stats = stats };
 
@@ -144,7 +177,11 @@ public class ProfileTests
         Assert.Equal("Joe", loaded.Name);
         Assert.Equal(profile.Stats.Words.OrderBy(kv => kv.Key), loaded.Stats.Words.OrderBy(kv => kv.Key));
         Assert.Equal(profile.Stats.BossesBeaten.OrderBy(kv => kv.Key), loaded.Stats.BossesBeaten.OrderBy(kv => kv.Key));
-        Assert.Equal(profile.Stats with { Words = loaded.Stats.Words, BossesBeaten = loaded.Stats.BossesBeaten }, loaded.Stats);
+        Assert.Equal(profile.Stats.HighestPressRunWon.OrderBy(kv => kv.Key), loaded.Stats.HighestPressRunWon.OrderBy(kv => kv.Key));
+        Assert.Equal(profile.Stats with
+        {
+            Words = loaded.Stats.Words, BossesBeaten = loaded.Stats.BossesBeaten, HighestPressRunWon = loaded.Stats.HighestPressRunWon,
+        }, loaded.Stats);
     }
 
     [Fact]
@@ -181,7 +218,7 @@ public class ProfileTests
         Assert.Equal("Player", loaded.Name);
         Assert.Equal(4, loaded.Stats.RunsStarted);
         Assert.Empty(loaded.Stats.Words);
-        Assert.Equal(0, loaded.Stats.HighestPressRunWon);
+        Assert.Empty(loaded.Stats.HighestPressRunWon);
     }
 
     [Fact]
@@ -190,8 +227,19 @@ public class ProfileTests
         var withWins = ProfileJson.Deserialize("""{ "version": 1, "stats": { "runsWon": 2 } }""").Value;
         var saved = ProfileJson.Deserialize("""{ "version": 1, "stats": { "runsWon": 2, "highestPressRunWon": 4 } }""").Value;
 
-        Assert.Equal(1, withWins.Stats.HighestPressRunWon);
-        Assert.Equal(4, saved.Stats.HighestPressRunWon);
+        Assert.Equal(Won((Standard, 1)), withWins.Stats.HighestPressRunWon);
+        Assert.Equal(Won((Standard, 4)), saved.Stats.HighestPressRunWon);
+    }
+
+    [Fact]
+    public void Json_ProfilesFromBeforeDecks_CountTheirPressRunForTheStandardDeck()
+    {
+        var old = ProfileJson.Deserialize("""{ "version": 1, "stats": { "runsWon": 3, "highestPressRunWon": 5 } }""").Value;
+
+        Assert.Equal(6, StatsQueries.UnlockedPressRun(old.Stats, Standard));
+        Assert.Equal(1, StatsQueries.UnlockedPressRun(old.Stats, Decks.RedactorId));
+        Assert.DoesNotContain("highestPressRunWon", ProfileJson.Serialize(old)); // rewritten per deck
+        Assert.Contains("pressRunsWon", ProfileJson.Serialize(old));
     }
 
     [Theory]

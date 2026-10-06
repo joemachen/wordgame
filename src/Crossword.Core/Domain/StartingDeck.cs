@@ -17,18 +17,34 @@ public static class StartingDeck
         ('Y', 2), ('Z', 1),
     ];
 
-    public const int Wilds = 2;
+    /// <summary>
+    /// The Redactor Deck's tiles: 29 common letters (12 vowels, ~41%; no Q, Z, X, J, K, V, W, Y or F) plus one wild = 30,
+    /// the shop's minimum deck size.
+    /// </summary>
+    private static readonly (char Letter, int Count)[] ThinDistribution =
+    [
+        ('A', 3), ('B', 1), ('C', 1), ('D', 1), ('E', 4), ('G', 1), ('H', 1), ('I', 2), ('L', 2), ('M', 1),
+        ('N', 2), ('O', 2), ('P', 1), ('R', 2), ('S', 2), ('T', 2), ('U', 1),
+    ];
 
-    public static ImmutableArray<Tile> Create()
+    public const int Wilds = 2;
+    public const int ThinWilds = 1;
+
+    public static ImmutableArray<Tile> Create() => Build(Distribution, Wilds);
+
+    /// <summary>The Redactor Deck's thin 30-tile set (see <see cref="Run.Decks"/>).</summary>
+    public static ImmutableArray<Tile> Thin() => Build(ThinDistribution, ThinWilds);
+
+    private static ImmutableArray<Tile> Build((char Letter, int Count)[] distribution, int wilds)
     {
         var builder = ImmutableArray.CreateBuilder<Tile>();
         int nextId = 0;
-        foreach (var (letter, count) in Distribution)
+        foreach (var (letter, count) in distribution)
         {
             for (int i = 0; i < count; i++)
                 builder.Add(new Tile(nextId++, Letter.From(letter)));
         }
-        for (int i = 0; i < Wilds; i++)
+        for (int i = 0; i < wilds; i++)
             builder.Add(Tile.Wild(nextId++));
         return builder.ToImmutable();
     }

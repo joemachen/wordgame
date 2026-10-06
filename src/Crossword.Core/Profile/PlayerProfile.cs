@@ -45,8 +45,11 @@ public sealed record PlayerStats
     /// <summary>Rounds won whose final board used all five vowels or ten or more distinct letters.</summary>
     public int FullSpreadRounds { get; init; }
 
-    /// <summary>The highest Press Run won (0 = none yet); the next one up is unlocked (<see cref="StatsQueries.UnlockedPressRun"/>).</summary>
-    public int HighestPressRunWon { get; init; }
+    /// <summary>
+    /// The highest Press Run won with each deck (by deck id; missing = none yet); the next one up is unlocked for that
+    /// deck (<see cref="StatsQueries.UnlockedPressRun"/>).
+    /// </summary>
+    public ImmutableDictionary<string, int> HighestPressRunWon { get; init; } = ImmutableDictionary<string, int>.Empty;
 }
 
 /// <summary>A named player profile. <see cref="Version"/> lets later releases migrate old files.</summary>
@@ -107,11 +110,14 @@ public static class StatsRules
     public static PlayerStats RecordRunStart(PlayerStats stats) => stats with { RunsStarted = stats.RunsStarted + 1 };
 
     /// <param name="weekReached">1-based week the run ended in (or the last week, for a win).</param>
-    /// <param name="pressRun">The run's Press Run; a win there unlocks the next one.</param>
-    public static PlayerStats RecordRunEnd(PlayerStats stats, bool won, int weekReached, int pressRun) => stats with
+    /// <param name="pressRun">The run's Press Run; a win there unlocks the next one for <paramref name="deck"/>.</param>
+    /// <param name="deck">The run's deck id; any win also unlocks the next deck (<see cref="StatsQueries.UnlockedDecks"/>).</param>
+    public static PlayerStats RecordRunEnd(PlayerStats stats, bool won, int weekReached, int pressRun, string deck) => stats with
     {
         RunsWon = stats.RunsWon + (won ? 1 : 0),
         BestWeekReached = Math.Max(stats.BestWeekReached, weekReached),
-        HighestPressRunWon = won ? Math.Max(stats.HighestPressRunWon, pressRun) : stats.HighestPressRunWon,
+        HighestPressRunWon = won
+            ? stats.HighestPressRunWon.SetItem(deck, Math.Max(stats.HighestPressRunWon.GetValueOrDefault(deck), pressRun))
+            : stats.HighestPressRunWon,
     };
 }

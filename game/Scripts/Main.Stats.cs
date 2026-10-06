@@ -113,9 +113,12 @@ public partial class Main
             return;
         _runEndRecorded = true;
         bool won = _session.Phase == RunPhase.Victory;
-        int unlockedBefore = StatsQueries.UnlockedPressRun(_profile.Profile.Stats);
-        _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1, Run.PressRun));
-        int unlockedNow = StatsQueries.UnlockedPressRun(_profile.Profile.Stats);
+        int unlockedBefore = StatsQueries.UnlockedPressRun(_profile.Profile.Stats, Run.DeckId);
+        int decksBefore = StatsQueries.UnlockedDecks(_profile.Profile.Stats).Length;
+        _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1, Run.PressRun, Run.DeckId));
+        int unlockedNow = StatsQueries.UnlockedPressRun(_profile.Profile.Stats, Run.DeckId);
+        var decksNow = StatsQueries.UnlockedDecks(_profile.Profile.Stats);
         _justUnlockedPressRun = unlockedNow > unlockedBefore ? unlockedNow : null;
+        _justUnlockedDeck = decksNow.Length > decksBefore ? decksNow[^1] : null;
     }
 }

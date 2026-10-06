@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Crossword.Core.Domain;
+using Crossword.Core.Effects;
 using Crossword.Core.Scoring;
 
 namespace Crossword.Core.Run;
@@ -61,6 +62,18 @@ public sealed record RunConfig(
     /// <summary>The week's boss adds one more Early/Mid boss's rule (<see cref="Reprint"/>; Press Runs).</summary>
     public bool BossExtraModifier { get; init; }
 
+    /// <summary>Every round's minimum word length; a boss can raise it further (starting decks).</summary>
+    public int MinWordLength { get; init; } = 2;
+
+    /// <summary>Desk Item slots, at most <see cref="RunState.MaxDeskSlots"/> (starting decks).</summary>
+    public int DeskSlots { get; init; } = RunState.MaxDeskSlots;
+
+    /// <summary>Desk Items a new run starts with, left to right (starting decks).</summary>
+    public ImmutableArray<IDeskItem> StartingDeskItems { get; init; } = ImmutableArray<IDeskItem>.Empty;
+
+    /// <summary>Boss ids that never appear, in any week (starting decks).</summary>
+    public ImmutableArray<string> ExcludedBosses { get; init; } = ImmutableArray<string>.Empty;
+
     public static RunConfig Default { get; } = new(
         WeekTargets: [510, 1790, 5380, 14580, 23920],
         Days:
@@ -77,12 +90,15 @@ public sealed record RunConfig(
 
     /// <summary>
     /// The bosses that can appear in <paramref name="week"/>: the last tier that has started. Endless weeks (after the
-    /// final week) draw from every boss so late builds keep meeting variety.
+    /// final week) draw from every boss so late builds keep meeting variety. <see cref="ExcludedBosses"/> are left out.
     /// </summary>
-    public ImmutableArray<BossModifier> BossPoolFor(int week) =>
-        week >= WeekTargets.Length || BossTiers.IsDefaultOrEmpty
+    public ImmutableArray<BossModifier> BossPoolFor(int week)
+    {
+        var pool = week >= WeekTargets.Length || BossTiers.IsDefaultOrEmpty
             ? BossCatalog.All
             : BossTiers.Last(t => t.FirstWeek <= week).Bosses;
+        return ExcludedBosses.IsDefaultOrEmpty ? pool : pool.Where(boss => !ExcludedBosses.Contains(boss.Id)).ToImmutableArray();
+    }
 
     public int TotalRounds => WeekTargets.Length * RoundsPerWeek;
 
@@ -103,7 +119,8 @@ public sealed record RunConfig(
 
     /// <summary>
     /// Round rules for a round; <paramref name="boss"/> is applied only on boss rounds. The submission and discard
-    /// deltas apply after the boss, so they stack with it (Tight Deadline's 3 submissions minus 1 = 2).
+    /// deltas apply after the boss, so they stack with it (Tight Deadline's 3 submissions minus 1 = 2); the minimum
+    /// word length is the higher of the run's and the boss's.
     /// </summary>
     public RoundConfig RoundConfigFor(int roundIndex, BossModifier? boss = null, char? censoredLetter = null)
     {
@@ -111,6 +128,8 @@ public sealed record RunConfig(
         bool bossRound = KindOf(roundIndex).IsBoss;
         if (bossRound && boss is not null)
             config = boss.Apply(config);
+        if (config.MinWordLength < MinWordLength)
+            config = config with { MinWordLength = MinWordLength };
         int submissionsDelta = bossRound ? BossSubmissionsDelta : 0;
         return submissionsDelta == 0 && DiscardsDelta == 0
             ? config

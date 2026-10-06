@@ -42,7 +42,8 @@ public static class ProfileJson
                 BossesBeaten = stats.BossesBeaten.Count == 0 ? null : stats.BossesBeaten.OrderBy(kv => kv.Key, StringComparer.Ordinal)
                     .ToDictionary(kv => kv.Key, kv => kv.Value),
                 FullSpreadRounds = stats.FullSpreadRounds,
-                HighestPressRunWon = stats.HighestPressRunWon,
+                PressRunsWon = stats.HighestPressRunWon.Count == 0 ? null : stats.HighestPressRunWon.OrderBy(kv => kv.Key, StringComparer.Ordinal)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value),
             },
         };
         return JsonSerializer.Serialize(dto, Options);
@@ -80,10 +81,23 @@ public static class ProfileJson
             CloseCalls = s.CloseCalls,
             BossesBeaten = (s.BossesBeaten ?? new Dictionary<string, int>()).ToImmutableDictionary(),
             FullSpreadRounds = s.FullSpreadRounds,
-            // Profiles from before Press Runs: every win so far was at the base level.
-            HighestPressRunWon = s.HighestPressRunWon ?? (s.RunsWon > 0 ? 1 : 0),
+            HighestPressRunWon = PressRunsWon(s),
         };
         return Result<PlayerProfile, string>.Ok(new PlayerProfile(dto.Name ?? "Player", stats) { Version = PlayerProfile.CurrentVersion });
+    }
+
+    /// <summary>
+    /// The highest Press Run won per deck. Profiles from before decks hold one level (<c>highestPressRunWon</c>), won with
+    /// the Standard Deck; profiles from before Press Runs hold neither, and every win so far was at the base level.
+    /// </summary>
+    private static ImmutableDictionary<string, int> PressRunsWon(StatsDto s)
+    {
+        if (s.PressRunsWon is not null)
+            return s.PressRunsWon.Where(kv => kv.Value > 0).ToImmutableDictionary();
+        int standard = s.HighestPressRunWon ?? (s.RunsWon > 0 ? 1 : 0);
+        return standard > 0
+            ? ImmutableDictionary<string, int>.Empty.Add(Run.Decks.StandardId, standard)
+            : ImmutableDictionary<string, int>.Empty;
     }
 
     private sealed class ProfileDto
@@ -107,6 +121,10 @@ public static class ProfileJson
         public int CloseCalls { get; set; }
         public Dictionary<string, int>? BossesBeaten { get; set; }
         public int FullSpreadRounds { get; set; }
+        /// <summary>Highest Press Run won per deck id.</summary>
+        public Dictionary<string, int>? PressRunsWon { get; set; }
+
+        /// <summary>Read only, from profiles written before decks (a single level, won with the Standard Deck).</summary>
         public int? HighestPressRunWon { get; set; }
     }
 

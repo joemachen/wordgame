@@ -15,7 +15,7 @@ public sealed record SavedRun(GameSession Session, ImmutableArray<int> HandOrder
 /// <summary>
 /// Reads and writes a run in progress as JSON (BCL <c>System.Text.Json</c>). Everything in <see cref="GameSession"/>
 /// is stored — RNG streams, bag order, board, scaling Desk Items, shop offers — except the <see cref="RunConfig"/>,
-/// which the loader supplies (the current tuning, with the run's Press Run applied; the round in progress keeps its own
+/// which the loader supplies (the current tuning, with the run's deck and Press Run applied; the round in progress keeps its own
 /// <see cref="RoundConfig"/>).
 /// Computed properties are skipped. A save from another version is rejected rather than half-loaded.
 /// </summary>
@@ -90,8 +90,10 @@ public static class RunSaveJson
 
             if (!PressRuns.IsLevel(dto.Run.PressRun))
                 return Result<SavedRun, string>.Fail($"Unreadable save: no Press Run {dto.Run.PressRun}.");
+            if (Decks.Find(dto.Run.DeckId) is null)
+                return Result<SavedRun, string>.Fail($"Unreadable save: no deck '{dto.Run.DeckId}'.");
 
-            var session = new GameSession(PressRuns.Apply(config, dto.Run.PressRun), dto.Run, dto.Phase, dto.Round, dto.Shop, dto.LastPayout);
+            var session = new GameSession(RunRules.ConfigFor(config, dto.Run.DeckId, dto.Run.PressRun), dto.Run, dto.Phase, dto.Round, dto.Shop, dto.LastPayout);
             return Result<SavedRun, string>.Ok(new SavedRun(session, (dto.HandOrder ?? []).ToImmutableArray()));
         }
         catch (Exception e) when (e is JsonException or NotSupportedException or InvalidOperationException or ArgumentException)

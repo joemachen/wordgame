@@ -268,6 +268,27 @@ public class RunSaveJsonTests
         Assert.False(RunSaveJson.Deserialize(json.Replace("\"pressRun\": 1", "\"pressRun\": 9"), Config).IsOk);
     }
 
+    [Fact]
+    public void Deck_SurvivesSaveAndLoad_AndItsRulesAreReapplied()
+    {
+        var session = RunRules.NewGame(9, Config, LexiconLoader.Enable, pressRun: 5, deck: Decks.CopyEditorId);
+
+        var loaded = RoundTrip(session);
+
+        Assert.Equal(Decks.CopyEditorId, loaded.Run.DeckId);
+        Assert.Equal(RunRules.ConfigFor(Config, Decks.CopyEditorId, 5).DeskSlots, loaded.Config.DeskSlots);
+        Assert.Equal(RunRules.ConfigFor(Config, Decks.CopyEditorId, 5).DiscardsDelta, loaded.Config.DiscardsDelta);
+    }
+
+    [Fact]
+    public void SaveWithAnUnknownDeck_FailsWithoutThrowing()
+    {
+        string json = RunSaveJson.Serialize(RunRules.NewGame(3, Config, LexiconLoader.Enable));
+        Assert.Contains("\"deckId\": \"standard\"", json);
+
+        Assert.False(RunSaveJson.Deserialize(json.Replace("\"deckId\": \"standard\"", "\"deckId\": \"tabloid\""), Config).IsOk);
+    }
+
     /// <summary>The state in <c>Save/Fixtures/run-v1.json</c>: a few rounds into seed 21, in the shop.</summary>
     internal static GameSession FixtureSession()
     {

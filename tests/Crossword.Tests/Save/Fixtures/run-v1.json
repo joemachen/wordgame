@@ -637,6 +637,7 @@
       }
     ],
     "pressRun": 1,
+    "deckId": "standard",
     "tierUpgrades": {
       "3": 1,
       "7": 1
