@@ -34,8 +34,10 @@ When something lands, mark it ✅ here and record the details in `handoff.md` / 
 
 **ENABLE** (public domain, ~173k words). The game uses words of 2–15 letters. QI and ZA are not in it.
 
-> **Release blocker:** a slur/offensive-word denylist is needed before shipping. It applies to ENABLE **and**
-> every overlay below.
+> **Denylist ✅ (2026-10-06):** slurs (words that target a group) are removed from ENABLE by
+> `Core/Lexicon/Denylist.cs` + `Lexicon/Data/denylist.txt` (profanity stays playable, user's choice), and slur senses /
+> crude glosses are hidden from the definitions. **Every overlay below must go through `Denylist.Default.Filter`** and
+> extend the list with its own slurs before it ships.
 
 ### `CustomLexicon` overlays (unlockable dictionaries) 🟡
 
@@ -256,8 +258,8 @@ tests and a `runsim` balance check.
 | **2** ✅ | 5 new Desk Items (Etymology Tome, Rubber Stamp, Printing Press Roller, Tile Rack, Coffee Stain) + Redundant Copy and The Puzzle Master. Later: Magnifying Glass, Brass Paperclip (deferred, see §3) | 1 |
 | **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
 | **4** ✅ | In-run save/resume ✅ → profile & unlock tracking (§9) ✅ with the Press Run stakes (§5), pulled forward from phase 5 so unlocks had something to unlock | — |
-| **5** 🟡 | Starting decks (✅ Crossword Draft, Redactor, Copy Editor's, with per-deck Press Run unlocks; Tabloid and Lexicographer wait for dictionaries), dictionary overlays (+ denylist) (Press Run stakes ✅ in phase 4) | 4 |
-| **Release hygiene** | Slur denylist for every word list; "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
+| **5** 🟡 | Starting decks (✅ Crossword Draft, Redactor, Copy Editor's, with per-deck Press Run unlocks; Tabloid and Lexicographer wait for dictionaries), dictionary overlays (denylist ✅ for ENABLE; each overlay must pass through it) (Press Run stakes ✅ in phase 4) | 4 |
+| **Release hygiene** | Slur denylist ✅ (ENABLE + definitions; overlays must use it); "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
 | **Wild tiles** ✅ | Play as any letter (chosen when placed), 0 letter chips. 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5), Fountain Pen Stationery. Bots don't buy the wild offers or the Fountain Pen yet. | done 2026-10-05 |
 | **Letter mix** ✅ | Balanced draws (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) + starting deck at ~42% vowels. Rough hands at play time 29.5% → 10%. | done 2026-10-05 |
 

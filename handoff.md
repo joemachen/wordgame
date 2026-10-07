@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-06 · HEAD `2618be7` (code) · 461 unit tests passing · UI self-test 58/58 passing_
+_Last updated: 2026-10-07 · HEAD `85a9054` (code) · 478 unit tests passing · UI self-test 58/58 passing_
 
 ---
 
@@ -20,7 +20,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 
 | Area | State |
 |---|---|
-| Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. |
+| Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Slur denylist** (`Core/Lexicon/Denylist.cs` + `Lexicon/Data/denylist.txt`, 128 words incl. inflections; slurs only, profanity stays): denied words are never legal, suggested or defined (168,423 playable words). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. Slur senses and crude glosses are hidden (next clean sense shown: TACO → the food, CHINK → a narrow opening). |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5). Endless mode. |
@@ -37,6 +37,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 
 - **Engine:** Godot 4 (C#). Core targets net8.0, BCL only. Godot 4.7.1 .NET installed at `D:\Projects\Godot\Godot_v4.7.1-stable_mono_win64\` (path lives in gitignored `qa.local.bat`).
 - **Desk Items are pure functions in an ordered pipeline**, not `IObserver` events. Scaling items evolve via `AfterPlay`/`AfterRoundWon` returning updated copies.
+- **Denylist scope (2026-10-06): slurs only** — words that target a group (ethnic, racial, religious, homophobic, ableist). Profanity and generic insults stay playable; a word whose main meaning is innocent (CRACKER, GUINEA, PADDY, QUEER, RETARD the verb, KAFIR the sorghum) stays and only its slur sense is hidden from definitions. Definitions skip crude senses rather than hiding the whole word. Every future word list must pass through `Denylist.Default.Filter`.
 - **Determinism:** all Core randomness via immutable `Rng`. Hand *display order* is cosmetic (UI-level, own RNG stream) — never affects game state.
 - **Scoring is pooled** (one Chips × Mult per play), chosen over per-word sums. Longest word sets the tier; all words add chips.
 - **2-letter words are legal** (lowest tier). **Discards exist** (3/round). **Premiums only count under newly placed tiles**; **enhancements trigger per formed word, including old tiles** (deliberate: rewards building onto the grid).
@@ -239,7 +240,7 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
    discards players' runs — add a migration before the first external playtest build changes the format. Known quirk:
    after "Keep going (endless)" the run end is already recorded, so a later endless loss isn't counted in stats.
 4. **UI is first-pass:** no art, sound, or settings (no reduced-motion option for the shake/confetti yet). Animations: scoring ring-up, NEW-tile pop-in, hand-reorder slide. Hand drag confirmed good by the user with a real mouse. The art direction (`art/art-direction.jpg`) is the target for the visual overhaul.
-5. **Content hygiene for release:** ENABLE contains slurs — needs a denylist before shipping (the same pass should cover definitions; WordNet glosses include crude senses). "Q without U" is a dead tile (consider a "Qu" tile).
+5. **Content hygiene for release:** ~~ENABLE slurs~~ ✅ denylist + clean definitions (2026-10-06). Borderline calls worth a second look: MULATTO, HEBE, HOMO, MIDGET, MICK, KRAUT, BLACKAMOOR, PAPIST are denied; GRINGO, REDNECK, CRACKER, SHIKSA, QUADROON, GYP, COOLY are kept. Old profiles may still list a now-denied word in their stats. "Q without U" is a dead tile (consider a "Qu" tile).
 6. **Hand arrangement is UI-only** but saved with the run (pending tiles are not).
 7. **~38% of ENABLE has no definition** (mostly obscure words, e.g. GLEY, the user's own example; 2–5-letter words ~73% covered, every 2-letter word covered). Options if it matters: extend `supplement.txt` for words that come up often, or add a second source after a license check (Wiktionary is CC BY-SA).
 8. **The CLI has no Stationery commands** (dev `give` only covers Desk Items); the game UI is the only way to use it.
@@ -269,8 +270,8 @@ dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Edito
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
-1. **Word denylist** (release blocker; ENABLE slurs + crude WordNet glosses) — also unblocks the dictionary overlays
-   and with them the Tabloid and Lexicographer decks (phase 5).
+1. **Dictionary overlays** (ROADMAP §1; the denylist ✅ is in place — each overlay goes through `Denylist.Default.Filter`
+   and adds its own slurs) — unblocks the Tabloid and Lexicographer decks (phase 5). Slang needs a licensable source first.
 2. **Cheap parallel tracks:** GitHub Actions CI (build + `dotnet test`), a seed entry box on the New-run screen, a
    profile picker, CLI `save`/`load` and Stationery commands.
 3. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
@@ -321,6 +322,8 @@ dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Edito
 ## 9. Commit history (newest first)
 
 ```
+85a9054 Deny slurs in every word list and hide crude definition senses
+ac624e6 Document starting decks in rules, roadmap and handoff
 2618be7 Tune the Crossword Draft and Redactor decks to the Standard Deck's win rate
 9463a16 Add starting decks with per-deck Press Run unlocks
 b40f540 Document Press Runs and unlocks in rules, roadmap and handoff
