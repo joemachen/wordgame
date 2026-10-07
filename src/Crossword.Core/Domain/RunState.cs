@@ -36,6 +36,12 @@ public sealed record RunState(
     /// <summary>The run's starting deck (see <see cref="Run.Decks"/>).</summary>
     public string DeckId { get; init; } = "standard";
 
+    /// <summary>
+    /// Dictionary overlays whose words are legal this run (see <see cref="Lexicon.Dictionaries"/>; empty = ENABLE only).
+    /// The run's word graph is <c>LexiconLoader.For(Dictionaries)</c>.
+    /// </summary>
+    public ImmutableArray<string> Dictionaries { get; init; } = ImmutableArray<string>.Empty;
+
     /// <summary>Style Guide upgrades bought: word tier MinLength → number of upgrades.</summary>
     public ImmutableDictionary<int, int> TierUpgrades { get; init; } = ImmutableDictionary<int, int>.Empty;
 

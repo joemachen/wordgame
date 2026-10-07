@@ -81,7 +81,8 @@ public static class Program
                     rest.Skip(2).Any(a => a.Equals("naive", StringComparison.OrdinalIgnoreCase)) ? ShopStrategy.Naive : ShopStrategy.Evaluating,
                     rest.Skip(2).Any(a => a.Equals("frac", StringComparison.OrdinalIgnoreCase)) ? SkillModel.ScoreFraction : SkillModel.Percentile,
                     PressRunArg(rest.Skip(2)) ?? PressRuns.Lowest,
-                    DeckArg(rest.Skip(2)) ?? Decks.StandardId);
+                    DeckArg(rest.Skip(2)) ?? Decks.StandardId,
+                    DictionaryArg(rest.Skip(2)));
                 break;
             case "shop":
                 PrintPhase();
@@ -127,8 +128,9 @@ public static class Program
                 Console.WriteLine($"Seed: {Run.Seed}");
                 break;
             case "new" or "n":
+                string newDeck = DeckArg(rest) ?? Run.DeckId;
                 NewRun(rest.Length > 0 && ulong.TryParse(rest[0], out var s) ? s : RandomSeed(), PressRunArg(rest) ?? Run.PressRun,
-                    DeckArg(rest) ?? Run.DeckId);
+                    newDeck, DictionaryArg(rest) ?? CarriedDictionary(newDeck));
                 break;
             case "quit" or "q" or "exit":
                 return false;
@@ -141,12 +143,25 @@ public static class Program
 
     private static ulong RandomSeed() => (ulong)Environment.TickCount64;
 
-    private static void NewRun(ulong seed, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId)
+    private static void NewRun(ulong seed, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null)
     {
         var press = PressRuns.Get(pressRun);
-        Console.WriteLine($"\nStarting new run with seed {seed}: {Decks.Get(deck).Name}, Press Run {press.Level} ({press.Name})");
-        _session = RunRules.NewGame(seed, Config, _lexicon, pressRun: pressRun, deck: deck);
+        dictionary = DictionaryFor(deck, dictionary);
+        string words = Decks.TakesDictionary(deck) ? $" ({Dictionaries.Get(dictionary ?? Dictionaries.All[0].Id).Name})" : "";
+        Console.WriteLine($"\nStarting new run with seed {seed}: {Decks.Get(deck).Name}{words}, Press Run {press.Level} ({press.Name})");
+        _session = RunRules.NewGame(seed, Config, LexiconLoader.Enable, pressRun: pressRun, deck: deck, dictionary: dictionary);
+        _lexicon = LexiconLoader.For(Run.Dictionaries);
         PrintPhase();
+    }
+
+    /// <summary><paramref name="dictionary"/> when <paramref name="deck"/> takes one, else null (reported unless it's carried over).</summary>
+    private static string? DictionaryFor(string deck, string? dictionary, bool quiet = false)
+    {
+        if (dictionary is null || Decks.TakesDictionary(deck))
+            return dictionary;
+        if (!quiet)
+            Console.WriteLine($"{Decks.Get(deck).Name} doesn't take a dictionary; ignoring '{dictionary}'.");
+        return null;
     }
 
     /// <summary>A "press=N" argument (N = 1–8), or null when absent or out of range (which is reported).</summary>
@@ -173,6 +188,23 @@ public static class Program
             if (Decks.Find(arg["deck=".Length..]) is { } deck)
                 return deck.Id;
             Console.WriteLine($"Unknown deck; ids: {string.Join(", ", Decks.All.Select(d => d.Id))}. Using the default.");
+        }
+        return null;
+    }
+
+    /// <summary>The current run's dictionary when the new run's <paramref name="deck"/> takes one.</summary>
+    private static string? CarriedDictionary(string deck) => DictionaryFor(deck, Run.Dictionaries.FirstOrDefault(), quiet: true);
+
+    /// <summary>A "dict=id" argument (a dictionary overlay), or null when absent or unknown (which is reported).</summary>
+    private static string? DictionaryArg(IEnumerable<string> args)
+    {
+        foreach (string arg in args)
+        {
+            if (!arg.StartsWith("dict=", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (Dictionaries.Find(arg["dict=".Length..]) is { } dictionary)
+                return dictionary.Id;
+            Console.WriteLine($"Unknown dictionary; ids: {string.Join(", ", Dictionaries.All.Select(d => d.Id))}. Using the default.");
         }
         return null;
     }
@@ -359,18 +391,22 @@ public static class Program
         Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
     }
 
-    private static void SimulateRuns(int runs, double skill, ShopStrategy strategy, SkillModel model, int pressRun, string deck)
+    private static void SimulateRuns(int runs, double skill, ShopStrategy strategy, SkillModel model, int pressRun, string deck,
+        string? dictionary)
     {
+        dictionary = DictionaryFor(deck, dictionary);
         if (skill is <= 0 or > 1)
         {
             Console.WriteLine("Skill must be in (0, 1], e.g. 'runsim 50 0.9'.");
             return;
         }
-        Console.WriteLine($"Simulating {runs} full runs at skill {skill:0.00}, {Decks.Get(deck).Name}, Press Run {pressRun} ({PressRuns.Get(pressRun).Name})...");
+        Console.WriteLine($"Simulating {runs} full runs at skill {skill:0.00}, {Decks.Get(deck).Name}"
+            + $"{(Decks.TakesDictionary(deck) ? $" ({Dictionaries.Get(dictionary ?? Dictionaries.All[0].Id).Name})" : "")}, Press Run {pressRun} ({PressRuns.Get(pressRun).Name})...");
         var sw = Stopwatch.StartNew();
         var results = Enumerable.Range(1, runs)
             .AsParallel()
-            .Select(seed => RunSimulator.PlayRun((ulong)seed, Config, _lexicon, skill, strategy, model: model, pressRun: pressRun, deck: deck))
+            .Select(seed => RunSimulator.PlayRun((ulong)seed, Config, LexiconLoader.Enable, skill, strategy, model: model, pressRun: pressRun,
+                deck: deck, dictionary: dictionary))
             .ToList();
         Console.WriteLine(SimulationReport.FormatRuns(results, RunRules.ConfigFor(Config, deck, pressRun), skill, strategy, model));
         Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
@@ -418,7 +454,7 @@ public static class Program
     private static void PrintWordCheck(string word)
     {
         Console.WriteLine($"{word.ToUpperInvariant()}: {(_lexicon.Contains(word) ? "valid" : "NOT a word")}");
-        if (DefinitionLoader.Default.Define(word) is not { } definition)
+        if ((Dictionaries.Define(word, Run.Dictionaries) ?? DefinitionLoader.Default.Define(word)) is not { } definition)
             return;
         if (definition.InflectionOf is not null)
             Console.WriteLine($"  {definition.Form} {definition.InflectionOf}");
@@ -435,9 +471,10 @@ public static class Program
               discard | x <LETTERS>          Discard tiles (costs a discard), e.g. 'discard QV'
               hint [n]                       Show the n best legal plays (dev/QA aid)
               sim [rounds]                   Greedy-play simulation of the current round settings
-              runsim [runs] [skill] [naive] [frac] [press=N] [deck=id]  Full-run simulation with a shop bot (default
-                                    50, 0.9, smart bot; frac = skill is a fraction of the best play's score, not a
-                                    percentile; press=N plays at Press Run N, 1-8; deck=id with that starting deck)
+              runsim [runs] [skill] [naive] [frac] [press=N] [deck=id] [dict=id]  Full-run simulation with a shop bot
+                                    (default 50, 0.9, smart bot; frac = skill is a fraction of the best play's score,
+                                    not a percentile; press=N plays at Press Run N, 1-8; deck=id with that starting
+                                    deck; dict=id with that dictionary, for a deck that takes one)
             In the shop:
               buy <n> [LETTERS]              Buy offer n; LETTERS picks deck tiles for Enhance/Strike
               reroll                         New offers (cost rises each reroll)
@@ -450,7 +487,9 @@ public static class Program
               give <id>                      (dev) Add a Desk Item for free
               board | status                 Redraw the current screen
               continue                       Endless mode after winning
-              new [seed] [press=N] [deck=id] / seed / quit  (press=N: Press Run 1-8; deck=id: {string.Join(", ", Decks.All.Select(d => d.Id))};
+              new [seed] [press=N] [deck=id] [dict=id] / seed / quit  (press=N: Press Run 1-8;
+                                    deck=id: {string.Join(", ", Decks.All.Select(d => d.Id))};
+                                    dict=id (for {Decks.Get(Decks.LexicographerId).Name}): {string.Join(", ", Dictionaries.All.Select(d => d.Id))};
                                     default: the current run's)
             Scoring: longest word sets base chips x mult; every word formed adds letter chips;
                      enhanced tiles trigger per word they're in; each new tile completing both an

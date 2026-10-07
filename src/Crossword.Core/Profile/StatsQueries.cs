@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Crossword.Core.Lexicon;
 using Crossword.Core.Run;
 
 namespace Crossword.Core.Profile;
@@ -71,6 +72,19 @@ public static class StatsQueries
     /// <summary>Wins still needed to unlock <paramref name="deck"/> (0 = unlocked).</summary>
     public static int WinsToUnlock(PlayerStats stats, DeckDefinition deck) =>
         Math.Max(0, Decks.All.IndexOf(deck) - stats.RunsWon);
+
+    /// <summary>
+    /// The dictionary overlays this player may pick for The Lexicographer's Deck: the first unlocks with the deck, then
+    /// one more per run won, in <see cref="Dictionaries.All"/> order.
+    /// </summary>
+    public static ImmutableArray<DictionaryDefinition> UnlockedDictionaries(PlayerStats stats) =>
+        Dictionaries.All.Take(Math.Max(0, stats.RunsWon - LexicographerIndex + 1)).ToImmutableArray();
+
+    /// <summary>Wins still needed to unlock <paramref name="dictionary"/> (0 = unlocked).</summary>
+    public static int WinsToUnlock(PlayerStats stats, DictionaryDefinition dictionary) =>
+        Math.Max(0, LexicographerIndex + Dictionaries.All.IndexOf(dictionary) - stats.RunsWon);
+
+    private static int LexicographerIndex => Decks.All.IndexOf(Decks.Get(Decks.LexicographerId));
 
     /// <summary>Whether a new run has anything to choose: a second deck or a second Press Run.</summary>
     public static bool HasRunChoices(PlayerStats stats) =>

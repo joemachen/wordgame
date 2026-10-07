@@ -254,11 +254,13 @@ public partial class Main
     // The end screen's "Unlocked Press Run" line (read by the self-test); null when it isn't shown.
     private Label? _endScreenUnlock;
     private Label? _endScreenDeckUnlock;
+    private Label? _endScreenDictionaryUnlock;
 
     private void BuildEndScreen(bool victory)
     {
         _endScreenUnlock = null;
         _endScreenDeckUnlock = null;
+        _endScreenDictionaryUnlock = null;
         var holder = new CenterContainer { CustomMinimumSize = new Vector2(0, 600) };
         var panel = UiKit.MakePanel(UiKit.Panel, padding: 40, border: victory ? UiKit.Good : UiKit.Bad, borderWidth: 2);
         var box = UiKit.VBox(14);
@@ -285,6 +287,13 @@ public partial class Main
             _endScreenDeckUnlock = UiKit.MakeLabel($"Unlocked {deck.Name}: {deck.Upside} {deck.Cost}", 18,
                 new Color(deck.Color).Lightened(0.2f), HorizontalAlignment.Center);
             box.AddChild(_endScreenDeckUnlock);
+        }
+        if (victory && _justUnlockedDictionary is { } dictionary)
+        {
+            _endScreenDictionaryUnlock = UiKit.MakeLabel(
+                $"Unlocked {dictionary.Name} ({dictionary.Kind}) for {Decks.Get(Decks.LexicographerId).Name}: {dictionary.Description}", 18,
+                new Color(Decks.Get(Decks.LexicographerId).Color).Lightened(0.3f), HorizontalAlignment.Center);
+            box.AddChild(_endScreenDictionaryUnlock);
         }
         box.AddChild(UiKit.MakeLabel($"Seed {Run.Seed}   ·   {PressRunText()}   ·   ${Run.Money}   ·   {Run.DeskItems.Length} desk items",
             15, UiKit.TextMuted, HorizontalAlignment.Center));

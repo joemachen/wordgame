@@ -1,0 +1,303 @@
+# The Tech Shorthand: acronyms and initialisms (Crossword.Core.Lexicon.Dictionaries), hand-written for this game.
+# Line format: WORD<TAB>expansion. '#' comments and blank lines are ignored.
+# Rules (tests enforce the first three): A-Z only, 3-15 letters; no word already in ENABLE (it would add nothing);
+# every entry has an expansion. Content: computing, science, public and intergovernmental bodies, everyday shorthand.
+# No brand, company or product names (trademark risk in a paid game), and nothing a slur list would catch
+# (entries still go through the denylist).
+ADC	analog-to-digital converter
+AFAIK	as far as I know
+AFK	away from keyboard
+AGI	artificial general intelligence
+AGL	above ground level
+ANSI	American National Standards Institute
+API	application programming interface
+APR	annual percentage rate
+ASAP	as soon as possible
+ASCII	American Standard Code for Information Interchange
+ASIC	application-specific integrated circuit
+ATC	air traffic control
+ATM	automated teller machine
+ATP	adenosine triphosphate
+ATV	all-terrain vehicle
+AWACS	airborne warning and control system
+AWD	all-wheel drive
+BCC	blind carbon copy
+BCE	before the Common Era
+BLT	bacon, lettuce and tomato (sandwich)
+BMI	body mass index
+BMP	bitmap image file
+BPS	bits per second
+BRB	be right back
+BTU	British thermal unit
+BTW	by the way
+BYOB	bring your own bottle
+CAPTCHA	completely automated public Turing test to tell computers and humans apart
+CCTV	closed-circuit television
+CDMA	code-division multiple access
+CDN	content delivery network
+CEO	chief executive officer
+CERN	European Organization for Nuclear Research
+CFC	chlorofluorocarbon
+CFO	chief financial officer
+CIA	Central Intelligence Agency
+CISC	complex instruction set computer
+CLI	command-line interface
+CMOS	complementary metal-oxide-semiconductor
+CMYK	cyan, magenta, yellow, key (black)
+COBOL	common business-oriented language
+CPI	consumer price index
+CPR	cardiopulmonary resuscitation
+CPU	central processing unit
+CRM	customer relationship management
+CRT	cathode-ray tube
+CSS	cascading style sheets
+CTO	chief technology officer
+DAC	digital-to-analog converter
+DDOS	distributed denial of service
+DDT	dichlorodiphenyltrichloroethane (an insecticide)
+DHCP	dynamic host configuration protocol
+DIY	do it yourself
+DLC	downloadable content
+DMV	department of motor vehicles
+DNA	deoxyribonucleic acid
+DNF	did not finish
+DNS	domain name system
+DOA	dead on arrival
+DOB	date of birth
+DPI	dots per inch
+DRM	digital rights management
+DSL	digital subscriber line
+DSP	digital signal processing
+DVD	digital versatile disc
+DVR	digital video recorder
+ECG	electrocardiogram
+EEG	electroencephalogram
+EEPROM	electrically erasable programmable read-only memory
+EKG	electrocardiogram
+EMP	electromagnetic pulse
+EMT	emergency medical technician
+EOD	end of day
+EPA	Environmental Protection Agency
+EPROM	erasable programmable read-only memory
+ERP	enterprise resource planning
+ESA	European Space Agency
+ESL	English as a second language
+ESP	extrasensory perception
+EST	eastern standard time
+ETD	estimated time of departure
+EULA	end-user licence agreement
+FAA	Federal Aviation Administration
+FAQ	frequently asked questions
+FBI	Federal Bureau of Investigation
+FDA	Food and Drug Administration
+FFT	fast Fourier transform
+FOMO	fear of missing out
+FORTRAN	formula translation (a programming language)
+FPGA	field-programmable gate array
+FPS	frames per second
+FTP	file transfer protocol
+FTW	for the win
+FWD	front-wheel drive
+FWIW	for what it's worth
+FYI	for your information
+GCD	greatest common divisor
+GDP	gross domestic product
+GIF	graphics interchange format
+GIGO	garbage in, garbage out
+GMO	genetically modified organism
+GMT	Greenwich Mean Time
+GNP	gross national product
+GPA	grade point average
+GPL	general public license
+GPS	global positioning system
+GPU	graphics processing unit
+GUI	graphical user interface
+HDD	hard disk drive
+HDPE	high-density polyethylene
+HDR	high dynamic range
+HDTV	high-definition television
+HEPA	high-efficiency particulate air (filter)
+HTML	hypertext markup language
+HTTP	hypertext transfer protocol
+HTTPS	hypertext transfer protocol secure
+HUD	heads-up display
+HVAC	heating, ventilation and air conditioning
+IAAS	infrastructure as a service
+ICBM	intercontinental ballistic missile
+ICU	intensive care unit
+ICYMI	in case you missed it
+IDE	integrated development environment
+IDK	I don't know
+IEEE	Institute of Electrical and Electronics Engineers
+IFR	instrument flight rules
+IIRC	if I recall correctly
+ILS	instrument landing system
+IMAP	internet message access protocol
+IMF	International Monetary Fund
+IMHO	in my humble opinion
+IOT	internet of things
+IOU	I owe you
+IPCC	Intergovernmental Panel on Climate Change
+IPO	initial public offering
+IRS	Internal Revenue Service
+ISDN	integrated services digital network
+ISO	International Organization for Standardization
+ISP	internet service provider
+ISS	International Space Station
+IUCN	International Union for Conservation of Nature
+IUPAC	International Union of Pure and Applied Chemistry
+JSON	a plain-text format for structured data (object notation)
+JWST	James Webb Space Telescope
+KPH	kilometres per hour
+KPI	key performance indicator
+KVM	keyboard, video and mouse (switch)
+LAN	local area network
+LASIK	laser-assisted in situ keratomileusis (eye surgery)
+LCD	liquid-crystal display
+LCM	least common multiple
+LDPE	low-density polyethylene
+LIGO	Laser Interferometer Gravitational-Wave Observatory
+LLM	large language model
+LOL	laughing out loud
+LSTM	long short-term memory
+MBA	master of business administration
+MBPS	megabits per second
+MFA	multi-factor authentication
+MIA	missing in action
+MMO	massively multiplayer online game
+MMS	multimedia messaging service
+MOOC	massive open online course
+MOSFET	metal-oxide-semiconductor field-effect transistor
+MPG	miles per gallon
+MPH	miles per hour
+MRI	magnetic resonance imaging
+MRNA	messenger ribonucleic acid
+MSG	monosodium glutamate
+MSL	mean sea level
+MSRP	manufacturer's suggested retail price
+MVC	model-view-controller
+MVP	most valuable player; minimum viable product
+NAS	network-attached storage
+NASA	National Aeronautics and Space Administration
+NAT	network address translation
+NATO	North Atlantic Treaty Organization
+NDA	non-disclosure agreement
+NFC	near-field communication
+NHS	National Health Service
+NIMBY	not in my backyard
+NLP	natural language processing
+NMR	nuclear magnetic resonance
+NOAA	National Oceanic and Atmospheric Administration
+NORAD	North American Aerospace Defense Command
+NPC	non-player character
+NPU	neural processing unit
+NSA	National Security Agency
+NVM	never mind
+OCR	optical character recognition
+OKR	objectives and key results
+OLED	organic light-emitting diode
+OOO	out of office
+OOP	object-oriented programming
+OPEC	Organization of the Petroleum Exporting Countries
+OTP	one-time password
+PAAS	platform as a service
+PCB	printed circuit board
+PCR	polymerase chain reaction
+PDA	personal digital assistant
+PDE	partial differential equation
+PDF	portable document format
+PHD	doctor of philosophy
+PID	proportional-integral-derivative (controller)
+PNG	portable network graphics
+POS	point of sale
+POTUS	President of the United States
+POV	point of view
+PPE	personal protective equipment
+PPI	pixels per inch
+PSA	public service announcement
+PST	pacific standard time
+PSU	power supply unit
+PTA	parent-teacher association
+PTO	paid time off
+PVC	polyvinyl chloride
+QED	quod erat demonstrandum ("which was to be shown")
+RBI	runs batted in
+RFID	radio-frequency identification
+RGB	red, green, blue
+RISC	reduced instruction set computer
+RMS	root mean square
+RNA	ribonucleic acid
+RNN	recurrent neural network
+ROFL	rolling on the floor laughing
+ROI	return on investment
+RPG	role-playing game
+RPM	revolutions per minute
+RSI	repetitive strain injury
+RSVP	please reply (répondez s'il vous plaît)
+RWD	rear-wheel drive
+SAAS	software as a service
+SAM	surface-to-air missile
+SAN	storage area network
+SCOTUS	Supreme Court of the United States
+SDK	software development kit
+SEO	search engine optimization
+SETI	search for extraterrestrial intelligence
+SKU	stock keeping unit
+SLA	service-level agreement
+SMH	shaking my head
+SMS	short message service
+SMTP	simple mail transfer protocol
+SNR	signal-to-noise ratio
+SOC	system on a chip
+SPF	sun protection factor
+SQL	structured query language
+SRAM	static random-access memory
+SSD	solid-state drive
+SSH	secure shell
+SSL	secure sockets layer
+SSN	social security number
+STOL	short take-off and landing
+SUV	sport utility vehicle
+SVG	scalable vector graphics
+TBA	to be announced
+TBC	to be confirmed
+TBD	to be determined
+TBH	to be honest
+TCP	transmission control protocol
+TDD	test-driven development
+TGIF	thank goodness it's Friday
+TKO	technical knockout
+TLDR	too long; didn't read
+TLS	transport layer security
+TNT	trinitrotoluene
+TSA	Transportation Security Administration
+TTYL	talk to you later
+UAV	unmanned aerial vehicle
+UDP	user datagram protocol
+UFO	unidentified flying object
+UHF	ultra high frequency
+UML	unified modeling language
+UNESCO	United Nations Educational, Scientific and Cultural Organization
+UNHCR	United Nations High Commissioner for Refugees
+UNICEF	United Nations Children's Fund
+UPC	universal product code
+URI	uniform resource identifier
+URL	uniform resource locator
+UTC	coordinated universal time
+UVA	ultraviolet A
+UVB	ultraviolet B
+VCR	videocassette recorder
+VFR	visual flight rules
+VHF	very high frequency
+VIP	very important person
+VOIP	voice over internet protocol
+VPN	virtual private network
+VRAM	video random-access memory
+VTOL	vertical take-off and landing
+WFH	work from home
+WIP	work in progress
+WTO	World Trade Organization
+WWW	world wide web
+WYSIWYG	what you see is what you get
+XML	extensible markup language
+YOLO	you only live once

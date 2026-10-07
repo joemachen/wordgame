@@ -1,3 +1,4 @@
+using Crossword.Core.Lexicon;
 using Crossword.Core.Profile;
 using Crossword.Core.Run;
 using Godot;
@@ -14,10 +15,12 @@ public partial class Main
     private Control _pressRunOverlay = null!;
     private VBoxContainer _pressRunBox = null!;
     private string _pickerDeck = Decks.StandardId;
+    private string _pickerDictionary = Dictionaries.All[0].Id;
 
     // Set when the run that just ended unlocked a new Press Run / deck (shown on the victory screen).
     private int? _justUnlockedPressRun;
     private DeckDefinition? _justUnlockedDeck;
+    private DictionaryDefinition? _justUnlockedDictionary;
 
     private Control BuildPressRunOverlay()
     {
@@ -56,6 +59,8 @@ public partial class Main
         }
         // Start from the last run's deck when it's still unlocked.
         _pickerDeck = StatsQueries.UnlockedDecks(stats).Any(d => d.Id == Run.DeckId) ? Run.DeckId : Decks.StandardId;
+        var dictionaries = StatsQueries.UnlockedDictionaries(stats);
+        _pickerDictionary = dictionaries.FirstOrDefault(d => Run.Dictionaries.Contains(d.Id))?.Id ?? Dictionaries.All[0].Id;
         RefreshPressRuns();
         _pressRunOverlay.Visible = true;
     }
@@ -66,7 +71,8 @@ public partial class Main
         UiKit.ClearChildren(_pressRunBox);
         _pressRunBox.AddChild(UiKit.MakeLabel("Start a new run", 26, UiKit.Text));
         var intro = UiKit.MakeLabel("Pick a deck, then a Press Run to start. Each Press Run adds its rule to every rule above it. "
-            + "Every run you win unlocks the next deck; a win with a deck unlocks its next Press Run.", 14, UiKit.TextMuted, wrap: true);
+            + "Every run you win unlocks the next deck (and, after The Lexicographer's Deck, the next dictionary); "
+            + "a win with a deck unlocks its next Press Run.", 14, UiKit.TextMuted, wrap: true);
         intro.CustomMinimumSize = new Vector2(900, 0);
         _pressRunBox.AddChild(intro);
 
@@ -80,6 +86,16 @@ public partial class Main
         columns.AddChild(decks);
 
         var levels = UiKit.VBox(8);
+        if (Decks.TakesDictionary(_pickerDeck))
+        {
+            string warm = _pickerDictionary;
+            _ = Task.Run(() => LexiconLoader.For([warm])); // build the run's word graph before a Press Run is clicked
+            levels.AddChild(UiKit.MakeLabel("Dictionary", 16, UiKit.TextMuted));
+            var choices = UiKit.HBox(8);
+            foreach (var dictionary in Dictionaries.All)
+                choices.AddChild(DictionaryButton(dictionary, StatsQueries.WinsToUnlock(stats, dictionary)));
+            levels.AddChild(choices);
+        }
         int unlocked = StatsQueries.UnlockedPressRun(stats, _pickerDeck);
         levels.AddChild(UiKit.MakeLabel($"Press Run · {Decks.Get(_pickerDeck).Name}", 16, UiKit.TextMuted));
         foreach (var press in PressRuns.All)
@@ -132,6 +148,29 @@ public partial class Main
         return card;
     }
 
+    /// <summary>A dictionary choice for a deck that takes one; the selected one gets the deck's color.</summary>
+    private Control DictionaryButton(DictionaryDefinition dictionary, int winsToUnlock)
+    {
+        bool open = winsToUnlock == 0;
+        bool selected = open && dictionary.Id == _pickerDictionary;
+        var color = new Color(Decks.Get(_pickerDeck).Color);
+        var button = UiKit.MakeButton(open ? dictionary.Name : $"{dictionary.Name} (win {winsToUnlock} more)", open ? UiKit.PanelRaised : UiKit.Background, 15);
+        button.Name = $"Dictionary_{dictionary.Id}";
+        button.Disabled = !open;
+        button.TooltipText = $"{dictionary.Kind}: {dictionary.Description}";
+        button.CustomMinimumSize = new Vector2(190, 40);
+        button.AddThemeStyleboxOverride("normal", UiKit.Box(UiKit.PanelRaised, 8, selected ? color : UiKit.PanelBorder, selected ? 3 : 1, 8));
+        button.AddThemeStyleboxOverride("hover", UiKit.Box(UiKit.PanelRaised.Lightened(0.08f), 8, color, 3, 8));
+        button.AddThemeStyleboxOverride("disabled", UiKit.Box(UiKit.Background, 8, UiKit.PanelBorder, 1, 8));
+        if (open)
+            button.Pressed += () =>
+            {
+                _pickerDictionary = dictionary.Id;
+                RefreshPressRuns();
+            };
+        return button;
+    }
+
     private Control PressRunRow(PressRun press, bool open)
     {
         var color = new Color(press.Color);
@@ -166,12 +205,17 @@ public partial class Main
     private void PickPressRun(int level)
     {
         _pressRunOverlay.Visible = false;
-        NewRun((ulong)Time.GetTicksUsec(), pressRun: level, deck: _pickerDeck);
+        NewRun((ulong)Time.GetTicksUsec(), pressRun: level, deck: _pickerDeck,
+            dictionary: Decks.TakesDictionary(_pickerDeck) ? _pickerDictionary : null);
     }
 
-    /// <summary>The run's deck and Press Run for the sidebar footer and end screen, e.g. "The Redactor Deck · Press Run 3 · Late Edition".</summary>
+    /// <summary>
+    /// The run's deck, dictionaries and Press Run for the sidebar footer and end screen, e.g.
+    /// "The Redactor Deck · Press Run 3 · Late Edition" or "The Lexicographer's Deck · The Tech Shorthand · Press Run 1 · Proofreader".
+    /// </summary>
     private string PressRunText() =>
         (Run.DeckId != Decks.StandardId ? $"{Decks.Get(Run.DeckId).Name} · " : "")
+        + string.Concat(Run.Dictionaries.Select(id => $"{Dictionaries.Get(id).Name} · "))
         + $"Press Run {Run.PressRun} · {PressRuns.Get(Run.PressRun).Name}";
 
     /// <summary>Whether the run differs from the base game (non-standard deck or a Press Run above Proofreader).</summary>

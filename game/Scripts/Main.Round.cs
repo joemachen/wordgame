@@ -427,11 +427,18 @@ public partial class Main
         _previewTier = RoundScoring.TierFor(validation.Value.Words.Max(w => w.Text.Length)).MinLength;
     }
 
+    /// <summary>
+    /// A word's definition: WordNet's, else a dictionary overlay's expansion (overlay words are never ENABLE words, so
+    /// at most one has it; every overlay is searched so the Stats popup can define words from earlier runs).
+    /// </summary>
+    private static WordDefinition? Define(string word) =>
+        DefinitionLoader.Default.Define(word) ?? Dictionaries.Define(word, Dictionaries.All.Select(d => d.Id));
+
     /// <summary>One line per distinct word: "[b]GLEY[/b] n. a sticky clay soil" (BBCode).</summary>
     private static string DefinitionsText(IEnumerable<string> words) => string.Join('\n', words.Distinct().Select(word =>
     {
         string head = $"[b][color=#{UiKit.Text.ToHtml(false)}]{word}[/color][/b]  ";
-        return DefinitionLoader.Default.Define(word) is { } definition
+        return Define(word) is { } definition
             ? head + definition.Summary.Replace("[", "[lb]")
             : head + "[i]valid word — no definition on file[/i]";
     }));

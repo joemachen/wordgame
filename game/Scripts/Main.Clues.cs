@@ -49,7 +49,7 @@ public partial class Main
     {
         if (!ShowClueColumns)
             return;
-        var sheet = MarginClues.For(Round.Board, _profile.Profile.Stats, w => DefinitionLoader.Default.Define(w)?.Summary, ClueSlots);
+        var sheet = MarginClues.For(Round.Board, _profile.Profile.Stats, w => Define(w)?.Summary, ClueSlots);
         FillClueColumn(_acrossBox, "ACROSS", sheet.Across);
         FillClueColumn(_downBox, "DOWN", sheet.Down);
     }

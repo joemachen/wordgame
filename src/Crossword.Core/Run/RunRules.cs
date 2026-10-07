@@ -22,12 +22,16 @@ public static class RunRules
     /// Starts a run with deck <paramref name="deck"/> at Press Run <paramref name="pressRun"/>: their rules are applied
     /// to <paramref name="config"/> (<see cref="ConfigFor"/>), so pass the base config, and both are stored in the run.
     /// </summary>
+    /// <param name="lexicon">The base word graph. A run with dictionary overlays starts on
+    /// <c>LexiconLoader.For(run.Dictionaries)</c> instead, and every later call of that run must pass that one too.</param>
     /// <param name="setup">Optional dev/test adjustment of the starting run (e.g. given Desk Items), applied before
     /// the first round starts so round hooks such as Tile Rack take effect immediately.</param>
+    /// <param name="dictionary">The dictionary overlay picked for a deck that takes one (<see cref="Decks.DictionariesFor"/>).</param>
     public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon, Func<RunState, RunState>? setup = null,
-        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId)
+        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null)
     {
         config = ConfigFor(config, deck, pressRun);
+        var dictionaries = Decks.DictionariesFor(deck, dictionary);
         var run = RunState.New(seed) with
         {
             Money = config.Economy.StartingMoney,
@@ -35,8 +39,9 @@ public static class RunRules
             DeskItems = config.StartingDeskItems,
             PressRun = pressRun,
             DeckId = Decks.Get(deck).Id,
+            Dictionaries = dictionaries,
         };
-        return StartRound(config, setup?.Invoke(run) ?? run, lexicon);
+        return StartRound(config, setup?.Invoke(run) ?? run, dictionaries.IsEmpty ? lexicon : LexiconLoader.For(dictionaries));
     }
 
     /// <summary>The base <paramref name="config"/> with a deck's rules applied, then a Press Run's (both unchanged = the same instance).</summary>

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Lexicon;
 
 namespace Crossword.Core.Run;
 
@@ -22,7 +23,8 @@ public sealed record DeckConfig(
     int RedactorDiscardsDelta = -1,
     int CopyEditorDiscardsDelta = 1,
     int CopyEditorDeskSlots = 4,
-    string CopyEditorStartingItem = "red-pen")
+    string CopyEditorStartingItem = "red-pen",
+    int LexicographerDeskSlots = 4)
 {
     public static DeckConfig Default { get; } = new();
 }
@@ -38,6 +40,7 @@ public static class Decks
     public const string CrosswordDraftId = "crossword-draft";
     public const string RedactorId = "redactor";
     public const string CopyEditorId = "copy-editor";
+    public const string LexicographerId = "lexicographer";
 
     public static ImmutableArray<DeckDefinition> All { get; } = Describe(DeckConfig.Default);
 
@@ -73,9 +76,28 @@ public static class Decks
                     DeskSlots = Math.Min(config.DeskSlots, d.CopyEditorDeskSlots),
                     StartingDeskItems = config.StartingDeskItems.Add(StartingItem(d.CopyEditorStartingItem)),
                 };
+            case LexicographerId:
+                return config with { DeskSlots = Math.Min(config.DeskSlots, d.LexicographerDeskSlots) };
             default:
                 return config;
         }
+    }
+
+    /// <summary>Whether deck <paramref name="id"/> starts with a dictionary overlay the player picks.</summary>
+    public static bool TakesDictionary(string id) => Get(id).Id == LexicographerId;
+
+    /// <summary>
+    /// The dictionary overlays a run with deck <paramref name="deck"/> starts with: the picked
+    /// <paramref name="dictionary"/> (default: the first in <see cref="Dictionaries.All"/>) for a deck that takes one,
+    /// none otherwise. Picking one for a deck that doesn't take one is a programmer error.
+    /// </summary>
+    public static ImmutableArray<string> DictionariesFor(string deck, string? dictionary)
+    {
+        if (TakesDictionary(deck))
+            return [Dictionaries.Get(dictionary ?? Dictionaries.All[0].Id).Id];
+        if (dictionary is not null)
+            throw new ArgumentException($"{Get(deck).Name} doesn't take a dictionary.", nameof(dictionary));
+        return [];
     }
 
     /// <summary><paramref name="target"/> × <paramref name="scale"/>, rounded to 10.</summary>
@@ -97,5 +119,8 @@ public static class Decks
         new(CopyEditorId, "The Copy Editor's Deck", "#2F855A",
             $"Starts with {StartingItem(d.CopyEditorStartingItem).Name} and +{d.CopyEditorDiscardsDelta} discard per round.",
             $"Only {d.CopyEditorDeskSlots} Desk Item slots."),
+        new(LexicographerId, "The Lexicographer's Deck", "#6B46C1",
+            "Pick an unlocked dictionary: its words are legal this run.",
+            $"Only {d.LexicographerDeskSlots} Desk Item slots."),
     ];
 }

@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Lexicon;
 using Crossword.Core.Run;
 using Crossword.Core.Stationery;
 
@@ -92,6 +93,8 @@ public static class RunSaveJson
                 return Result<SavedRun, string>.Fail($"Unreadable save: no Press Run {dto.Run.PressRun}.");
             if (Decks.Find(dto.Run.DeckId) is null)
                 return Result<SavedRun, string>.Fail($"Unreadable save: no deck '{dto.Run.DeckId}'.");
+            if (dto.Run.Dictionaries.FirstOrDefault(id => Dictionaries.Find(id) is null) is { } unknown)
+                return Result<SavedRun, string>.Fail($"Unreadable save: no dictionary '{unknown}'.");
 
             var session = new GameSession(RunRules.ConfigFor(config, dto.Run.DeckId, dto.Run.PressRun), dto.Run, dto.Phase, dto.Round, dto.Shop, dto.LastPayout);
             return Result<SavedRun, string>.Ok(new SavedRun(session, (dto.HandOrder ?? []).ToImmutableArray()));

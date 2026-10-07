@@ -1,4 +1,5 @@
 using Crossword.Core.Domain;
+using Crossword.Core.Lexicon;
 using Crossword.Core.Run;
 using Crossword.Core.Save;
 using Godot;
@@ -20,6 +21,7 @@ public partial class Main
     private void Resume(SavedRun saved)
     {
         _session = saved.Session;
+        _lexicon = LexiconLoader.For(Run.Dictionaries);
         _lastSavedSession = _session;
         _selected.Clear();
         _pending.Clear();

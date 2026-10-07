@@ -1,7 +1,9 @@
 using Crossword.Core.Clues;
+using Crossword.Core.Lexicon;
 using System.Collections.Immutable;
 using Crossword.Core.Rules;
 using Crossword.Core.Run;
+using Crossword.Core.Save;
 using Godot;
 using GridPos = Crossword.Core.Domain.Position;
 
@@ -379,6 +381,39 @@ public partial class Main
         string dayText = string.Join("\n", _dayStrip.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
         Check("final print run adds a rule to the boss", Round.Config.Boss is Crossword.Core.Run.Reprint reprint
             && reprint.Name.Contains(" + ") && dayText.Contains(reprint.Name));
+
+        // 19. The Lexicographer's Deck: the picker offers its dictionary, the run's words include it (an acronym
+        //     previews as valid with its expansion), and resuming keeps it.
+        _profile.Update(s => s with { RunsWon = Decks.All.IndexOf(Decks.Get(Decks.LexicographerId)) });
+        ChooseNewRun();
+        await Frames(2);
+        await Click(Centre(DeckCard(Decks.LexicographerId)));
+        var dictionaryButton = _pressRunBox.FindChild($"Dictionary_{Dictionaries.TechShorthandId}", owned: false) as Button;
+        Check("the lexicographer's deck offers its dictionary", dictionaryButton is { Disabled: false });
+        await Click(Centre(PressRow(1)));
+        emptySlots = _deskRow.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Count(l => l.Text == "empty desk slot");
+        Check("picking it starts a run with the dictionary", Run.DeckId == Decks.LexicographerId
+            && Run.Dictionaries.SequenceEqual([Dictionaries.TechShorthandId]) && _seedLabel.Text.Contains("The Tech Shorthand")
+            && emptySlots == DeckConfig.Default.LexicographerDeskSlots && _lexicon.Contains("CPU"));
+        var acronymIds = Round.Hand.Tiles.Take(3).Select(t => t.Id).ToList();
+        var spelled = Round.Hand.Tiles.Select(t => acronymIds.IndexOf(t.Id) is var i and >= 0
+            ? t with { Letter = Crossword.Core.Domain.Letter.From("CPU"[i]), IsWild = false } : t);
+        _session = _session with { Round = Round with { Hand = new Crossword.Core.Domain.Hand(spelled.ToImmutableArray()) } };
+        Refresh();
+        await Frames(2);
+        for (int i = 0; i < acronymIds.Count; i++)
+        {
+            await Click(Centre(_handRow.GetChildren().OfType<TileButton>().First(b => b.TileId == acronymIds[i])));
+            await Click(Centre(BoardCell(new GridPos(3, 2 + i))));
+        }
+        string acronymText = _definitionsLabel.GetParsedText();
+        Check("an acronym previews as valid with its expansion", _pending.Count == 3 && acronymText.Contains("CPU")
+            && acronymText.Contains("central processing unit"));
+        await PressKey(global::Godot.Key.Escape);
+        Resume(RunSaveJson.Deserialize(RunSaveJson.Serialize(_session, _handOrder), _baseConfig).Value);
+        Check("resuming keeps the dictionary", Run.Dictionaries.SequenceEqual([Dictionaries.TechShorthandId]) && _lexicon.Contains("CPU"));
+        NewRun(42);
+        Check("a standard run doesn't take the dictionary's words", Run.Dictionaries.IsEmpty && !_lexicon.Contains("CPU"));
 
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);

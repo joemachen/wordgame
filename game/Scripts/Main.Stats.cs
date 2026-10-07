@@ -98,7 +98,7 @@ public partial class Main
         {
             var label = UiKit.MakeLabel(suffix.Length == 0 ? word : $"{word} {suffix}", 15, color);
             label.MouseFilter = MouseFilterEnum.Pass;
-            label.TooltipText = DefinitionLoader.Default.Define(word)?.Summary ?? "valid word — no definition on file";
+            label.TooltipText = Define(word)?.Summary ?? "valid word — no definition on file";
             row.AddChild(label);
         }
         if (row.GetChildCount() == 0)
@@ -115,10 +115,13 @@ public partial class Main
         bool won = _session.Phase == RunPhase.Victory;
         int unlockedBefore = StatsQueries.UnlockedPressRun(_profile.Profile.Stats, Run.DeckId);
         int decksBefore = StatsQueries.UnlockedDecks(_profile.Profile.Stats).Length;
+        int dictionariesBefore = StatsQueries.UnlockedDictionaries(_profile.Profile.Stats).Length;
         _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1, Run.PressRun, Run.DeckId));
         int unlockedNow = StatsQueries.UnlockedPressRun(_profile.Profile.Stats, Run.DeckId);
         var decksNow = StatsQueries.UnlockedDecks(_profile.Profile.Stats);
         _justUnlockedPressRun = unlockedNow > unlockedBefore ? unlockedNow : null;
         _justUnlockedDeck = decksNow.Length > decksBefore ? decksNow[^1] : null;
+        var dictionariesNow = StatsQueries.UnlockedDictionaries(_profile.Profile.Stats);
+        _justUnlockedDictionary = dictionariesNow.Length > dictionariesBefore ? dictionariesNow[^1] : null;
     }
 }

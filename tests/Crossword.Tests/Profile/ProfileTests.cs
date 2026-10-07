@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Crossword.Core.Domain;
+using Crossword.Core.Lexicon;
 using Crossword.Core.Profile;
 using Crossword.Core.Run;
 using static Crossword.Tests.TestSupport.Fixtures;
@@ -112,6 +113,19 @@ public class ProfileTests
         Assert.Equal(2, StatsQueries.UnlockedDecks(stats).Length); // a loss unlocks nothing
 
         Assert.Equal(Decks.All, StatsQueries.UnlockedDecks(PlayerStats.Empty with { RunsWon = 50 }));
+    }
+
+    [Fact]
+    public void UnlockedDictionaries_TheFirstComesWithTheLexicographersDeck_ThenOnePerRunWon()
+    {
+        int deckWins = Decks.All.IndexOf(Decks.Get(Decks.LexicographerId));
+        var first = Dictionaries.All[0];
+
+        Assert.Empty(StatsQueries.UnlockedDictionaries(PlayerStats.Empty with { RunsWon = deckWins - 1 }));
+        Assert.Equal(1, StatsQueries.WinsToUnlock(PlayerStats.Empty with { RunsWon = deckWins - 1 }, first));
+        Assert.Equal([first], StatsQueries.UnlockedDictionaries(PlayerStats.Empty with { RunsWon = deckWins }));
+        Assert.Equal(0, StatsQueries.WinsToUnlock(PlayerStats.Empty with { RunsWon = deckWins }, first));
+        Assert.Equal(Dictionaries.All, StatsQueries.UnlockedDictionaries(PlayerStats.Empty with { RunsWon = 50 }));
     }
 
     [Fact]

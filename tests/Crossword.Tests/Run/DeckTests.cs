@@ -1,6 +1,7 @@
 using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
+using Crossword.Core.Rules;
 using Crossword.Core.Run;
 using Crossword.Core.Scoring;
 
@@ -11,7 +12,7 @@ public class DeckTests
 {
     private static readonly DeckConfig Numbers = new(
         CrosswordDraftIntersectionBonus: 2, CrosswordDraftMinWordLength: 4, CrosswordDraftTargetScale: 0.5m, RedactorDiscardsDelta: -2,
-        CopyEditorDiscardsDelta: 3, CopyEditorDeskSlots: 3, CopyEditorStartingItem: "red-pen");
+        CopyEditorDiscardsDelta: 3, CopyEditorDeskSlots: 3, CopyEditorStartingItem: "red-pen", LexicographerDeskSlots: 2);
 
     private static readonly RunConfig Base = RunConfig.Default with
     {
@@ -117,6 +118,43 @@ public class DeckTests
     }
 
     [Fact]
+    public void Lexicographer_HasFewerSlots_AndOnlyItTakesADictionary()
+    {
+        Assert.Equal(2, Decks.Apply(Base, Decks.LexicographerId, Numbers).DeskSlots);
+        Assert.True(Decks.TakesDictionary(Decks.LexicographerId));
+        Assert.All(Decks.All.Where(d => d.Id != Decks.LexicographerId), d => Assert.False(Decks.TakesDictionary(d.Id)));
+        Assert.Empty(Decks.DictionariesFor(Decks.StandardId, null));
+        Assert.Throws<ArgumentException>(() => Decks.DictionariesFor(Decks.RedactorId, Dictionaries.TechShorthandId));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Decks.DictionariesFor(Decks.LexicographerId, "slang"));
+    }
+
+    [Fact]
+    public void Lexicographer_NewGame_StoresThePickedDictionary_OrTheFirst()
+    {
+        var picked = RunRules.NewGame(4, Base, LexiconLoader.Enable, deck: Decks.LexicographerId, dictionary: "TECH-SHORTHAND");
+        var defaulted = RunRules.NewGame(4, Base, LexiconLoader.Enable, deck: Decks.LexicographerId);
+
+        Assert.Equal([Dictionaries.TechShorthandId], picked.Run.Dictionaries);
+        Assert.Equal([Dictionaries.All[0].Id], defaulted.Run.Dictionaries);
+        Assert.Equal(DeckConfig.Default.LexicographerDeskSlots, picked.Config.DeskSlots);
+        Assert.Empty(RunRules.NewGame(4, Base, LexiconLoader.Enable).Run.Dictionaries);
+        Assert.Throws<ArgumentException>(() => RunRules.NewGame(4, Base, LexiconLoader.Enable, deck: Decks.CopyEditorId,
+            dictionary: Dictionaries.TechShorthandId));
+    }
+
+    [Fact]
+    public void AnOverlayWord_IsLegal_OnlyOnTheRunsWordGraph()
+    {
+        var session = RunRules.NewGame(4, Base, LexiconLoader.Enable, deck: Decks.LexicographerId);
+        var hand = new Hand([new Tile(0, Letter.From('C')), new Tile(1, Letter.From('P')), new Tile(2, Letter.From('U'))]);
+        var placed = new[] { 'C', 'P', 'U' }.Select((_, i) => new PlacedTile(new Position(3, 2 + i), hand.Tiles[i])).ToList();
+        var board = Board.Empty(7);
+
+        Assert.True(PlacementValidator.Validate(board, hand, placed, LexiconLoader.For(session.Run.Dictionaries)).IsOk);
+        Assert.False(PlacementValidator.Validate(board, hand, placed, LexiconLoader.Enable).IsOk);
+    }
+
+    [Fact]
     public void DeckThenPressRun_Compose()
     {
         // Redactor (−1 discard) at Ink Shortage (−1 discard): 3 − 2 = 1 discard.
@@ -142,6 +180,7 @@ public class DeckTests
     [InlineData(Decks.CrosswordDraftId)]
     [InlineData(Decks.RedactorId)]
     [InlineData(Decks.CopyEditorId)]
+    [InlineData(Decks.LexicographerId)]
     public void EveryDeck_SameSeed_PlaysTheSame(string deck)
     {
         var a = RunRules.NewGame(8, RunConfig.Default, LexiconLoader.Enable, deck: deck);

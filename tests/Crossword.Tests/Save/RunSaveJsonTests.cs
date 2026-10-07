@@ -289,6 +289,31 @@ public class RunSaveJsonTests
         Assert.False(RunSaveJson.Deserialize(json.Replace("\"deckId\": \"standard\"", "\"deckId\": \"tabloid\""), Config).IsOk);
     }
 
+    [Fact]
+    public void Dictionaries_SurviveSaveAndLoad()
+    {
+        var session = RunRules.NewGame(9, Config, LexiconLoader.Enable, deck: Decks.LexicographerId, dictionary: Dictionaries.TechShorthandId);
+
+        var loaded = RoundTrip(session);
+
+        Assert.Equal([Dictionaries.TechShorthandId], loaded.Run.Dictionaries);
+        Assert.Equal(RunRules.ConfigFor(Config, Decks.LexicographerId, 1).DeskSlots, loaded.Config.DeskSlots);
+    }
+
+    [Fact]
+    public void SaveWithAnUnknownOrNullDictionary_FailsWithoutThrowing()
+    {
+        string json = RunSaveJson.Serialize(RunRules.NewGame(3, Config, LexiconLoader.Enable, deck: Decks.LexicographerId));
+        string ids = "\"dictionaries\": [\n      \"tech-shorthand\"\n    ]";
+        Assert.Contains(ids, json.ReplaceLineEndings("\n"));
+        json = json.ReplaceLineEndings("\n");
+
+        var unknown = RunSaveJson.Deserialize(json.Replace(ids, "\"dictionaries\": [\"slang\"]"), Config);
+        Assert.False(unknown.IsOk);
+        Assert.Contains("slang", unknown.Error);
+        Assert.False(RunSaveJson.Deserialize(json.Replace(ids, "\"dictionaries\": null"), Config).IsOk);
+    }
+
     /// <summary>The state in <c>Save/Fixtures/run-v1.json</c>: a few rounds into seed 21, in the shop.</summary>
     internal static GameSession FixtureSession()
     {

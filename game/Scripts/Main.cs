@@ -15,10 +15,11 @@ namespace Wordgame.Godot;
 /// Command-line user args (after "--"): --seed=N, --give=id,id (dev: Desk Items or Stationery, e.g. answer-key), --autoplay=N (play N best moves / leave shops),
 /// --hint (pre-place the best play), --dev (the Hint button shows the best play), --screenshot=path.png (save a screenshot after loading and quit),
 /// --selftest (drive the UI with simulated input, print PASS/FAIL, quit), --profile=name (player profile to load/save;
-/// default "Player"), --week=N (dev: start at week N), --press=N (dev: start at Press Run N, locked or not). --selftest,
+/// default "Player"), --week=N (dev: start at week N), --press=N (dev: start at Press Run N, locked or not), --deck=id
+/// (dev: that starting deck), --dict=id (dev: that dictionary overlay; implies The Lexicographer's Deck). --selftest,
 /// --screenshot and --autoplay keep the profile in memory so QA runs never touch stats. The run is saved per profile and
 /// resumed on launch, except with --seed (a new seeded run that replaces the save) and QA / dev-setup flags (--give,
-/// --week, --press), which never touch the saved run.
+/// --week, --press, --deck, --dict), which never touch the saved run.
 /// </summary>
 public partial class Main : Control
 {
@@ -109,7 +110,11 @@ public partial class Main : Control
         int startWeek = args.TryGetValue("week", out var w) && int.TryParse(w, out int week) && week > 1 ? week - 1 : 0;
         args.TryGetValue("give", out var give);
         int pressRun = args.TryGetValue("press", out var pr) && int.TryParse(pr, out int level) && PressRuns.IsLevel(level) ? level : PressRuns.Lowest;
-        string deck = args.TryGetValue("deck", out var d) && Decks.Find(d) is { } found ? found.Id : Decks.StandardId;
+        string? dictionary = args.TryGetValue("dict", out var dict) && Dictionaries.Find(dict) is { } words ? words.Id : null;
+        string deck = args.TryGetValue("deck", out var d) && Decks.Find(d) is { } found ? found.Id
+            : dictionary is not null ? Decks.LexicographerId : Decks.StandardId;
+        if (!Decks.TakesDictionary(deck))
+            dictionary = null;
         bool devSetup = startWeek > 0 || give is not null || pressRun > PressRuns.Lowest || deck != Decks.StandardId;
         // QA and dev-setup runs never touch the saved run; an explicit --seed starts (and saves) a new run.
         _runSave = qaRun || devSetup ? RunSaveStore.InMemory() : RunSaveStore.ForProfile(profileName);
@@ -118,7 +123,7 @@ public partial class Main : Control
         else
             NewRun(seed, devSetup
                 ? run => Give(run with { RoundIndex = startWeek * _baseConfig.RoundsPerWeek }, give ?? "")
-                : null, pressRun, deck);
+                : null, pressRun, deck, dictionary);
         if (_profile.Notice is { } notice)
             SetMessage(notice, UiKit.Bad);
         else if (_runSave.Notice is { } saveNotice)
@@ -189,9 +194,11 @@ public partial class Main : Control
         return run;
     }
 
-    private void NewRun(ulong seed, Func<RunState, RunState>? setup = null, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId)
+    private void NewRun(ulong seed, Func<RunState, RunState>? setup = null, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId,
+        string? dictionary = null)
     {
-        _session = RunRules.NewGame(seed, _baseConfig, _lexicon, setup, pressRun, deck);
+        _session = RunRules.NewGame(seed, _baseConfig, LexiconLoader.Enable, setup, pressRun, deck, dictionary);
+        _lexicon = LexiconLoader.For(Run.Dictionaries);
         _justUnlockedPressRun = null;
         _justUnlockedDeck = null;
         _selected.Clear();
@@ -395,6 +402,7 @@ public partial class Main : Control
         var deckInfo = Decks.Get(Run.DeckId);
         _seedLabel.TooltipText = PressRunText()
             + (Run.DeckId != Decks.StandardId ? $"\n· {deckInfo.Upside}\n· {deckInfo.Cost}" : "")
+            + string.Concat(Run.Dictionaries.Select(id => $"\n· {Dictionaries.Get(id).Name}: {Dictionaries.Get(id).Description}"))
             + string.Concat(PressRuns.All.Take(Run.PressRun).Skip(1).Select(p => $"\n· {p.Adds}"));
     }
 

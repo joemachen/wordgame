@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Crossword.Core.Lexicon;
 
 /// <summary>Loads the bundled ENABLE word list (public domain) embedded in this assembly.</summary>
@@ -9,6 +11,22 @@ public static class LexiconLoader
 
     /// <summary>Shared, lazily built ENABLE DAWG (denied words removed). Immutable, safe to share across runs.</summary>
     public static IWordGraph Enable => CachedEnable.Value;
+
+    private static readonly ConcurrentDictionary<string, Lazy<Dawg>> CachedWithDictionaries = new();
+
+    /// <summary>
+    /// The word graph of a run with dictionary overlays <paramref name="dictionaryIds"/> (<see cref="Dictionaries"/>):
+    /// ENABLE plus their words, built once per set of ids (~0.5 s) and shared; no ids = <see cref="Enable"/>.
+    /// Pass it to every rules call of that run (<c>LexiconLoader.For(session.Run.Dictionaries)</c>).
+    /// </summary>
+    public static IWordGraph For(IEnumerable<string> dictionaryIds)
+    {
+        var ids = dictionaryIds.Select(id => Dictionaries.Get(id).Id).Distinct().Order(StringComparer.Ordinal).ToArray();
+        if (ids.Length == 0)
+            return Enable;
+        return CachedWithDictionaries.GetOrAdd(string.Join(',', ids),
+            _ => new Lazy<Dawg>(() => Dawg.Build(ReadEnableWords().Concat(ids.SelectMany(Dictionaries.Words))))).Value;
+    }
 
     /// <summary>The ENABLE words the game uses: the raw list without <see cref="Denylist.Default"/>'s words.</summary>
     public static IEnumerable<string> ReadEnableWords() => Denylist.Default.Filter(ReadUnfilteredEnableWords());

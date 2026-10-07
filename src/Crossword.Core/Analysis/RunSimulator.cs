@@ -53,12 +53,16 @@ public static class RunSimulator
 {
     /// <param name="pressRun">The run's Press Run, applied to <paramref name="config"/> (pass the base config).</param>
     /// <param name="deck">The run's starting deck (<see cref="Decks"/>), applied before the Press Run.</param>
+    /// <param name="dictionary">The dictionary overlay for a deck that takes one; the run then plays on
+    /// <c>LexiconLoader.For(run.Dictionaries)</c> instead of <paramref name="lexicon"/>.</param>
     public static SimulatedRun PlayRun(ulong seed, RunConfig config, IWordGraph lexicon, double skill = 1.0,
         ShopStrategy strategy = ShopStrategy.Evaluating, ShopBotConfig? bot = null, SkillModel model = SkillModel.Percentile,
-        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId)
+        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null)
     {
         bot ??= ShopBotConfig.Default;
-        var session = RunRules.NewGame(seed, config, lexicon, pressRun: pressRun, deck: deck);
+        var session = RunRules.NewGame(seed, config, lexicon, pressRun: pressRun, deck: deck, dictionary: dictionary);
+        if (!session.Run.Dictionaries.IsEmpty)
+            lexicon = LexiconLoader.For(session.Run.Dictionaries);
         var rounds = ImmutableArray.CreateBuilder<SimulatedRunRound>();
         var history = ShopHistory.Empty;
         var stationeryUsed = ImmutableArray.CreateBuilder<string>();
