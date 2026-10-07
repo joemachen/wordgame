@@ -37,8 +37,8 @@ public class EnableLexiconTests
     [Fact]
     public void Enable_LoadsExpectedWordCount()
     {
-        // ENABLE has 172,823 entries; 168,551 remain after filtering to lengths 2..15.
-        Assert.Equal(168_551, LexiconLoader.Enable.WordCount);
+        // ENABLE has 172,823 entries; 168,551 remain after filtering to lengths 2..15, 168,423 without the 128 denied words.
+        Assert.Equal(168_423, LexiconLoader.Enable.WordCount);
         Assert.Equal(EnableWords.Value.Length, LexiconLoader.Enable.WordCount);
     }
 

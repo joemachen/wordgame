@@ -7,10 +7,14 @@ public static class LexiconLoader
 
     private static readonly Lazy<Dawg> CachedEnable = new(() => Dawg.Build(ReadEnableWords()));
 
-    /// <summary>Shared, lazily built ENABLE DAWG. Immutable, safe to share across runs.</summary>
+    /// <summary>Shared, lazily built ENABLE DAWG (denied words removed). Immutable, safe to share across runs.</summary>
     public static IWordGraph Enable => CachedEnable.Value;
 
-    public static IEnumerable<string> ReadEnableWords()
+    /// <summary>The ENABLE words the game uses: the raw list without <see cref="Denylist.Default"/>'s words.</summary>
+    public static IEnumerable<string> ReadEnableWords() => Denylist.Default.Filter(ReadUnfilteredEnableWords());
+
+    /// <summary>The raw ENABLE list, denied words included. For tests and data tools only — never build a lexicon from it.</summary>
+    public static IEnumerable<string> ReadUnfilteredEnableWords()
     {
         using var stream = typeof(LexiconLoader).Assembly.GetManifestResourceStream(EnableResource)
             ?? throw new InvalidOperationException($"Embedded resource '{EnableResource}' not found.");

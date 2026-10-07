@@ -1,0 +1,158 @@
+# Words the game never accepts from any word list (Crossword.Core.Lexicon.Denylist).
+# Scope (user's choice, 2026-10-06): slurs only, i.e. words that target a group (ethnic, racial, religious, homophobic,
+# ableist). Profanity and generic insults are NOT listed. A word whose main meaning is innocent stays playable
+# (BOY, CRACKER, GUINEA, PADDY, TACO, TOM, CHINK, FAIRY, PANSY, QUEER, RETARD, CRIPPLE, GIMP, KAFIR the sorghum, SHEENY
+# the adjective "shiny"); only its slur sense is dropped from the definitions. Identity words (JEW, GYPSY, ...) stay.
+# Candidates: `dotnet run -c Release --project tools/Crossword.DefinitionsBuilder -- --denylist-candidates` lists every
+# ENABLE word WordNet tags as a slur/disparagement/obscenity (most of which are NOT slurs; review by hand).
+# List every inflection explicitly (plurals, -ED/-ING/-Y forms); a test checks that plurals (WORD+S, -ES) are listed.
+# One word per line, any case; '#' starts a comment line.
+
+# Anti-Black
+blackamoor
+blackamoors
+darkey
+darkeys
+darkie
+darkies
+darky
+golliwog
+golliwogg
+golliwoggs
+golliwogs
+gollywog
+gollywogs
+jigaboo
+jigaboos
+mulatto
+mulattoes
+mulattos
+nigger
+niggers
+picaninnies
+picaninny
+pickaninnies
+pickaninny
+sambo
+sambos
+
+# Anti-Jewish
+hebe
+hebes
+jewed
+jewing
+kike
+kikes
+sheeney
+sheeneys
+sheenie
+sheenies
+shylock
+shylocked
+shylocking
+shylocks
+yid
+yids
+
+# Anti-Latino
+spic
+spick
+spicks
+spics
+spik
+spiks
+wetback
+wetbacks
+
+# Anti-Italian, -Irish, -German, -Slavic
+dago
+dagoes
+dagos
+greaseball
+greaseballs
+wop
+wops
+mick
+micks
+boche
+boches
+kraut
+krauts
+bohunk
+bohunks
+
+# Anti-Asian
+coolie
+coolies
+gook
+gooks
+
+# Anti-Indigenous, -Aboriginal, -African, -South Asian
+abo
+abos
+kaffir
+kaffirs
+redskin
+redskins
+squaw
+squaws
+wog
+wogs
+
+# Anti-white
+honkey
+honkeys
+honkie
+honkies
+honky
+whitey
+whiteys
+
+# Anti-Catholic
+papist
+papistic
+papistries
+papistry
+papists
+
+# Homophobic. Every FAGGOT- form is listed, even the "bundle"/embroidery verb, because the slur dominates; FAGOT- (one
+# G), FAGGED/FAGGING ("to tire"), DYKED/DYKING ("to embank") and POOF/POUF stay.
+dyke
+dykes
+dykey
+fag
+faggot
+faggoted
+faggoting
+faggotings
+faggotries
+faggotry
+faggots
+faggoty
+faggy
+fags
+homo
+homos
+lez
+lezzes
+lezzie
+lezzies
+lezzy
+nance
+nances
+nancies
+nancy
+pooftah
+pooftahs
+poofter
+poofters
+poove
+pooves
+
+# Ableist
+midget
+midgets
+mongoloid
+mongoloids
+spaz
+spazzes
