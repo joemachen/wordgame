@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-07 · HEAD `85a9054` (code) · 478 unit tests passing · UI self-test 58/58 passing_
+_Last updated: 2026-10-07 · HEAD `2c251fc` (code) · 491 unit tests passing · UI self-test 63/63 passing_
 
 ---
 
@@ -20,7 +20,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 
 | Area | State |
 |---|---|
-| Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Slur denylist** (`Core/Lexicon/Denylist.cs` + `Lexicon/Data/denylist.txt`, 128 words incl. inflections; slurs only, profanity stays): denied words are never legal, suggested or defined (168,423 playable words). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. Slur senses and crude glosses are hidden (next clean sense shown: TACO → the food, CHINK → a narrow opening). |
+| Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Slur denylist** (`Core/Lexicon/Denylist.cs` + `Lexicon/Data/denylist.txt`, 128 words incl. inflections; slurs only, profanity stays): denied words are never legal, suggested or defined (168,423 playable words). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. Slur senses and crude glosses are hidden (next clean sense shown: TACO → the food, CHINK → a narrow opening). **Dictionary overlays** (`Core/Lexicon/Dictionaries.cs`): a run's `RunState.Dictionaries` adds words on top of ENABLE (`LexiconLoader.For(ids)`, cached merged DAWG). First one: **The Tech Shorthand** (297 hand-written acronyms/initialisms of 3+ letters with expansions, `Lexicon/Data/tech-shorthand.tsv`; expansions show as "abbr." definitions). |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5). Endless mode. |
@@ -30,7 +30,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
 | Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and **auto-resumed on launch** ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. Sidebar New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. |
 | Press Runs | 8 stacking difficulty levels (`Core/Run/PressRuns.cs`, numbers in `PressRunConfig`): Proofreader → First Edition (Dailies pay $1) → Late Edition (targets ×1.05/week) → Rush Job (−1 Sunday submission) → Ink Shortage (−1 discard) → Heavy Printing (rerolls +$1) → Censored Press (one of B C F G H M P W Y unplayable per round) → Final Print Run (the Sunday boss adds a second Early/Mid rule, `Reprint`). Level stored in `RunState.PressRun` and re-applied to the config on load. **Unlocks:** winning level N unlocks N+1 (`PlayerStats.HighestPressRunWon`; old profiles with wins start at 1). Game: New run opens a picker once level 2 is unlocked (locked rows greyed), victory screen announces unlocks, sidebar shows the level + censored letter, censored hand tiles struck through; `--press=N` dev flag. CLI: `runsim … press=N`, `new [seed] [press=N]`. |
-| Starting decks | `Core/Run/Decks.cs` (numbers in `DeckConfig`): **Standard**, **The Crossword Draft Deck** (+1 Mult per intersection, deadlines ×0.7; words need 3+ letters; no Strict Grammarian), **The Redactor Deck** (thin 30-tile deck incl. Q Z X J; −1 discard), **The Copy Editor's Deck** (starts with Red Pen, +1 discard; 4 Desk Item slots). A deck is a `RunConfig` transform applied before the Press Run (`RunRules.ConfigFor`); the run stores `RunState.DeckId`. New knobs: `RunConfig.MinWordLength`, `DeskSlots`, `StartingDeskItems`, `ExcludedBosses`. **Unlocks:** one deck per run won (`StatsQueries.UnlockedDecks`); Press Run unlocks are **per deck** (`PlayerStats.HighestPressRunWon`: deck id → level; old profiles count theirs for Standard). Game: one New-run screen (decks left, the deck's Press Runs right), `--deck=id`; victory screen announces deck unlocks. CLI: `runsim … deck=id`, `new … deck=id`. Each deck wins within ~±7 pts of Standard (§4). Tabloid and Lexicographer wait for dictionaries. |
+| Starting decks | `Core/Run/Decks.cs` (numbers in `DeckConfig`): **Standard**, **The Crossword Draft Deck** (+1 Mult per intersection, deadlines ×0.7; words need 3+ letters; no Strict Grammarian), **The Redactor Deck** (thin 30-tile deck incl. Q Z X J; −1 discard), **The Copy Editor's Deck** (starts with Red Pen, +1 discard; 4 Desk Item slots), **The Lexicographer's Deck** (pick an unlocked dictionary; deadlines ×0.85; 4 Desk Item slots). A deck is a `RunConfig` transform applied before the Press Run (`RunRules.ConfigFor`); the run stores `RunState.DeckId`. New knobs: `RunConfig.MinWordLength`, `DeskSlots`, `StartingDeskItems`, `ExcludedBosses`. **Unlocks:** one deck per run won (`StatsQueries.UnlockedDecks`); Press Run unlocks are **per deck** (`PlayerStats.HighestPressRunWon`: deck id → level; old profiles count theirs for Standard). Game: one New-run screen (decks left, the deck's Press Runs right), `--deck=id`; victory screen announces deck unlocks. CLI: `runsim … deck=id`, `new … deck=id`. Each deck wins within ~±7 pts of Standard (§4). **Dictionary unlocks:** the first comes with The Lexicographer's Deck (4 wins), then one more per win (`StatsQueries.UnlockedDictionaries`). New-run picker shows a dictionary row for that deck; `--dict=id` dev flag; CLI `new`/`runsim … dict=id`. Tabloid waits for a licensable Slang list. |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -65,6 +65,15 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   the Grammarian), drawn in `BossFor` from the preview's stream. **Coffee Stain** stains one *mirrored pair* (keeps the
   grid symmetric). Claude's calls: Rubber Stamp = ×2 Mult on the round's first play (slot order applies, like every
   ×Mult item); `--give` now applies before the first round (so round hooks work at once); new `--week=N` dev flag.
+- **Dictionary overlays** (user's choices, 2026-10-07): first dictionary = **Acronyms ("The Tech Shorthand")**,
+  hand-written (no license issue); turned on only by **The Lexicographer's Deck**; **win-count unlocks** (the first with
+  the deck, then one per run won; nothing stored). Tuning after measuring: the acronyms are worth ~+2 pts to the bot,
+  the lost Desk Item slot ~−15 (23.5% at 0.75), so the deck got **deadlines ×0.85** (over "no cost" or "keep as built").
+  Claude's calls: the overlay word graph is ENABLE + overlay built once per id set and cached (`LexiconLoader.For`);
+  frontends pass it to every rules call (Core sessions still hold no lexicon); the Lexicographer's Deck is appended
+  after Copy Editor's (unlocks at 4 wins) so adding Tabloid later doesn't shift existing unlocks; no brand, company or
+  product names in the acronym list (USB/HDMI/Wi-Fi-style trademarks left out), and no entry already in ENABLE
+  (LASER, RADAR, SCUBA…); `null` dictionaries in a save is rejected like any other malformed collection.
 - **Save & resume** (user's choices, 2026-10-05): **auto-resume** on launch (over a Continue/New prompt) with a
   two-click New run; the save **doesn't store `RunConfig`**, so a resumed run picks up new tuning (the round in progress
   keeps its snapshot). Claude's calls: reflection-based JSON over the records with id-tagged Desk Items/Stationery/bosses
@@ -98,6 +107,7 @@ CLI `runsim 200 <skill> frac deck=<id>` (seeds 1–200, evaluating bot, ScoreFra
 | The Crossword Draft Deck | 17% | 37% | 62% | 8% |
 | The Redactor Deck | 17% | 39% | 57% | 7% |
 | The Copy Editor's Deck | 16% | 42% | 62% | 7% |
+| The Lexicographer's Deck (Tech Shorthand, 2026-10-07) | 16% | 39% | 54% | — |
 
 - First versions: Crossword Draft (no deadline cut) **10 / 26%** at 0.75 / 0.9 — +2 or +4 intersection Mult and/or +1
   discard only reached 9.5–12.5%; deadlines ×0.75 → 30%, ×0.6 → 57% (0.9: 71.5%), ×0.5 → 68.5%. Redactor (no rare
@@ -105,6 +115,10 @@ CLI `runsim 200 <skill> frac deck=<id>` (seeds 1–200, evaluating bot, ScoreFra
   slots 17.5%, so 4 stays.
 - Crossword Draft and Copy Editor's run +7 at 0.9 — watch in playtests. Crossword Draft's losses shift to The Puzzle
   Master (19 of 200 at 0.75), its only finale.
+- Lexicographer's Deck sweep (200 paired seeds, 0.75): Standard 39%, Standard + Tech Shorthand words 41% (0.9: 55 vs 56%),
+  + words −1 discard 31%; Lexicographer 4 slots 23.5%, + deadlines ×0.85 39% (0.9: 53.5%), ×0.75 44%, +1 discard 30.5%.
+  Scratch harness `lexisweep` (arms pass `LexiconLoader.For([id])` as the lexicon of a Standard run to measure the words
+  alone, or `deck: lexicographer` with pre-scaled `WeekTargets`).
 - Scratch harness `decksweep` (arms = `Decks.Apply(base, id, new DeckConfig(...))` or a hand-edited config, played
   with the Standard deck id so `NewGame` doesn't re-apply the deck; `RunConfig.StartingDeskItems` is still honoured).
 
@@ -252,6 +266,11 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
     stained squares are a real cost on Tight Margins' 5×5 board. The Puzzle Master is softer than The Strict Grammarian;
     if the finale should be hard, give it a `TargetScale` above 1 or exclude its easiest pairs.
 13. **Clue columns hidden**: the engine runs (stats keep updating) but `Main.ShowClueColumns = false`; the self-test checks they stay hidden. Restyle them as background before turning them on.
+14. **The Tech Shorthand is worth little to the bot** (+2 pts), probably because most hands already have an ENABLE
+    play nearly as good (not measured). A human may get more out of it (or find CPU/NASA-style
+    plays jarring); check in playtests. The list (297 entries) was written by Claude — **the user should skim it**
+    (`src/Crossword.Core/Lexicon/Data/tech-shorthand.tsv`), e.g. whether agency names (FBI, CIA, NSA, IRS) and chat
+    shorthand (LOL, OMG-style; OMG itself was left out) belong.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
@@ -259,6 +278,8 @@ Longer-term phases live in `ROADMAP.md` §11 (phases 0–4 ✅, phase 5 🟡: de
 dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding).
 
 **Playtests (the user's side):**
+0. **The Lexicographer's Deck** (`--dict=tech-shorthand`, or win 4 runs): do acronyms feel fun or jarring; is ×0.85
+   enough to pay for the 4th slot; skim the acronym list (§5.14).
 1. **Starting decks + Press Runs:** win a run to unlock The Crossword Draft Deck, check the New-run screen (deck cards,
    per-deck ladder), and play each deck — does Crossword Draft feel fair with ×0.7 deadlines and no 2-letter words?
    Does the Redactor's Q Z X J every round feel like a fun cost? Is Copy Editor's too strong (+7 at 0.9)? Also the
@@ -270,8 +291,11 @@ dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Edito
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
-1. **Dictionary overlays** (ROADMAP §1; the denylist ✅ is in place — each overlay goes through `Denylist.Default.Filter`
-   and adds its own slurs) — unblocks the Tabloid and Lexicographer decks (phase 5). Slang needs a licensable source first.
+1. **More dictionary overlays** (ROADMAP §1; engine ✅ + The Tech Shorthand ✅): **The Atlas Unlocked** (proper nouns
+   & places: a hand-written core list now, GeoNames CC-BY later with credit) and **The Olde English Folio** (archaic
+   words from Webster's 1913, public domain — needs a builder tool like the definitions one). Each is a
+   `DictionaryDefinition` + embedded `<id>.tsv`; unlock order = `Dictionaries.All`. Slang (Tabloid Deck) still needs a
+   licensable source.
 2. **Cheap parallel tracks:** GitHub Actions CI (build + `dotnet test`), a seed entry box on the New-run screen, a
    profile picker, CLI `save`/`load` and Stationery commands.
 3. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
@@ -322,6 +346,9 @@ dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Edito
 ## 9. Commit history (newest first)
 
 ```
+2c251fc Tune The Lexicographer's Deck to the Standard Deck's win rate
+75f37a4 Add dictionary overlays with The Tech Shorthand and The Lexicographer's Deck
+d83734d Document the slur denylist in rules, roadmap and handoff
 85a9054 Deny slurs in every word list and hide crude definition senses
 ac624e6 Document starting decks in rules, roadmap and handoff
 2618be7 Tune the Crossword Draft and Redactor decks to the Standard Deck's win rate
