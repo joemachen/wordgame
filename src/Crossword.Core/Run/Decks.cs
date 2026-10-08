@@ -14,7 +14,9 @@ public sealed record DeckDefinition(string Id, string Name, string Color, string
 /// 0.75 / 0.9 vs the Standard Deck's 39 / 55%). The first Crossword Draft Deck (no deadline cut) won 10 / 26%: the
 /// 3-letter rule bans the 2-letter cross words most intersections form, so a bigger intersection bonus barely helped
 /// (+4 Mult: 12.5%); deadlines ×0.75 → 30%, ×0.6 → 57%. The first Redactor Deck (no rare letters) won 61 / 76%: a thin
-/// deck cycles every round, so Q, Z, X and J went in (37 / 57%).
+/// deck cycles every round, so Q, Z, X and J went in (37 / 57%). The first Lexicographer's Deck (4 slots only) won
+/// 23.5% at 0.75: The Tech Shorthand's acronyms are worth ~+2 pts to the bot, the lost slot ~−15, so its deadlines went
+/// ×0.85 (39 / 53.5%; 2026-10-07).
 /// </summary>
 public sealed record DeckConfig(
     decimal CrosswordDraftIntersectionBonus = 1,
@@ -24,7 +26,8 @@ public sealed record DeckConfig(
     int CopyEditorDiscardsDelta = 1,
     int CopyEditorDeskSlots = 4,
     string CopyEditorStartingItem = "red-pen",
-    int LexicographerDeskSlots = 4)
+    int LexicographerDeskSlots = 4,
+    decimal LexicographerTargetScale = 0.85m)
 {
     public static DeckConfig Default { get; } = new();
 }
@@ -77,7 +80,11 @@ public static class Decks
                     StartingDeskItems = config.StartingDeskItems.Add(StartingItem(d.CopyEditorStartingItem)),
                 };
             case LexicographerId:
-                return config with { DeskSlots = Math.Min(config.DeskSlots, d.LexicographerDeskSlots) };
+                return config with
+                {
+                    DeskSlots = Math.Min(config.DeskSlots, d.LexicographerDeskSlots),
+                    WeekTargets = config.WeekTargets.Select(target => Scale(target, d.LexicographerTargetScale)).ToImmutableArray(),
+                };
             default:
                 return config;
         }
@@ -120,7 +127,7 @@ public static class Decks
             $"Starts with {StartingItem(d.CopyEditorStartingItem).Name} and +{d.CopyEditorDiscardsDelta} discard per round.",
             $"Only {d.CopyEditorDeskSlots} Desk Item slots."),
         new(LexicographerId, "The Lexicographer's Deck", "#6B46C1",
-            "Pick an unlocked dictionary: its words are legal this run.",
+            $"Pick an unlocked dictionary: its words are legal this run; deadlines ×{d.LexicographerTargetScale}.",
             $"Only {d.LexicographerDeskSlots} Desk Item slots."),
     ];
 }

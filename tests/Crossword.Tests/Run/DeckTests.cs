@@ -12,7 +12,7 @@ public class DeckTests
 {
     private static readonly DeckConfig Numbers = new(
         CrosswordDraftIntersectionBonus: 2, CrosswordDraftMinWordLength: 4, CrosswordDraftTargetScale: 0.5m, RedactorDiscardsDelta: -2,
-        CopyEditorDiscardsDelta: 3, CopyEditorDeskSlots: 3, CopyEditorStartingItem: "red-pen", LexicographerDeskSlots: 2);
+        CopyEditorDiscardsDelta: 3, CopyEditorDeskSlots: 3, CopyEditorStartingItem: "red-pen", LexicographerDeskSlots: 2, LexicographerTargetScale: 0.8m);
 
     private static readonly RunConfig Base = RunConfig.Default with
     {
@@ -118,9 +118,11 @@ public class DeckTests
     }
 
     [Fact]
-    public void Lexicographer_HasFewerSlots_AndOnlyItTakesADictionary()
+    public void Lexicographer_HasFewerSlots_CutsDeadlines_AndOnlyItTakesADictionary()
     {
-        Assert.Equal(2, Decks.Apply(Base, Decks.LexicographerId, Numbers).DeskSlots);
+        var config = Decks.Apply(Base, Decks.LexicographerId, Numbers);
+        Assert.Equal(2, config.DeskSlots);
+        Assert.Equal(Base.WeekTargets.Select(t => (long)Math.Round(t * 0.8m / 10m, MidpointRounding.AwayFromZero) * 10), config.WeekTargets);
         Assert.True(Decks.TakesDictionary(Decks.LexicographerId));
         Assert.All(Decks.All.Where(d => d.Id != Decks.LexicographerId), d => Assert.False(Decks.TakesDictionary(d.Id)));
         Assert.Empty(Decks.DictionariesFor(Decks.StandardId, null));
