@@ -84,6 +84,12 @@ public static class ConsoleRenderer
               string.Join("  ", run.DeskItems.Select((item, i) =>
                   $"[{i + 1}] {item.Name}: {item.Description} (sell ${shop.SellValueOf(item)})"));
 
+    public static string Stationery(RunState run, ShopConfig shop) =>
+        $"Stationery ({run.Stationery.Length}/{RunState.MaxStationerySlots}): " +
+        string.Join("  ", Enumerable.Range(0, RunState.MaxStationerySlots).Select(i => i < run.Stationery.Length
+            ? $"[{i + 1}] {run.Stationery[i].Name}: {run.Stationery[i].Description} (sell ${shop.SellValueOf(run.Stationery[i])})"
+            : $"[{i + 1}] (empty)"));
+
     public static string Deck(RunState run)
     {
         var counts = run.Deck.GroupBy(t => t.IsWild ? '?' : t.Letter.Char).OrderBy(g => g.Key).Select(g => $"{g.Key}×{g.Count()}");
@@ -139,7 +145,7 @@ public static class ConsoleRenderer
             string line = shop.Offers[i] is { } offer ? $"${offer.Price,-3} {offer.Description}" : "(sold)";
             sb.AppendLine($"  [{i + 1}] {line}");
         }
-        sb.Append("  buy <n> [LETTERS] · sell <slot> · reroll · leave");
+        sb.Append("  buy <n> [LETTERS] · sell <slot> · sellst <slot> · reroll · leave");
         return sb.ToString();
     }
 }

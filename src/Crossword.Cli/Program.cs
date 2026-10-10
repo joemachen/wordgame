@@ -5,6 +5,8 @@ using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
 using Crossword.Core.Rules;
 using Crossword.Core.Run;
+using Crossword.Core.Save;
+using Crossword.Core.Stationery;
 
 namespace Crossword.Cli;
 
@@ -115,6 +117,21 @@ public static class Program
                 else
                     Console.WriteLine("Usage: sell <slot>");
                 break;
+            case "use" or "u":
+                UseStationery(rest);
+                break;
+            case "sellst":
+                if (rest.Length == 1 && int.TryParse(rest[0], out var stationerySlot))
+                    Apply(ShopRules.SellStationery(_session, stationerySlot - 1, _lexicon), PrintPhase);
+                else
+                    Console.WriteLine("Usage: sellst <slot>");
+                break;
+            case "save":
+                Save(rest.Length > 0 ? string.Join(' ', rest) : DefaultSavePath);
+                break;
+            case "load":
+                Load(rest.Length > 0 ? string.Join(' ', rest) : DefaultSavePath);
+                break;
             case "move":
                 if (rest.Length == 2 && int.TryParse(rest[0], out var from) && int.TryParse(rest[1], out var to))
                     ApplyRun(Run.MoveDeskItem(from - 1, to - 1));
@@ -141,7 +158,49 @@ public static class Program
         return true;
     }
 
+    private const string DefaultSavePath = "wordgame-run.json";
+
     private static ulong RandomSeed() => (ulong)Environment.TickCount64;
+
+    /// <summary>Writes the run to <paramref name="path"/> in the game's save format.</summary>
+    private static void Save(string path)
+    {
+        try
+        {
+            File.WriteAllText(path, RunSaveJson.Serialize(_session), new System.Text.UTF8Encoding(false));
+            Console.WriteLine($"Saved to {Path.GetFullPath(path)}.");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            Console.WriteLine($"Couldn't save to {path}: {e.Message}");
+        }
+    }
+
+    /// <summary>Loads a run saved by 'save' or by the game (user://saves/&lt;profile&gt;.json).</summary>
+    private static void Load(string path)
+    {
+        string json;
+        try
+        {
+            json = File.ReadAllText(path);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            Console.WriteLine($"Couldn't read {path}: {e.Message}");
+            return;
+        }
+
+        var saved = RunSaveJson.Deserialize(json, Config);
+        if (!saved.IsOk)
+        {
+            Console.WriteLine($"Couldn't load {path}: {saved.Error}");
+            return;
+        }
+        _session = saved.Value.Session;
+        _lexicon = LexiconLoader.For(Run.Dictionaries);
+        Console.WriteLine($"Loaded {Path.GetFullPath(path)}: seed {Run.Seed}, {Decks.Get(Run.DeckId).Name}, Press Run {Run.PressRun}.");
+        PrintPhase();
+    }
 
     private static void NewRun(ulong seed, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null)
     {
@@ -336,22 +395,67 @@ public static class Program
 
     private static void Give(string[] args)
     {
-        if (args.Length != 1 || DeskItemCatalog.Find(args[0]) is not { } item)
+        if (args.Length == 1 && DeskItemCatalog.Find(args[0]) is { } item)
+            ApplyRun(Run.AddDeskItem(item, _session.Config.DeskSlots));
+        else if (args.Length == 1 && StationeryCatalog.Find(args[0]) is { } stationery)
+            ApplyRun(Run.AddStationery(stationery));
+        else
+            Console.WriteLine("Usage: give <id>   ids: "
+                + string.Join(", ", DeskItemCatalog.All.Select(i => i.Id).Concat(StationeryCatalog.All.Select(i => i.Id))));
+    }
+
+    private static void UseStationery(string[] args)
+    {
+        if (!RequirePhase(RunPhase.InRound))
+            return;
+        if (args.Length == 0 || !int.TryParse(args[0], out int slot) || slot < 1 || slot > Run.Stationery.Length)
         {
-            Console.WriteLine($"Usage: give <id>   ids: {string.Join(", ", DeskItemCatalog.All.Select(i => i.Id))}");
+            Console.WriteLine(Run.Stationery.IsEmpty
+                ? "You have no stationery."
+                : $"Usage: use <slot> [LETTERS|cell]   slots 1-{Run.Stationery.Length}");
             return;
         }
-        ApplyRun(Run.AddDeskItem(item, _session.Config.DeskSlots));
+
+        var item = Run.Stationery[slot - 1];
+        var target = PlayCommandParser.ParseStationeryUse(item, Round.Hand, args[1..]);
+        if (!target.IsOk)
+        {
+            Console.WriteLine(target.Error);
+            return;
+        }
+
+        var result = RunRules.UseStationery(_session, slot - 1, _lexicon, target.Value.TileIds, target.Value.Cell);
+        if (!result.IsOk)
+        {
+            Console.WriteLine($"Rejected: {result.Error}");
+            return;
+        }
+
+        _session = result.Value.Session;
+        Console.WriteLine($"Used {item.Name}.");
+        if (result.Value.Play is var (play, score))
+            Console.WriteLine($"  Best play: {score.Total}  {PlayCommandText(play)}   words: {string.Join(", ", play.Words.Select(w => w.Text))}");
+        PrintPhase();
+    }
+
+    /// <summary>The 'play' command that makes <paramref name="play"/>.</summary>
+    private static string PlayCommandText(PlayAnalysis play)
+    {
+        var main = play.Words[0];
+        return $"play {main.Cells[0].Position} {(main.Direction == Direction.Across ? 'a' : 'd')} {main.Text}";
     }
 
     private static void PrintDesk(bool showCatalog)
     {
         Console.WriteLine(ConsoleRenderer.Desk(Run, _session.Config.Shop, _session.Config.DeskSlots));
+        Console.WriteLine(ConsoleRenderer.Stationery(Run, _session.Config.Shop));
         if (!showCatalog)
             return;
         Console.WriteLine("Catalog (dev: 'give <id>'):");
         foreach (var item in DeskItemCatalog.All)
             Console.WriteLine($"  {item.Id,-16} {item.Name,-16} ${_session.Config.Shop.PriceOf(item)} {item.Description}");
+        foreach (var item in StationeryCatalog.All)
+            Console.WriteLine($"  {item.Id,-16} {item.Name,-16} ${_session.Config.Shop.PriceOf(item)} {item.Description} (Stationery)");
     }
 
     private static void Hint(int count)
@@ -370,11 +474,7 @@ public static class Program
 
         Console.WriteLine($"{ranked.Count} legal plays. Best {Math.Min(count, ranked.Count)}:");
         foreach (var (play, score) in ranked.Take(count))
-        {
-            var main = play.Words[0];
-            string command = $"play {main.Cells[0].Position} {(main.Direction == Direction.Across ? 'a' : 'd')} {main.Text}";
-            Console.WriteLine($"  {score.Total,5}  {command,-24} words: {string.Join(", ", play.Words.Select(w => w.Text))}");
-        }
+            Console.WriteLine($"  {score.Total,5}  {PlayCommandText(play),-24} words: {string.Join(", ", play.Words.Select(w => w.Text))}");
     }
 
     private static void Simulate(int rounds)
@@ -424,6 +524,8 @@ public static class Program
                 Console.WriteLine(ConsoleRenderer.Status(Round));
                 if (!Run.DeskItems.IsEmpty)
                     Console.WriteLine(ConsoleRenderer.Desk(Run, _session.Config.Shop, _session.Config.DeskSlots));
+                if (!Run.Stationery.IsEmpty)
+                    Console.WriteLine(ConsoleRenderer.Stationery(Run, _session.Config.Shop));
                 Console.WriteLine(ConsoleRenderer.Hand(Round.Hand, Round.Config.EffectiveScoring(_session.Scoring)));
                 if (!RoundRules.HasLegalPlay(Round, _lexicon))
                     Console.WriteLine("(!) No legal play with this hand - discard some tiles.");
@@ -432,6 +534,7 @@ public static class Program
             case RunPhase.Shop:
                 Console.WriteLine(ConsoleRenderer.Header(_session));
                 Console.WriteLine(ConsoleRenderer.Desk(Run, _session.Config.Shop, _session.Config.DeskSlots));
+                Console.WriteLine(ConsoleRenderer.Stationery(Run, _session.Config.Shop));
                 Console.WriteLine(ConsoleRenderer.Shop(_session));
                 break;
 
@@ -469,6 +572,8 @@ public static class Program
               play  | p <cell> <a|d> <WORD>  Play a word, e.g. 'play C4 a CRANE'. Type the WHOLE word,
                                              including letters already on the board.
               discard | x <LETTERS>          Discard tiles (costs a discard), e.g. 'discard QV'
+              use | u <slot> [LETTERS|cell]  Use Stationery: letters for Scissors / Fountain Pen
+                                             (e.g. 'use 1 QX'), a cell for White-Out ('use 2 D4')
               hint [n]                       Show the n best legal plays (dev/QA aid)
               sim [rounds]                   Greedy-play simulation of the current round settings
               runsim [runs] [skill] [naive] [frac] [press=N] [deck=id] [dict=id]  Full-run simulation with a shop bot
@@ -483,8 +588,11 @@ public static class Program
               check | c <WORD...>            Look words up in the dictionary (with definitions)
               desk / deck                    Show Desk Items (+catalog) / your tile deck
               sell <slot>                    Sell a Desk Item for half price
+              sellst <slot>                  Sell a Stationery item for half price
               move <from> <to>               Reorder Desk Items (they apply left to right)
-              give <id>                      (dev) Add a Desk Item for free
+              give <id>                      (dev) Add a Desk Item or Stationery for free
+              save / load [path]             Save or load the run (default {DefaultSavePath}; the
+                                             game's own saves load too)
               board | status                 Redraw the current screen
               continue                       Endless mode after winning
               new [seed] [press=N] [deck=id] [dict=id] / seed / quit  (press=N: Press Run 1-8;

@@ -1,5 +1,7 @@
 using Crossword.Cli;
+using System.Collections.Immutable;
 using Crossword.Core.Domain;
+using Crossword.Core.Stationery;
 using static Crossword.Tests.TestSupport.Fixtures;
 
 namespace Crossword.Tests.Cli;
@@ -94,5 +96,36 @@ public class PlayCommandParserTests
         Assert.Equal([1, 2], PlayCommandParser.ResolveDeckTiles(deck, "eq").Value);
         Assert.Equal([1, 0], PlayCommandParser.ResolveDeckTiles(deck, "EE").Value);
         Assert.False(PlayCommandParser.ResolveDeckTiles(deck, "Z").IsOk);
+    }
+
+    [Fact]
+    public void ParseStationeryUse_NoTargetItemTakesNoArguments()
+    {
+        var hand = HandOf("CAT");
+        var parsed = PlayCommandParser.ParseStationeryUse(new MarginClip(), hand, []);
+        Assert.Null(parsed.Value.TileIds);
+        Assert.Null(parsed.Value.Cell);
+        Assert.False(PlayCommandParser.ParseStationeryUse(new AnswerKey(), hand, ["C"]).IsOk);
+    }
+
+    [Fact]
+    public void ParseStationeryUse_HandTileItemPicksTilesByLetter()
+    {
+        var hand = new Hand([new Tile(0, Letter.From('Q')), new Tile(1, Letter.From('E')), new Tile(2, Letter.From('E')), Tile.Wild(3)]);
+        Assert.Equal([1, 2], PlayCommandParser.ParseStationeryUse(new Scissors(), hand, ["ee"]).Value.TileIds);
+        Assert.Equal([3], PlayCommandParser.ParseStationeryUse(new FountainPen(), hand, ["?"]).Value.TileIds);
+
+        var missing = PlayCommandParser.ParseStationeryUse(new Scissors(), hand, ["Z"]);
+        Assert.Contains("No 'Z' left in your hand", missing.Error);
+        Assert.False(PlayCommandParser.ParseStationeryUse(new Scissors(), hand, []).IsOk);
+    }
+
+    [Fact]
+    public void ParseStationeryUse_BoardTileItemReadsACell()
+    {
+        var hand = HandOf("CAT");
+        Assert.Equal(new Position(3, 3), PlayCommandParser.ParseStationeryUse(new WhiteOut(), hand, ["d4"]).Value.Cell);
+        Assert.False(PlayCommandParser.ParseStationeryUse(new WhiteOut(), hand, ["4D"]).IsOk);
+        Assert.False(PlayCommandParser.ParseStationeryUse(new WhiteOut(), hand, []).IsOk);
     }
 }

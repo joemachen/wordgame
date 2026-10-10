@@ -1,8 +1,12 @@
 using Crossword.Core.Domain;
+using Crossword.Core.Stationery;
 
 namespace Crossword.Cli;
 
 public sealed record PlayCommand(Position Start, Direction Direction, string Word);
+
+/// <summary>What a Stationery item is pointed at: hand tiles, a board cell, or nothing.</summary>
+public sealed record StationeryArgs(IReadOnlyCollection<int>? TileIds, Position? Cell);
 
 /// <summary>
 /// Turns typed commands into Core inputs. Players type the whole word (including letters already on
@@ -113,5 +117,34 @@ public static class PlayCommandParser
             ids.Add(tile.Id);
         }
         return Result<IReadOnlyList<int>, string>.Ok(ids);
+    }
+
+    /// <summary>
+    /// Parses the arguments after "use &lt;slot&gt;" for <paramref name="item"/>: hand tile letters ("QX", '?' = wild),
+    /// a board cell ("D4"), or nothing, depending on what the item targets.
+    /// </summary>
+    public static Result<StationeryArgs, string> ParseStationeryUse(IStationery item, Hand hand, IReadOnlyList<string> args)
+    {
+        switch (item.Target)
+        {
+            case StationeryTarget.HandTiles:
+                if (args.Count != 1)
+                    return Result<StationeryArgs, string>.Fail($"Usage: use <slot> <LETTERS>   {item.Name} needs hand tiles, e.g. 'use 1 QX'");
+                var ids = ResolveDiscard(hand, args[0]);
+                return ids.IsOk
+                    ? Result<StationeryArgs, string>.Ok(new StationeryArgs(ids.Value, null))
+                    : Result<StationeryArgs, string>.Fail(ids.Error.Replace(" to discard", ""));
+            case StationeryTarget.BoardTile:
+                if (args.Count != 1)
+                    return Result<StationeryArgs, string>.Fail($"Usage: use <slot> <cell>   {item.Name} needs a board cell, e.g. 'use 1 D4'");
+                var cell = ParseCell(args[0]);
+                return cell.IsOk
+                    ? Result<StationeryArgs, string>.Ok(new StationeryArgs(null, cell.Value))
+                    : Result<StationeryArgs, string>.Fail(cell.Error);
+            default:
+                return args.Count == 0
+                    ? Result<StationeryArgs, string>.Ok(new StationeryArgs(null, null))
+                    : Result<StationeryArgs, string>.Fail($"Usage: use <slot>   {item.Name} takes no letters or cell.");
+        }
     }
 }
