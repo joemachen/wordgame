@@ -88,6 +88,23 @@ public class ProfileTests
     }
 
     [Fact]
+    public void RecordRunEnd_ASeededWinCountsButUnlocksNothing()
+    {
+        var stats = StatsRules.RecordRunEnd(PlayerStats.Empty, won: true, weekReached: 5, pressRun: 1, Standard, seeded: true);
+
+        Assert.Equal(1, stats.SeededRunsWon);
+        Assert.Equal(0, stats.RunsWon);
+        Assert.Equal(5, stats.BestWeekReached);
+        Assert.Empty(stats.HighestPressRunWon);
+        Assert.Equal(1, StatsQueries.UnlockedPressRun(stats, Standard));
+        Assert.Single(StatsQueries.UnlockedDecks(stats));
+        Assert.Empty(StatsQueries.UnlockedDictionaries(stats));
+
+        stats = StatsRules.RecordRunEnd(stats, won: false, weekReached: 2, pressRun: 1, Standard, seeded: true);
+        Assert.Equal(1, stats.SeededRunsWon); // a seeded loss is just a loss
+    }
+
+    [Fact]
     public void PressRunUnlocks_AreTrackedPerDeck()
     {
         var stats = StatsRules.RecordRunEnd(PlayerStats.Empty, won: true, weekReached: 5, pressRun: 3, Decks.RedactorId);
@@ -183,6 +200,7 @@ public class ProfileTests
             BossesBeaten = new Dictionary<string, int> { ["Ink Spill"] = 2 }.ToImmutableDictionary(),
             FullSpreadRounds = 1,
             HighestPressRunWon = Won((Standard, 3), (Decks.RedactorId, 1)),
+            SeededRunsWon = 2,
         };
         var profile = PlayerProfile.New("Joe") with { Stats = stats };
 

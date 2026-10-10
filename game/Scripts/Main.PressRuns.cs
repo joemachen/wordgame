@@ -7,8 +7,8 @@ namespace Wordgame.Godot;
 
 /// <summary>
 /// New-run picker: decks on the left, the selected deck's Press Runs on the right; clicking a Press Run starts the run.
-/// Shown once there is a choice (a run won unlocks the next deck, and a win at level N with a deck unlocks N + 1 for
-/// that deck). Locked decks and levels are shown greyed so both ladders are visible.
+/// A run won unlocks the next deck, and a win at level N with a deck unlocks N + 1 for that deck; locked decks and
+/// levels are shown greyed so both ladders are visible. An optional seed box starts a seeded run, which unlocks nothing.
 /// </summary>
 public partial class Main
 {
@@ -16,6 +16,8 @@ public partial class Main
     private VBoxContainer _pressRunBox = null!;
     private string _pickerDeck = Decks.StandardId;
     private string _pickerDictionary = Dictionaries.All[0].Id;
+    private string _pickerSeed = "";
+    private Label? _pickerSeedError;
 
     // Set when the run that just ended unlocked a new Press Run / deck (shown on the victory screen).
     private int? _justUnlockedPressRun;
@@ -48,15 +50,11 @@ public partial class Main
         return overlay;
     }
 
-    /// <summary>Starts a new run, first asking for the deck and Press Run when there is more than one choice.</summary>
+    /// <summary>Opens the New-run picker (deck, Press Run, optional seed).</summary>
     private void ChooseNewRun()
     {
         var stats = _profile.Profile.Stats;
-        if (!StatsQueries.HasRunChoices(stats))
-        {
-            NewRun((ulong)Time.GetTicksUsec());
-            return;
-        }
+        _pickerSeed = "";
         // Start from the last run's deck when it's still unlocked.
         _pickerDeck = StatsQueries.UnlockedDecks(stats).Any(d => d.Id == Run.DeckId) ? Run.DeckId : Decks.StandardId;
         var dictionaries = StatsQueries.UnlockedDictionaries(stats);
@@ -102,7 +100,25 @@ public partial class Main
             levels.AddChild(PressRunRow(press, press.Level <= unlocked));
         columns.AddChild(levels);
 
-        _pressRunBox.AddChild(UiKit.MakeLabel("Esc to close", 13, UiKit.TextMuted, HorizontalAlignment.Right));
+        var footer = UiKit.HBox(10);
+        var seed = UiKit.MakeLineEdit("Seed (optional)", 200);
+        seed.Name = "SeedField";
+        seed.MaxLength = 20;
+        seed.Text = _pickerSeed;
+        seed.TextChanged += text =>
+        {
+            _pickerSeed = text;
+            if (_pickerSeedError is not null)
+                _pickerSeedError.Text = "";
+        };
+        footer.AddChild(seed);
+        _pickerSeedError = UiKit.MakeLabel("", 13, UiKit.Bad);
+        footer.AddChild(UiKit.MakeLabel("Same seed, same boards and bosses. Seeded runs unlock nothing.", 13, UiKit.TextMuted));
+        footer.AddChild(_pickerSeedError);
+        var spacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        footer.AddChild(spacer);
+        footer.AddChild(UiKit.MakeLabel("Esc to close", 13, UiKit.TextMuted));
+        _pressRunBox.AddChild(footer);
     }
 
     private Control DeckCard(DeckDefinition deck, int winsToUnlock)
@@ -204,10 +220,21 @@ public partial class Main
 
     private void PickPressRun(int level)
     {
+        string typed = _pickerSeed.Trim();
+        ulong seed = (ulong)Time.GetTicksUsec();
+        if (typed.Length > 0 && !ulong.TryParse(typed, out seed))
+        {
+            if (_pickerSeedError is not null)
+                _pickerSeedError.Text = "A seed is a whole number, like 42.";
+            return;
+        }
         _pressRunOverlay.Visible = false;
-        NewRun((ulong)Time.GetTicksUsec(), pressRun: level, deck: _pickerDeck,
-            dictionary: Decks.TakesDictionary(_pickerDeck) ? _pickerDictionary : null);
+        NewRun(seed, pressRun: level, deck: _pickerDeck,
+            dictionary: Decks.TakesDictionary(_pickerDeck) ? _pickerDictionary : null, seeded: typed.Length > 0);
     }
+
+    /// <summary>The run's seed for the sidebar and end screen, marked when the player chose it.</summary>
+    private string SeedText() => Run.Seeded ? $"Seed {Run.Seed} (chosen)" : $"Seed {Run.Seed}";
 
     /// <summary>
     /// The run's deck, dictionaries and Press Run for the sidebar footer and end screen, e.g.

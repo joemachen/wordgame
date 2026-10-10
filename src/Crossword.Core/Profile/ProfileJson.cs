@@ -33,6 +33,7 @@ public static class ProfileJson
                 PlaysRecorded = stats.PlaysRecorded,
                 RunsStarted = stats.RunsStarted,
                 RunsWon = stats.RunsWon,
+                SeededRunsWon = stats.SeededRunsWon,
                 BestWeekReached = stats.BestWeekReached,
                 BestPlayScore = stats.BestPlayScore,
                 BestPlayWords = stats.BestPlayWords,
@@ -73,6 +74,7 @@ public static class ProfileJson
             PlaysRecorded = s.PlaysRecorded,
             RunsStarted = s.RunsStarted,
             RunsWon = s.RunsWon,
+            SeededRunsWon = s.SeededRunsWon,
             BestWeekReached = s.BestWeekReached,
             BestPlayScore = s.BestPlayScore,
             BestPlayWords = s.BestPlayWords,
@@ -113,6 +115,7 @@ public static class ProfileJson
         public long PlaysRecorded { get; set; }
         public int RunsStarted { get; set; }
         public int RunsWon { get; set; }
+        public int SeededRunsWon { get; set; }
         public int BestWeekReached { get; set; }
         public long BestPlayScore { get; set; }
         public string? BestPlayWords { get; set; }

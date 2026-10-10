@@ -42,6 +42,12 @@ public sealed record RunState(
     /// </summary>
     public ImmutableArray<string> Dictionaries { get; init; } = ImmutableArray<string>.Empty;
 
+    /// <summary>
+    /// The player chose the seed (a seed box or <c>--seed</c>). Such a run is replayable, so its win unlocks nothing
+    /// (<see cref="Profile.StatsRules.RecordRunEnd"/>); play is unchanged.
+    /// </summary>
+    public bool Seeded { get; init; }
+
     /// <summary>Style Guide upgrades bought: word tier MinLength → number of upgrades.</summary>
     public ImmutableDictionary<int, int> TierUpgrades { get; init; } = ImmutableDictionary<int, int>.Empty;
 

@@ -106,7 +106,9 @@ public partial class Main : Control
         _profile = qaRun ? ProfileStore.InMemory(profileName) : ProfileStore.Load(profileName);
         BuildLayout();
 
-        ulong seed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : (ulong)Time.GetTicksUsec();
+        ulong? chosenSeed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : null;
+        bool seeded = chosenSeed is not null;
+        ulong seed = chosenSeed ?? (ulong)Time.GetTicksUsec();
         int startWeek = args.TryGetValue("week", out var w) && int.TryParse(w, out int week) && week > 1 ? week - 1 : 0;
         args.TryGetValue("give", out var give);
         int pressRun = args.TryGetValue("press", out var pr) && int.TryParse(pr, out int level) && PressRuns.IsLevel(level) ? level : PressRuns.Lowest;
@@ -123,7 +125,7 @@ public partial class Main : Control
         else
             NewRun(seed, devSetup
                 ? run => Give(run with { RoundIndex = startWeek * _baseConfig.RoundsPerWeek }, give ?? "")
-                : null, pressRun, deck, dictionary);
+                : null, pressRun, deck, dictionary, seeded);
         if (_profile.Notice is { } notice)
             SetMessage(notice, UiKit.Bad);
         else if (_runSave.Notice is { } saveNotice)
@@ -195,9 +197,9 @@ public partial class Main : Control
     }
 
     private void NewRun(ulong seed, Func<RunState, RunState>? setup = null, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId,
-        string? dictionary = null)
+        string? dictionary = null, bool seeded = false)
     {
-        _session = RunRules.NewGame(seed, _baseConfig, LexiconLoader.Enable, setup, pressRun, deck, dictionary);
+        _session = RunRules.NewGame(seed, _baseConfig, LexiconLoader.Enable, setup, pressRun, deck, dictionary, seeded);
         _lexicon = LexiconLoader.For(Run.Dictionaries);
         _justUnlockedPressRun = null;
         _justUnlockedDeck = null;
@@ -398,7 +400,7 @@ public partial class Main : Control
             + (Round.Config.BonusMult > 0 ? $"   ·   Red ink +{Round.Config.BonusMult:0.##} mult" : "")
             + (Round.Config.CensoredLetter is { } censored ? $"   ·   Censored: {censored}" : "");
         _moneyLabel.Text = $"${Run.Money}";
-        _seedLabel.Text = IsCustomRun ? $"Seed {Run.Seed}\n{PressRunText()}" : $"Seed {Run.Seed}";
+        _seedLabel.Text = IsCustomRun ? $"{SeedText()}\n{PressRunText()}" : SeedText();
         var deckInfo = Decks.Get(Run.DeckId);
         _seedLabel.TooltipText = PressRunText()
             + (Run.DeckId != Decks.StandardId ? $"\n· {deckInfo.Upside}\n· {deckInfo.Cost}" : "")

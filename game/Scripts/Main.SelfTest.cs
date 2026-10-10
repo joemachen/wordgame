@@ -320,8 +320,11 @@ public partial class Main
         await Click(Centre(_newRunButton));
         bool armed = ReferenceEquals(_session, runBefore) && _newRunButton.Text.StartsWith("Abandon");
         await Click(Centre(_newRunButton));
+        bool pickerOpened = _pressRunOverlay.Visible && ReferenceEquals(_session, runBefore);
+        await Click(Centre((Control)_pressRunBox.FindChild("PressRun1", owned: false)!));
         Check("new run asks before abandoning a run", armed && !ReferenceEquals(_session, runBefore) && _newRunButton.Text == "New run");
-        Check("with only Proofreader unlocked, new run skips the picker", !_pressRunOverlay.Visible && Run.PressRun == 1);
+        Check("with only Proofreader unlocked, new run still opens the picker", pickerOpened && !_pressRunOverlay.Visible
+            && Run.PressRun == 1 && !Run.Seeded);
 
         // 17. Press Runs: winning a run unlocks the next one (shown on the victory screen); New run then asks which to
         //     play (locked ones greyed); Censored Press crosses out and refuses its letter; Final Print Run adds a rule
@@ -346,6 +349,27 @@ public partial class Main
         ChooseNewRun();
         await PressKey(global::Godot.Key.Escape);
         Check("esc closes the press run picker", !_pressRunOverlay.Visible && Run.PressRun == 2);
+
+        // 17b. The seed box: a typed seed starts a seeded run (junk keeps the picker open), and its win unlocks nothing.
+        ChooseNewRun();
+        await Frames(2);
+        await Click(Centre((Control)_pressRunBox.FindChild("SeedField", owned: false)!));
+        await TypeText("4x");
+        await Click(Centre(PressRow(1)));
+        Check("a seed that isn't a number keeps the picker open", _pressRunOverlay.Visible && _pickerSeedError is { Text.Length: > 0 });
+        await PressKey(global::Godot.Key.Backspace);
+        await TypeText("2");
+        await Click(Centre(PressRow(1)));
+        Check("a typed seed starts a seeded run", !_pressRunOverlay.Visible && Run.Seed == 42 && Run.Seeded
+            && _seedLabel.Text.Contains("Seed 42 (chosen)"));
+        int winsBefore = _profile.Profile.Stats.RunsWon;
+        int decksBefore = Crossword.Core.Profile.StatsQueries.UnlockedDecks(_profile.Profile.Stats).Length;
+        _session = _session with { Phase = Crossword.Core.Run.RunPhase.Victory };
+        Refresh();
+        await Frames(2);
+        Check("a seeded win unlocks nothing", _profile.Profile.Stats.RunsWon == winsBefore && _profile.Profile.Stats.SeededRunsWon == 1
+            && Crossword.Core.Profile.StatsQueries.UnlockedDecks(_profile.Profile.Stats).Length == decksBefore
+            && _justUnlockedDeck is null && _justUnlockedPressRun is null && _shopContent.FindChild("SeededNote", owned: false) is not null);
 
         // 18. Decks: picking one shows its own Press Run ladder (unlocks are per deck) and starts a run by its rules.
         ChooseNewRun();
@@ -548,6 +572,20 @@ public partial class Main
     private async Task Seconds(double seconds) => await ToSignal(GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
 
     private bool AnyGhost() => _handRow.GetChildren().OfType<TileButton>().Any(b => b.IsGhost);
+
+    /// <summary>Types letters and digits into whatever has keyboard focus.</summary>
+    private async Task TypeText(string text)
+    {
+        foreach (char c in text)
+        {
+            var key = char.IsDigit(c)
+                ? (global::Godot.Key)((long)global::Godot.Key.Key0 + (c - '0'))
+                : (global::Godot.Key)((long)global::Godot.Key.A + (char.ToUpperInvariant(c) - 'A'));
+            Push(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = true });
+            Push(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false });
+        }
+        await Frames(3);
+    }
 
     private async Task PressKey(global::Godot.Key key)
     {

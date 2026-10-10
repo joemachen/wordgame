@@ -21,7 +21,11 @@ public sealed record PlayerStats
     public long PlaysRecorded { get; init; }
 
     public int RunsStarted { get; init; }
+    /// <summary>Runs won on a random seed; each one unlocks the next deck or dictionary (<see cref="StatsQueries"/>).</summary>
     public int RunsWon { get; init; }
+
+    /// <summary>Runs won on a seed the player chose: counted, but they unlock nothing.</summary>
+    public int SeededRunsWon { get; init; }
 
     /// <summary>Furthest week reached (1-based; 0 = none yet).</summary>
     public int BestWeekReached { get; init; }
@@ -112,11 +116,14 @@ public static class StatsRules
     /// <param name="weekReached">1-based week the run ended in (or the last week, for a win).</param>
     /// <param name="pressRun">The run's Press Run; a win there unlocks the next one for <paramref name="deck"/>.</param>
     /// <param name="deck">The run's deck id; any win also unlocks the next deck (<see cref="StatsQueries.UnlockedDecks"/>).</param>
-    public static PlayerStats RecordRunEnd(PlayerStats stats, bool won, int weekReached, int pressRun, string deck) => stats with
+    /// <param name="seeded">The player chose the seed: a win counts in <see cref="PlayerStats.SeededRunsWon"/> and
+    /// unlocks nothing.</param>
+    public static PlayerStats RecordRunEnd(PlayerStats stats, bool won, int weekReached, int pressRun, string deck, bool seeded = false) => stats with
     {
-        RunsWon = stats.RunsWon + (won ? 1 : 0),
+        RunsWon = stats.RunsWon + (won && !seeded ? 1 : 0),
+        SeededRunsWon = stats.SeededRunsWon + (won && seeded ? 1 : 0),
         BestWeekReached = Math.Max(stats.BestWeekReached, weekReached),
-        HighestPressRunWon = won
+        HighestPressRunWon = won && !seeded
             ? stats.HighestPressRunWon.SetItem(deck, Math.Max(stats.HighestPressRunWon.GetValueOrDefault(deck), pressRun))
             : stats.HighestPressRunWon,
     };

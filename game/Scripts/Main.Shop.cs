@@ -275,6 +275,12 @@ public partial class Main
                 ? "No legal plays and no discards left."
                 : $"{Round.Score:N0} of {Round.Config.TargetScore:N0} on Week {_session.Week + 1}, {_session.Kind.Name}.";
         box.AddChild(UiKit.MakeLabel(detail, 20, UiKit.Text, HorizontalAlignment.Center));
+        if (victory && Run.Seeded)
+        {
+            var note = UiKit.MakeLabel("A seeded run: wins with a chosen seed unlock nothing.", 18, UiKit.TextMuted, HorizontalAlignment.Center);
+            note.Name = "SeededNote";
+            box.AddChild(note);
+        }
         if (victory && _justUnlockedPressRun is { } unlocked)
         {
             var press = PressRuns.Get(unlocked);
@@ -295,7 +301,7 @@ public partial class Main
                 new Color(Decks.Get(Decks.LexicographerId).Color).Lightened(0.3f), HorizontalAlignment.Center);
             box.AddChild(_endScreenDictionaryUnlock);
         }
-        box.AddChild(UiKit.MakeLabel($"Seed {Run.Seed}   ·   {PressRunText()}   ·   ${Run.Money}   ·   {Run.DeskItems.Length} desk items",
+        box.AddChild(UiKit.MakeLabel($"{SeedText()}   ·   {PressRunText()}   ·   ${Run.Money}   ·   {Run.DeskItems.Length} desk items",
             15, UiKit.TextMuted, HorizontalAlignment.Center));
 
         var buttons = UiKit.HBox(12);

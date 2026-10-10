@@ -242,6 +242,27 @@ public class RunSaveJsonTests
     }
 
     [Fact]
+    public void SeededFlag_IsSetByNewGame_AndSurvivesSaveAndLoad()
+    {
+        Assert.False(RunRules.NewGame(9, Config, LexiconLoader.Enable).Run.Seeded);
+
+        var session = RunRules.NewGame(9, Config, LexiconLoader.Enable, seeded: true);
+        Assert.True(session.Run.Seeded);
+        Assert.True(RoundTrip(session).Run.Seeded);
+        Assert.Equal(RunRules.NewGame(9, Config, LexiconLoader.Enable).Round.Hand.Tiles.ToArray(), session.Round.Hand.Tiles.ToArray()); // play is unchanged
+    }
+
+    /// <summary>Saves from before seeded runs (no <c>seeded</c>) load as random-seed runs.</summary>
+    [Fact]
+    public void SaveWithoutSeededFlag_LoadsAsARandomSeedRun()
+    {
+        string json = RunSaveJson.Serialize(FixtureSession());
+        Assert.Contains("\"seeded\": false,", json);
+
+        Assert.False(Load(json.Replace("\"seeded\": false,", "")).Session.Run.Seeded);
+    }
+
+    [Fact]
     public void PressRun_SurvivesSaveAndLoad_AndItsRulesAreReapplied()
     {
         // Final Print Run at a Sunday: a Reprint boss and a censored letter in the round.

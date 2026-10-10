@@ -639,6 +639,7 @@
     "pressRun": 1,
     "deckId": "standard",
     "dictionaries": [],
+    "seeded": false,
     "tierUpgrades": {
       "3": 1,
       "7": 1

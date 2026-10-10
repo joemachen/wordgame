@@ -57,7 +57,7 @@ public partial class Main
         _statsBox.AddChild(UiKit.MakeLabel($"{_profile.Profile.Name}'s Stats", 26, UiKit.Text));
         string best = stats.BestPlayWords is null ? "—" : $"{stats.BestPlayScore:N0} ({stats.BestPlayWords})";
         var overview = UiKit.MakeLabel(
-            $"Runs {stats.RunsStarted}   ·   Wins {stats.RunsWon}   ·   Furthest week {(stats.BestWeekReached == 0 ? "—" : stats.BestWeekReached)}\n"
+            $"Runs {stats.RunsStarted}   ·   Wins {stats.RunsWon}{(stats.SeededRunsWon > 0 ? $" (+{stats.SeededRunsWon} seeded)" : "")}   ·   Furthest week {(stats.BestWeekReached == 0 ? "—" : stats.BestWeekReached)}\n"
             + $"Distinct words {stats.Words.Count:N0}   ·   Plays {stats.PlaysRecorded:N0}   ·   Longest word {stats.LongestWord ?? "—"}   ·   Best play {best}\n"
             + $"Intersections {stats.TotalIntersections:N0}   ·   Close calls {stats.CloseCalls:N0}   ·   Full spreads {stats.FullSpreadRounds:N0}"
             + (stats.BossesBeaten.Count == 0 ? "" : $"   ·   Most-beaten boss {stats.BossesBeaten.MaxBy(kv => kv.Value).Key} ({stats.BossesBeaten.Values.Max()}×)"),
@@ -116,7 +116,7 @@ public partial class Main
         int unlockedBefore = StatsQueries.UnlockedPressRun(_profile.Profile.Stats, Run.DeckId);
         int decksBefore = StatsQueries.UnlockedDecks(_profile.Profile.Stats).Length;
         int dictionariesBefore = StatsQueries.UnlockedDictionaries(_profile.Profile.Stats).Length;
-        _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1, Run.PressRun, Run.DeckId));
+        _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1, Run.PressRun, Run.DeckId, Run.Seeded));
         int unlockedNow = StatsQueries.UnlockedPressRun(_profile.Profile.Stats, Run.DeckId);
         var decksNow = StatsQueries.UnlockedDecks(_profile.Profile.Stats);
         _justUnlockedPressRun = unlockedNow > unlockedBefore ? unlockedNow : null;

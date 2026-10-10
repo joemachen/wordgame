@@ -92,6 +92,19 @@ public static class UiKit
         return button;
     }
 
+    /// <summary>A one-line text box in the panel style; the border lights up while it has focus.</summary>
+    public static LineEdit MakeLineEdit(string placeholder, float width, int fontSize = 16)
+    {
+        var edit = new LineEdit { PlaceholderText = placeholder, CustomMinimumSize = new Vector2(width, 0) };
+        edit.AddThemeFontSizeOverride("font_size", fontSize);
+        edit.AddThemeColorOverride("font_color", Text);
+        edit.AddThemeColorOverride("font_placeholder_color", TextMuted);
+        edit.AddThemeColorOverride("caret_color", Selected);
+        edit.AddThemeStyleboxOverride("normal", Box(Background, 6, PanelBorder, 1, 8));
+        edit.AddThemeStyleboxOverride("focus", Box(Background, 6, Selected, 2, 8));
+        return edit;
+    }
+
     public static PanelContainer MakePanel(Color bg, int padding = 12, int radius = 10, Color? border = null, int borderWidth = 0)
     {
         var panel = new PanelContainer();

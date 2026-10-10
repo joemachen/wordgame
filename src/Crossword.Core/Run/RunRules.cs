@@ -28,7 +28,7 @@ public static class RunRules
     /// the first round starts so round hooks such as Tile Rack take effect immediately.</param>
     /// <param name="dictionary">The dictionary overlay picked for a deck that takes one (<see cref="Decks.DictionariesFor"/>).</param>
     public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon, Func<RunState, RunState>? setup = null,
-        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null)
+        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null, bool seeded = false)
     {
         var dictionaries = Decks.DictionariesFor(deck, dictionary);
         config = ConfigFor(config, deck, pressRun, dictionaries);
@@ -40,6 +40,7 @@ public static class RunRules
             PressRun = pressRun,
             DeckId = Decks.Get(deck).Id,
             Dictionaries = dictionaries,
+            Seeded = seeded,
         };
         return StartRound(config, setup?.Invoke(run) ?? run, dictionaries.IsEmpty ? lexicon : LexiconLoader.For(dictionaries));
     }
