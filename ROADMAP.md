@@ -39,7 +39,7 @@ When something lands, mark it ✅ here and record the details in `handoff.md` / 
 > crude glosses are hidden from the definitions. **Every overlay below must go through `Denylist.Default.Filter`** and
 > extend the list with its own slurs before it ships.
 
-### `CustomLexicon` overlays (unlockable dictionaries) 🟡 (engine ✅, 2 of 4 dictionaries ✅)
+### `CustomLexicon` overlays (unlockable dictionaries) 🟡 (engine ✅, 3 of 4 dictionaries ✅)
 
 A meta-unlock makes a dictionary **available**. Whether it's active is decided **per run**, through a starting deck
 or a Desk Item, and each one comes with a tradeoff. Dictionaries are never permanently active everywhere.
@@ -49,7 +49,7 @@ or a Desk Item, and each one comes with a tradeoff. Dictionaries are never perma
 | Slang | — | Tabloid Deck | Round targets ×1.1 | **Needs review.** Wiktionary is CC-BY-SA (share-alike); Urban Dictionary can't be licensed. Biggest denylist risk. | 🟡 |
 | Proper Nouns & Toponyms | *The Atlas Unlocked* | Lexicographer's Deck (an "Atlas" Desk Item is still an option) | The deck's dictionary choice; single-word names of 3–7 letters only (longer ones can't fit the board) | Hand-written list (567 places: countries, capitals and cities, states, regions, islands, seas, rivers, lakes, mountains, ancient sites; no ENABLE words). GeoNames (CC-BY, credit required) / Wikidata (CC0) if it ever needs to grow | ✅ |
 | Acronyms & Initialisms | *The Tech Shorthand* | Lexicographer's Deck | Only entries of **3+ letters** count, so 2-letter acronyms (TV, PC) don't flood the board | Hand-written list (~300 entries, no brand names) | ✅ |
-| Archaic & Middle English | *The Olde English Folio* | Lexicographer's Deck | Uses the deck's dictionary choice | Webster's 1913 (public domain), Project Gutenberg texts | 🟡 |
+| Archaic English | *The Olde English Folio* | Lexicographer's Deck | The deck's dictionary choice. **A theme, not an overlay** (user's choice, 2026-10-10): ENABLE already has ~94% of familiar archaic words (166 of 177 tested), so each archaic word a play forms adds **+3 Mult** (THEE, HATH, ERE, YON, QUOTH…); only OER, NEER, EER, EEN and OLDE are new words | Hand-written list (106 words); Webster's 1913 would only add obscure obsolete words | ✅ |
 | Trademarks & Brand Names | *The Commercial Registry* | — | — | **No public-domain source; trademark risk in a paid game** | ⏸ Needs legal review |
 
 **Technical notes** (✅ built 2026-10-07, `Core/Lexicon/Dictionaries.cs`)
@@ -57,7 +57,7 @@ or a Desk Item, and each one comes with a tradeoff. Dictionaries are never perma
   `MoveGenerator`, `PlacementValidator` and the hint system stay unchanged.
 - The active dictionaries are stored in `RunState.Dictionaries` (saved), so a seed + run setup still reproduces the run.
 - **Unlocks** (user's choice): the first dictionary comes with The Lexicographer's Deck, then one more per run won, in
-  `Dictionaries.All` order: The Tech Shorthand, then The Atlas Unlocked (5 wins).
+  `Dictionaries.All` order: The Tech Shorthand, then The Atlas Unlocked (5 wins), then The Olde English Folio (6 wins).
 
 ---
 
@@ -259,7 +259,7 @@ tests and a `runsim` balance check.
 | **2** ✅ | 5 new Desk Items (Etymology Tome, Rubber Stamp, Printing Press Roller, Tile Rack, Coffee Stain) + Redundant Copy and The Puzzle Master. Later: Magnifying Glass, Brass Paperclip (deferred, see §3) | 1 |
 | **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
 | **4** ✅ | In-run save/resume ✅ → profile & unlock tracking (§9) ✅ with the Press Run stakes (§5), pulled forward from phase 5 so unlocks had something to unlock | — |
-| **5** 🟡 | Starting decks (✅ Crossword Draft, Redactor, Copy Editor's, Lexicographer's, with per-deck Press Run unlocks; Tabloid waits for a licensable Slang list), dictionary overlays (✅ engine + The Tech Shorthand + The Atlas Unlocked; next: Olde English Folio; denylist ✅, every overlay passes through it) (Press Run stakes ✅ in phase 4) | 4 |
+| **5** 🟡 | Starting decks (✅ Crossword Draft, Redactor, Copy Editor's, Lexicographer's, with per-deck Press Run unlocks; Tabloid waits for a licensable Slang list), dictionary overlays (✅ engine + The Tech Shorthand + The Atlas Unlocked + The Olde English Folio (a bonus theme); Slang waits for a source; denylist ✅, every overlay passes through it) (Press Run stakes ✅ in phase 4) | 4 |
 | **Release hygiene** | Slur denylist ✅ (ENABLE + definitions; overlays must use it); "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
 | **Wild tiles** ✅ | Play as any letter (chosen when placed), 0 letter chips. 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5), Fountain Pen Stationery. Bots don't buy the wild offers or the Fountain Pen yet. | done 2026-10-05 |
 | **Letter mix** ✅ | Balanced draws (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) + starting deck at ~42% vowels. Rough hands at play time 29.5% → 10%. | done 2026-10-05 |

@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-10 · HEAD `4a4f20d` (code) · 494 unit tests passing · UI self-test 64/64 passing_
+_Last updated: 2026-10-10 · HEAD `9eaafb2` (code) · 501 unit tests passing · UI self-test 65/65 passing_
 
 ---
 
@@ -20,7 +20,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 
 | Area | State |
 |---|---|
-| Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Slur denylist** (`Core/Lexicon/Denylist.cs` + `Lexicon/Data/denylist.txt`, 128 words incl. inflections; slurs only, profanity stays): denied words are never legal, suggested or defined (168,423 playable words). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. Slur senses and crude glosses are hidden (next clean sense shown: TACO → the food, CHINK → a narrow opening). **Dictionary overlays** (`Core/Lexicon/Dictionaries.cs`): a run's `RunState.Dictionaries` adds words on top of ENABLE (`LexiconLoader.For(ids)`, cached merged DAWG). First one: **The Tech Shorthand** (297 hand-written acronyms/initialisms of 3+ letters with expansions, `Lexicon/Data/tech-shorthand.tsv`; expansions show as "abbr." definitions). Second: **The Atlas Unlocked** (`atlas`, 567 hand-written single-word place names of 3–7 letters, `Lexicon/Data/atlas.tsv`; shown as "n. capital of Norway"; each dictionary has a `SenseLabel`). |
+| Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Slur denylist** (`Core/Lexicon/Denylist.cs` + `Lexicon/Data/denylist.txt`, 128 words incl. inflections; slurs only, profanity stays): denied words are never legal, suggested or defined (168,423 playable words). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. Slur senses and crude glosses are hidden (next clean sense shown: TACO → the food, CHINK → a narrow opening). **Dictionary overlays** (`Core/Lexicon/Dictionaries.cs`): a run's `RunState.Dictionaries` adds words on top of ENABLE (`LexiconLoader.For(ids)`, cached merged DAWG). First one: **The Tech Shorthand** (297 hand-written acronyms/initialisms of 3+ letters with expansions, `Lexicon/Data/tech-shorthand.tsv`; expansions show as "abbr." definitions). Second: **The Atlas Unlocked** (`atlas`, 567 hand-written single-word place names of 3–7 letters, `Lexicon/Data/atlas.tsv`; shown as "n. capital of Norway"; each dictionary has a `SenseLabel`). Third: **The Olde English Folio** (`olde-folio`), a **theme dictionary**: +3 Mult per archaic word a play forms (106 words: THEE, HATH, ERE, YON…; scoring step 4b `theme`, `ScoringConfig.Theme` set by `RunRules.ConfigFor`), plus 5 new words (OER, NEER, EER, EEN, OLDE). |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5). Endless mode. |
@@ -30,7 +30,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
 | Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and **auto-resumed on launch** ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. Sidebar New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. |
 | Press Runs | 8 stacking difficulty levels (`Core/Run/PressRuns.cs`, numbers in `PressRunConfig`): Proofreader → First Edition (Dailies pay $1) → Late Edition (targets ×1.05/week) → Rush Job (−1 Sunday submission) → Ink Shortage (−1 discard) → Heavy Printing (rerolls +$1) → Censored Press (one of B C F G H M P W Y unplayable per round) → Final Print Run (the Sunday boss adds a second Early/Mid rule, `Reprint`). Level stored in `RunState.PressRun` and re-applied to the config on load. **Unlocks:** winning level N unlocks N+1 (`PlayerStats.HighestPressRunWon`; old profiles with wins start at 1). Game: New run opens a picker once level 2 is unlocked (locked rows greyed), victory screen announces unlocks, sidebar shows the level + censored letter, censored hand tiles struck through; `--press=N` dev flag. CLI: `runsim … press=N`, `new [seed] [press=N]`. |
-| Starting decks | `Core/Run/Decks.cs` (numbers in `DeckConfig`): **Standard**, **The Crossword Draft Deck** (+1 Mult per intersection, deadlines ×0.7; words need 3+ letters; no Strict Grammarian), **The Redactor Deck** (thin 30-tile deck incl. Q Z X J; −1 discard), **The Copy Editor's Deck** (starts with Red Pen, +1 discard; 4 Desk Item slots), **The Lexicographer's Deck** (pick an unlocked dictionary; deadlines ×0.85; 4 Desk Item slots). A deck is a `RunConfig` transform applied before the Press Run (`RunRules.ConfigFor`); the run stores `RunState.DeckId`. New knobs: `RunConfig.MinWordLength`, `DeskSlots`, `StartingDeskItems`, `ExcludedBosses`. **Unlocks:** one deck per run won (`StatsQueries.UnlockedDecks`); Press Run unlocks are **per deck** (`PlayerStats.HighestPressRunWon`: deck id → level; old profiles count theirs for Standard). Game: one New-run screen (decks left, the deck's Press Runs right), `--deck=id`; victory screen announces deck unlocks. CLI: `runsim … deck=id`, `new … deck=id`. Each deck wins within ~±7 pts of Standard (§4). **Dictionary unlocks:** the first comes with The Lexicographer's Deck (4 wins), then one more per win (`StatsQueries.UnlockedDictionaries`): The Atlas Unlocked at 5 wins. New-run picker shows a dictionary row for that deck; `--dict=id` dev flag; CLI `new`/`runsim … dict=id`. Tabloid waits for a licensable Slang list. |
+| Starting decks | `Core/Run/Decks.cs` (numbers in `DeckConfig`): **Standard**, **The Crossword Draft Deck** (+1 Mult per intersection, deadlines ×0.7; words need 3+ letters; no Strict Grammarian), **The Redactor Deck** (thin 30-tile deck incl. Q Z X J; −1 discard), **The Copy Editor's Deck** (starts with Red Pen, +1 discard; 4 Desk Item slots), **The Lexicographer's Deck** (pick an unlocked dictionary; deadlines ×0.85; 4 Desk Item slots). A deck is a `RunConfig` transform applied before the Press Run (`RunRules.ConfigFor`); the run stores `RunState.DeckId`. New knobs: `RunConfig.MinWordLength`, `DeskSlots`, `StartingDeskItems`, `ExcludedBosses`. **Unlocks:** one deck per run won (`StatsQueries.UnlockedDecks`); Press Run unlocks are **per deck** (`PlayerStats.HighestPressRunWon`: deck id → level; old profiles count theirs for Standard). Game: one New-run screen (decks left, the deck's Press Runs right), `--deck=id`; victory screen announces deck unlocks. CLI: `runsim … deck=id`, `new … deck=id`. Each deck wins within ~±7 pts of Standard (§4). **Dictionary unlocks:** the first comes with The Lexicographer's Deck (4 wins), then one more per win (`StatsQueries.UnlockedDictionaries`): The Atlas Unlocked at 5 wins, The Olde English Folio at 6. New-run picker shows a dictionary row for that deck; `--dict=id` dev flag; CLI `new`/`runsim … dict=id`. Tabloid waits for a licensable Slang list. |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
@@ -83,6 +83,16 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   city" (JAKARTA, YANGON, COLOMBO). Definitions use a per-dictionary `SenseLabel` ("n." here, "abbr." for acronyms).
   **No tuning:** 16 / 36 / 53% at 0.6 / 0.75 / 0.9 vs The Tech Shorthand's 16 / 39 / 54% (`runsim 200 … frac
   deck=lexicographer dict=…`, seeds 1–200), within noise, so the deck's ×0.85 deadlines serve both.
+- **The Olde English Folio is a bonus theme, not new words** (user's choice, 2026-10-10, over parking it or building
+  it from Webster's 1913): ENABLE already has 166 of 177 familiar archaic words tested, so a Webster's overlay would
+  only add obscure obsolete words. Each archaic word a play forms (main or cross) adds **+3 Mult** (= an
+  intersection), after intersections and before Red Ink. Claude's calls: hand-written list of words whose *main*
+  sense is archaic (ART, WILT, MINE, ALBEIT, AYE left out), 3–7 letters (YE would be too easy to farm), glosses
+  shown as "arch. …" and preferred over WordNet in that run; the 5 non-ENABLE entries (OER, NEER, EER, EEN, OLDE)
+  become legal. The theme lives in `RunConfig.Scoring.Theme`, derived from `RunState.Dictionaries` by
+  `RunRules.ConfigFor`, so no save-format change. Measured: 16 / 36 / 54% at 0.6 / 0.75 / 0.9 (like the other
+  dictionaries). The bonus is small for the bot (round scores +3% at +3, +5% at +5, +9% at +8; scratch harness
+  `themecheck`, 400 rounds at 0.75), so +3 stays; a human hunting archaic words should get more.
 - **Save & resume** (user's choices, 2026-10-05): **auto-resume** on launch (over a Continue/New prompt) with a
   two-click New run; the save **doesn't store `RunConfig`**, so a resumed run picks up new tuning (the round in progress
   keeps its snapshot). Claude's calls: reflection-based JSON over the records with id-tagged Desk Items/Stationery/bosses
@@ -118,6 +128,7 @@ CLI `runsim 200 <skill> frac deck=<id>` (seeds 1–200, evaluating bot, ScoreFra
 | The Copy Editor's Deck | 16% | 42% | 62% | 7% |
 | The Lexicographer's Deck (Tech Shorthand, 2026-10-07) | 16% | 39% | 54% | — |
 | The Lexicographer's Deck (Atlas Unlocked, 2026-10-10) | 16% | 36% | 53% | — |
+| The Lexicographer's Deck (Olde English Folio, 2026-10-10) | 16% | 36% | 54% | — |
 
 - First versions: Crossword Draft (no deadline cut) **10 / 26%** at 0.75 / 0.9 — +2 or +4 intersection Mult and/or +1
   discard only reached 9.5–12.5%; deadlines ×0.75 → 30%, ×0.6 → 57% (0.9: 71.5%), ×0.5 → 68.5%. Redactor (no rare
@@ -285,6 +296,9 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
     **the user should skim it** for wrong facts and for political sensitivity (contested places, capitals; see §3).
     Crosswordese like ERIE, OSLO, ASIA, IOWA, OHIO, ELBA, ARAL makes it vowel-friendly; worth as much to the bot as
     the acronyms (§4).
+16. **The Olde English Folio's bonus is small for the bot** (+3% round score); watch whether humans chase archaic
+    words. If it feels flat, raise `Dictionaries.OldeFolioMult` (+5 or +8; re-measure). Skim its 106 words
+    (`src/Crossword.Core/Lexicon/Data/olde-folio.tsv`) too.
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
@@ -292,8 +306,9 @@ Longer-term phases live in `ROADMAP.md` §11 (phases 0–4 ✅, phase 5 🟡: de
 dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding).
 
 **Playtests (the user's side):**
-0. **The Lexicographer's Deck** (`--dict=tech-shorthand` / `--dict=atlas`, or win 4–5 runs): do acronyms and place
-   names feel fun or jarring; is ×0.85 enough to pay for the 4th slot; skim both lists (§5.14, §5.15).
+0. **The Lexicographer's Deck** (`--dict=tech-shorthand` / `atlas` / `olde-folio`, or win 4–6 runs): do acronyms,
+   place names and the archaic bonus feel fun or jarring; is ×0.85 enough to pay for the 4th slot; skim the lists
+   (§5.14–5.16).
 1. **Starting decks + Press Runs:** win a run to unlock The Crossword Draft Deck, check the New-run screen (deck cards,
    per-deck ladder), and play each deck — does Crossword Draft feel fair with ×0.7 deadlines and no 2-letter words?
    Does the Redactor's Q Z X J every round feel like a fun cost? Is Copy Editor's too strong (+7 at 0.9)? Also the
@@ -305,21 +320,16 @@ dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Edito
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
-1. **More dictionary overlays** (ROADMAP §1; engine ✅ + The Tech Shorthand ✅ + The Atlas Unlocked ✅): **The Olde
-   English Folio** (archaic words from Webster's 1913, public domain — needs a builder tool like the definitions one,
-   and a download of the Gutenberg/GCIDE text). Each is a
-   `DictionaryDefinition` + embedded `<id>.tsv`; unlock order = `Dictionaries.All`. Slang (Tabloid Deck) still needs a
-   licensable source.
-2. **Cheap parallel tracks:** GitHub Actions CI (build + `dotnet test`), a seed entry box on the New-run screen, a
+1. **Cheap parallel tracks:** GitHub Actions CI (build + `dotnet test`), a seed entry box on the New-run screen, a
    profile picker, CLI `save`/`load` and Stationery commands.
-3. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
+2. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
    open-license fonts, legible premium labels, Desk Items as physical objects, then re-enable the clue columns as
    quiet background.
-4. **Balance pass on outliers:** item pick rates at current targets (Pulitzer / Margin Notes / Word Count), deck edits
+3. **Balance pass on outliers:** item pick rates at current targets (Pulitzer / Margin Notes / Word Count), deck edits
    worth buying, Margin Clip (give it a cost if it still dominates), Tile Rack.
-5. **Deferred content:** Magnifying Glass (rework to "letters left in the bag"?), Brass Paperclip (keep-tiles picker),
+4. **Deferred content:** Magnifying Glass (rework to "letters left in the bag"?), Brass Paperclip (keep-tiles picker),
    Highlighter, Correction Tape.
-6. **UI polish:** tile placement animation, sound, deck viewer, tooltips for Desk Items/bosses, reduced-motion option.
+5. **UI polish:** tile placement animation, sound, deck viewer, tooltips for Desk Items/bosses, reduced-motion option.
 
 ## 7. How to work in this repo (practical tips learned the hard way)
 
@@ -360,6 +370,8 @@ dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Edito
 ## 9. Commit history (newest first)
 
 ```
+9eaafb2 Add The Olde English Folio as a bonus theme dictionary
+a3bd257 Document The Atlas Unlocked in rules, roadmap and handoff
 4a4f20d Add The Atlas Unlocked dictionary of place names
 50ac131 Document dictionary overlays in rules, roadmap and handoff
 2c251fc Tune The Lexicographer's Deck to the Standard Deck's win rate
