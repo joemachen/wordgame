@@ -92,6 +92,7 @@ public partial class Main : Control
     private Button _recallButton = null!;
     private Button _discardButton = null!;
     private Button _hintButton = null!;
+    private Button _bestButton = null!;
     private ScrollContainer _shopArea = null!;
     private VBoxContainer _shopContent = null!;
 

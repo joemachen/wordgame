@@ -48,14 +48,18 @@ public partial class Main
         _recallButton.Pressed += Recall;
         _discardButton = UiKit.MakeButton("Discard selected", UiKit.Mult.Darkened(0.3f), 18);
         _discardButton.Pressed += Discard;
-        _hintButton = UiKit.MakeButton(_devMode ? "Hint (dev)" : "Hint", UiKit.PanelRaised, 18);
+        _hintButton = UiKit.MakeButton("Hint", UiKit.PanelRaised, 18);
         _hintButton.Pressed += Hint;
+        _bestButton = UiKit.MakeButton("Best (dev)", UiKit.PanelRaised, 18);
+        _bestButton.TooltipText = "Dev only: place the highest-scoring play";
+        _bestButton.Visible = _devMode;
+        _bestButton.Pressed += () => ShowHint(best: true);
         _shuffleButton = UiKit.MakeButton("Shuffle  Space", UiKit.PanelRaised, 18);
         _shuffleButton.Pressed += ShuffleHand;
         _sortButton = UiKit.MakeButton("A→Z", UiKit.PanelRaised, 18);
         _sortButton.TooltipText = "Sort the hand alphabetically (press again to reverse)";
         _sortButton.Pressed += SortHand;
-        foreach (var b in new[] { _submitButton, _recallButton, _discardButton, _shuffleButton, _sortButton, _hintButton })
+        foreach (var b in new[] { _submitButton, _recallButton, _discardButton, _shuffleButton, _sortButton, _hintButton, _bestButton })
             buttons.AddChild(b);
         buttonsHolder.AddChild(buttons);
         box.AddChild(buttonsHolder);
@@ -200,6 +204,7 @@ public partial class Main
         _discardButton.Disabled = !idle || _selected.Count == 0 || Round.DiscardsLeft == 0;
         _discardButton.Text = _selected.Count > 0 ? $"Discard {_selected.Count}" : "Discard selected";
         _hintButton.Disabled = !idle;
+        _bestButton.Disabled = !idle;
         _shuffleButton.Disabled = !idle || Round.Hand.Count < 2;
         _sortButton.Disabled = !idle || Round.Hand.Count < 2;
     }
@@ -456,8 +461,8 @@ public partial class Main
 
     private RankedPlay? BestPlay() => Hints.Best(RankedPlays());
 
-    /// <summary>The Hint button: a decent play (never the best), or the best play in dev mode.</summary>
-    private void Hint() => ShowHint(best: _devMode);
+    /// <summary>The Hint button: a decent play, never the best (the dev-only Best button places that).</summary>
+    private void Hint() => ShowHint(best: false);
 
     private void ShowHint(bool best)
     {

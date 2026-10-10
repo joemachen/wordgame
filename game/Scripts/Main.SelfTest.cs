@@ -169,7 +169,20 @@ public partial class Main
         var decent = Crossword.Core.Analysis.Hints.Decent(ranked)!;
         Check("hint shows a decent play, not the best",
             _pending.Count == decent.Play.Placed.Length && decent.Play.Placed.All(p => _pending.TryGetValue(p.Position, out var t) && t == p.Tile)
-            && (_devMode || decent.Score.Total < ranked[0].Score.Total || ranked.Count == 1));
+            && (decent.Score.Total < ranked[0].Score.Total || ranked.Count == 1));
+
+        // 6b. The dev-only Best button (hidden without --dev) places the top-ranked play with no "not the best" note.
+        bool bestHidden = !_bestButton.Visible;
+        _bestButton.Visible = true;
+        await Frames(1); // the button needs a layout pass before it has a rect to click
+        await Click(Centre(_bestButton));
+        var top = ranked[0];
+        Check("best (dev) places the highest-scoring play",
+            bestHidden && _pending.Count == top.Play.Placed.Length
+            && top.Play.Placed.All(p => _pending.TryGetValue(p.Position, out var t) && t == p.Tile)
+            && !_messageLabel.Text.Contains("not the best play"));
+        _bestButton.Visible = _devMode;
+        await Click(Centre(_hintButton));
 
         // 7. Tab opens the Style Guides popup with every tier's guide and the hinted play's tier highlighted;
         //    Esc closes it without recalling the pending play.

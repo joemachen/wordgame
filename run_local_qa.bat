@@ -3,9 +3,11 @@ setlocal
 rem ============================================================
 rem  wordgame local QA: build -> test -> launch the game.
 rem  Double-click to run (random seed) - opens the Godot game window.
-rem  Usage: run_local_qa.bat [--cli] [--ci] [seed]
-rem    --cli  launch the text console instead of the game window
-rem    --ci   skip pauses (non-interactive / scripted runs)
+rem  Usage: run_local_qa.bat [--cli] [--ci] [--nodev] [seed]
+rem    --cli    launch the text console instead of the game window
+rem    --ci     skip pauses (non-interactive / scripted runs)
+rem    --nodev  game window without dev mode (by default the game launches
+rem             with --dev: the Best button that places the best play)
 rem    seed   start on a fixed seed for reproducible playtests
 rem  Godot location: set GODOT in qa.local.bat (see qa.local.bat.example)
 rem  or as an environment variable.
@@ -15,12 +17,17 @@ cd /d "%~dp0"
 set "NOPAUSE="
 set "SEED="
 set "USE_CLI="
+set "DEV=1"
 :parse_args
 if "%~1"=="" goto :args_done
 if /i "%~1"=="--ci" (
     set "NOPAUSE=1"
 ) else if /i "%~1"=="--cli" (
     set "USE_CLI=1"
+) else if /i "%~1"=="--dev" (
+    set "DEV=1"
+) else if /i "%~1"=="--nodev" (
+    set "DEV="
 ) else (
     set "SEED=%~1"
 )
@@ -62,7 +69,9 @@ echo.
 echo [QA] Step 3/3: Launching the game window...
 set "SEEDARG="
 if defined SEED set "SEEDARG=--seed=%SEED%"
-start "" "%GODOT%" --path "%~dp0game" -- %SEEDARG%
+set "DEVARG="
+if defined DEV set "DEVARG=--dev"
+start "" "%GODOT%" --path "%~dp0game" -- %SEEDARG% %DEVARG%
 exit /b 0
 
 :no_godot
