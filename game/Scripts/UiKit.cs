@@ -6,6 +6,12 @@ namespace Wordgame.Godot;
 /// <summary>Colours and widget factories. The whole UI is built in code so it stays diff-friendly.</summary>
 public static class UiKit
 {
+    /// <summary>The player's Text size setting: multiplies every font size (tile faces stay sized to their tile).</summary>
+    public static float TextScale { get; set; } = 1f;
+
+    /// <summary>A font size with <see cref="TextScale"/> applied.</summary>
+    public static int FontSize(int size) => Math.Max(1, (int)Math.Round(size * TextScale));
+
     // Newsroom palette: dark ink desk, newsprint tiles, red/blue editor's pencils for Mult/Chips.
     public static readonly Color Background = new("161a22");
     public static readonly Color Panel = new("222836");
@@ -66,10 +72,11 @@ public static class UiKit
         return box;
     }
 
-    public static Label MakeLabel(string text, int size, Color color, HorizontalAlignment align = HorizontalAlignment.Left, bool wrap = false)
+    public static Label MakeLabel(string text, int size, Color color, HorizontalAlignment align = HorizontalAlignment.Left, bool wrap = false,
+        bool scaled = true)
     {
         var label = new Label { Text = text, HorizontalAlignment = align, MouseFilter = Control.MouseFilterEnum.Ignore };
-        label.AddThemeFontSizeOverride("font_size", size);
+        label.AddThemeFontSizeOverride("font_size", scaled ? FontSize(size) : size);
         label.AddThemeColorOverride("font_color", color);
         if (wrap)
             label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -79,7 +86,7 @@ public static class UiKit
     public static Button MakeButton(string text, Color bg, int fontSize = 18, Color? textColor = null)
     {
         var button = new Button { Text = text, FocusMode = Control.FocusModeEnum.None };
-        button.AddThemeFontSizeOverride("font_size", fontSize);
+        button.AddThemeFontSizeOverride("font_size", FontSize(fontSize));
         var fg = textColor ?? Text;
         button.AddThemeColorOverride("font_color", fg);
         button.AddThemeColorOverride("font_hover_color", fg);
@@ -96,7 +103,7 @@ public static class UiKit
     public static LineEdit MakeLineEdit(string placeholder, float width, int fontSize = 16)
     {
         var edit = new LineEdit { PlaceholderText = placeholder, CustomMinimumSize = new Vector2(width, 0) };
-        edit.AddThemeFontSizeOverride("font_size", fontSize);
+        edit.AddThemeFontSizeOverride("font_size", FontSize(fontSize));
         edit.AddThemeColorOverride("font_color", Text);
         edit.AddThemeColorOverride("font_placeholder_color", TextMuted);
         edit.AddThemeColorOverride("caret_color", Selected);
@@ -135,12 +142,12 @@ public static class UiKit
         button.AddThemeStyleboxOverride("disabled", Box(background, 6, border, borderWidth, 0, 0));
 
         string face = tile.IsWild && blankWild ? "?" : tile.Letter.ToString();
-        var letter = MakeLabel(face, (int)(size * 0.5f), tile.IsWild ? Chips.Darkened(0.25f) : Ink, HorizontalAlignment.Center);
+        var letter = MakeLabel(face, (int)(size * 0.5f), tile.IsWild ? Chips.Darkened(0.25f) : Ink, HorizontalAlignment.Center, scaled: false);
         letter.VerticalAlignment = VerticalAlignment.Center;
         letter.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         button.AddChild(letter);
 
-        var points = MakeLabel(value.ToString(), (int)(size * 0.2f), new Color("5b5545"), HorizontalAlignment.Right);
+        var points = MakeLabel(value.ToString(), (int)(size * 0.2f), new Color("5b5545"), HorizontalAlignment.Right, scaled: false);
         points.VerticalAlignment = VerticalAlignment.Bottom;
         points.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         points.OffsetRight = -5;
@@ -149,7 +156,7 @@ public static class UiKit
 
         if (tile.IsWild)
         {
-            var wild = MakeLabel("wild", (int)(size * 0.17f), Chips.Darkened(0.25f), HorizontalAlignment.Left);
+            var wild = MakeLabel("wild", (int)(size * 0.17f), Chips.Darkened(0.25f), HorizontalAlignment.Left, scaled: false);
             wild.VerticalAlignment = VerticalAlignment.Bottom;
             wild.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             wild.OffsetLeft = 5;
@@ -200,11 +207,11 @@ public static class UiKit
         button.AddChild(tag);
     }
 
-    /// <summary>Fades and pops a control in (scale only — containers own its position).</summary>
+    /// <summary>Fades and pops a control in (scale only — containers own its position; reduced motion: fade only).</summary>
     public static void DropIn(Control control, float size)
     {
         control.PivotOffset = new Vector2(size / 2, size / 2);
-        control.Scale = new Vector2(0.6f, 0.6f);
+        control.Scale = Juice.ReducedMotion ? Vector2.One : new Vector2(0.6f, 0.6f);
         control.Modulate = new Color(1, 1, 1, 0);
         var tween = control.CreateTween().SetParallel();
         tween.TweenProperty(control, "scale", Vector2.One, 0.28).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);

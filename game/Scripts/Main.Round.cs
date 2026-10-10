@@ -141,7 +141,7 @@ public partial class Main
         var premium = board.PremiumAt(pos);
         var color = UiKit.PremiumColor(premium);
         cell.Text = UiKit.PremiumText(premium);
-        cell.AddThemeFontSizeOverride("font_size", 18);
+        cell.AddThemeFontSizeOverride("font_size", UiKit.FontSize(18));
         cell.AddThemeColorOverride("font_color", new Color(1, 1, 1, 0.85f));
         cell.AddThemeColorOverride("font_hover_color", Colors.White);
         cell.AddThemeStyleboxOverride("normal", UiKit.Box(color, 4));
@@ -678,10 +678,10 @@ public partial class Main
             GetViewport().SetInputAsHandled();
             return;
         }
-        if (_profilesOverlay.Visible)
+        if (_profilesOverlay.Visible || _settingsOverlay.Visible)
         {
             if (key.Keycode == Key.Escape)
-                _profilesOverlay.Visible = false;
+                _profilesOverlay.Visible = _settingsOverlay.Visible = false;
             GetViewport().SetInputAsHandled();
             return;
         }

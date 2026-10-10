@@ -5,7 +5,8 @@ namespace Wordgame.Godot;
 
 /// <summary>
 /// Title menu, shown on launch: Continue (the default; Enter) resumes the profile's run, New run opens the New-run
-/// picker (abandoning a run in progress takes a second click), Profile switches or creates profiles, Stats, Quit.
+/// picker (abandoning a run in progress takes a second click), Profile switches or creates profiles, Stats,
+/// Settings, Quit.
 /// The sidebar's Menu button brings it back. QA and dev-setup launches skip it and go straight into a run.
 /// </summary>
 public partial class Main
@@ -15,6 +16,7 @@ public partial class Main
     private Label _titleContinueDetail = null!;
     private Button _titleNewRun = null!;
     private Button _titleProfile = null!;
+    private Button _titleSettings = null!;
     private Label _titlePlayingAs = null!;
     private Label _titleNotice = null!;
     private ulong _newRunArmedUntil;
@@ -49,6 +51,8 @@ public partial class Main
         _titleProfile = TitleButton("Profile", UiKit.PanelRaised, ShowProfiles);
         box.AddChild(_titleProfile);
         box.AddChild(TitleButton("Stats", UiKit.PanelRaised, ToggleStats));
+        _titleSettings = TitleButton("Settings", UiKit.PanelRaised, ShowSettings);
+        box.AddChild(_titleSettings);
         box.AddChild(TitleButton("Quit", UiKit.PanelRaised, QuitGame));
 
         _titleNotice = UiKit.MakeLabel("", 14, UiKit.Bad, HorizontalAlignment.Center, wrap: true);

@@ -519,6 +519,23 @@ public partial class Main
         foreach (string dir in new[] { _profileRoot, _saveRoot }.Select(ProjectSettings.GlobalizePath).Where(Directory.Exists))
             Directory.Delete(dir, recursive: true);
 
+        // 23. Settings (kept in memory in QA runs): reduced motion stops the bounces; text size scales the window.
+        await Click(Centre(_titleSettings));
+        Check("settings open from the title", _settingsOverlay.Visible);
+        await Click(Centre((Control)_settingsBox.FindChild("Setting_ReducedMotion", owned: false)!));
+        Juice.Pop(_scoreLabel, 1.5f);
+        await Frames(3);
+        Check("reduced motion stops the bounces", Juice.ReducedMotion && _settings.Settings.ReducedMotion && _scoreLabel.Scale == Vector2.One
+            && ((Button)_settingsBox.FindChild("Setting_ReducedMotion", owned: false)!).Text == "On");
+        await Click(Centre((Control)_settingsBox.FindChild("TextScale_120", owned: false)!));
+        await Frames(2);
+        bool scaled = _settings.Settings.TextScale == 1.2f && _titlePlayingAs.GetThemeFontSize("font_size") == UiKit.FontSize(16)
+            && UiKit.FontSize(16) == 19 && _settingsOverlay.Visible && _session is not null;
+        await PressKey(global::Godot.Key.Escape);
+        Check("text size rebuilds the UI with bigger text", scaled && !_settingsOverlay.Visible && _titleOverlay.Visible);
+        _settings.Update(_ => new GameSettings());
+        ApplySettings();
+
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);
     }

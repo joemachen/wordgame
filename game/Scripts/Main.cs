@@ -108,6 +108,7 @@ public partial class Main : Control
         _settings = qaRun ? SettingsStore.InMemory() : SettingsStore.Load();
         string profileName = args.TryGetValue("profile", out var named) && named.Length > 0 ? named : _settings.Settings.LastProfile ?? "Player";
         _profile = qaRun ? ProfileStore.InMemory(profileName) : ProfileStore.Load(profileName);
+        ApplySettings();
         BuildLayout();
 
         ulong? chosenSeed = args.TryGetValue("seed", out var s) && ulong.TryParse(s, out var parsed) ? parsed : null;
@@ -285,14 +286,21 @@ public partial class Main : Control
         AddChild(_pressRunOverlay);
         _profilesOverlay = BuildProfilesOverlay();
         AddChild(_profilesOverlay);
+        _settingsOverlay = BuildSettingsOverlay();
+        AddChild(_settingsOverlay);
     }
 
     private Control BuildSidebar()
     {
         var panel = UiKit.MakePanel(UiKit.Panel, padding: 16);
         panel.CustomMinimumSize = new Vector2(330, 0);
+        // Scrolls rather than growing past the window when long text (a bigger text size) doesn't fit.
+        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        panel.AddChild(scroll);
         var box = UiKit.VBox(10);
-        panel.AddChild(box);
+        box.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        box.SizeFlagsVertical = SizeFlags.ExpandFill;
+        scroll.AddChild(box);
 
         // Sidebar labels wrap so long round names never widen the sidebar and squeeze the board/shop.
         _titleLabel = UiKit.MakeLabel("", 22, UiKit.Text, wrap: true);
@@ -332,9 +340,9 @@ public partial class Main : Control
 
         // Definitions of the words in the pending play (Open English WordNet + hand-written supplement).
         _definitionsLabel = new RichTextLabel { BbcodeEnabled = true, FitContent = true, ScrollActive = false, MouseFilter = MouseFilterEnum.Ignore };
-        _definitionsLabel.AddThemeFontSizeOverride("normal_font_size", 14);
-        _definitionsLabel.AddThemeFontSizeOverride("bold_font_size", 14);
-        _definitionsLabel.AddThemeFontSizeOverride("italics_font_size", 14);
+        _definitionsLabel.AddThemeFontSizeOverride("normal_font_size", UiKit.FontSize(14));
+        _definitionsLabel.AddThemeFontSizeOverride("bold_font_size", UiKit.FontSize(14));
+        _definitionsLabel.AddThemeFontSizeOverride("italics_font_size", UiKit.FontSize(14));
         _definitionsLabel.AddThemeColorOverride("default_color", UiKit.TextMuted);
         box.AddChild(_definitionsLabel);
 
@@ -350,10 +358,12 @@ public partial class Main : Control
         logScroll.AddChild(_logBox);
         box.AddChild(logScroll);
 
+        // The seed and run name get the sidebar's full width (wrapping, so a custom run's long name can't widen the
+        // sidebar); the buttons sit below, right-aligned.
+        _seedLabel = UiKit.MakeLabel("", 13, UiKit.TextMuted, wrap: true);
+        box.AddChild(_seedLabel);
         var footer = UiKit.HBox(8);
-        _seedLabel = UiKit.MakeLabel("", 13, UiKit.TextMuted);
-        _seedLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        footer.AddChild(_seedLabel);
+        footer.Alignment = BoxContainer.AlignmentMode.End;
         _menuButton = UiKit.MakeButton("Menu", UiKit.PanelRaised, 14);
         _menuButton.TooltipText = "Title menu: new run, profiles, quit";
         _menuButton.Pressed += () => ShowTitle();

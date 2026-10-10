@@ -80,8 +80,8 @@ public partial class Main
                 MouseFilter = MouseFilterEnum.Ignore,
                 CustomMinimumSize = new Vector2(ClueColumnWidth - 28, 0),
             };
-            line.AddThemeFontSizeOverride("normal_font_size", 13);
-            line.AddThemeFontSizeOverride("bold_font_size", 13);
+            line.AddThemeFontSizeOverride("normal_font_size", UiKit.FontSize(13));
+            line.AddThemeFontSizeOverride("bold_font_size", UiKit.FontSize(13));
             line.AddThemeColorOverride("default_color", ClueInk);
             string number = clue.Number is int n ? $"[b]{n}[/b]  " : "";
             line.Text = $"{number}[b]{Escape(clue.Answer)}[/b] — {Escape(clue.Text)}";

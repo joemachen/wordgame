@@ -5,10 +5,14 @@ namespace Wordgame.Godot;
 /// <summary>
 /// Scoring "ring-up" effects and every number that tunes them. Intensity grows with the play's share of the round's
 /// deadline: <see cref="BigPlay"/> and <see cref="HugePlay"/> unlock stronger punches, screen shake and confetti; a
-/// play that clears the whole deadline on its own gets the <see cref="StampText"/> stamp.
+/// play that clears the whole deadline on its own gets the <see cref="StampText"/> stamp. With
+/// <see cref="ReducedMotion"/> nothing shakes, bounces, bursts or slams: numbers still count up and text still fades.
 /// </summary>
 public static class Juice
 {
+    /// <summary>The player's Reduced motion setting.</summary>
+    public static bool ReducedMotion { get; set; }
+
     // Tempo: the first step is slow, later steps speed up (Balatro-style), never below the floor.
     public const double FirstStepSeconds = 0.34;
     public const double MinStepSeconds = 0.13;
@@ -56,7 +60,7 @@ public static class Juice
     /// <summary>Scales a control up and back, around its centre (or its left edge, for left-aligned text).</summary>
     public static void Pop(Control control, float scale, double seconds = 0.2, bool fromLeft = false)
     {
-        if (!GodotObject.IsInstanceValid(control))
+        if (ReducedMotion || !GodotObject.IsInstanceValid(control))
             return;
         control.PivotOffset = fromLeft ? new Vector2(0, control.Size.Y / 2) : control.Size / 2;
         var tween = control.CreateTween();
@@ -95,7 +99,8 @@ public static class Juice
         label.ResetSize();
         label.Position = at - new Vector2(label.Size.X / 2, label.Size.Y);
         var tween = label.CreateTween().SetParallel();
-        tween.TweenProperty(label, "position:y", label.Position.Y - 46, 0.8).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
+        if (!ReducedMotion)
+            tween.TweenProperty(label, "position:y", label.Position.Y - 46, 0.8).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
         tween.TweenProperty(label, "modulate:a", 0f, 0.8).SetDelay(0.3);
         tween.Chain().TweenCallback(Callable.From(label.QueueFree));
     }
@@ -103,6 +108,8 @@ public static class Juice
     /// <summary>Shakes a control around its current position, then puts it back.</summary>
     public static void Shake(Control control, float pixels = ShakePixels, double seconds = ShakeSeconds)
     {
+        if (ReducedMotion)
+            return;
         var home = control.Position;
         var tween = control.CreateTween();
         const int steps = 9;
@@ -118,6 +125,8 @@ public static class Juice
     /// <summary>A one-shot burst of newsprint-coloured confetti on the effects layer.</summary>
     public static void Confetti(Control layer, Vector2 at)
     {
+        if (ReducedMotion)
+            return;
         var particles = new CpuParticles2D
         {
             Position = at,
@@ -160,7 +169,7 @@ public static class Juice
         panel.Position = centre - panel.Size / 2;
         panel.PivotOffset = panel.Size / 2;
         panel.Rotation = Mathf.DegToRad(-9);
-        panel.Scale = new Vector2(2.6f, 2.6f);
+        panel.Scale = ReducedMotion ? Vector2.One : new Vector2(2.6f, 2.6f); // reduced motion: fades in without the slam
         panel.Modulate = new Color(1, 1, 1, 0);
         var tween = panel.CreateTween();
         tween.SetParallel();
