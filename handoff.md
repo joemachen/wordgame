@@ -302,8 +302,9 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 
 ## 6. Suggested next steps (offered to the user; they haven't picked yet)
 
-Longer-term phases live in `ROADMAP.md` §11 (phases 0–4 ✅, phase 5 🟡: decks ✅ except Tabloid/Lexicographer,
-dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Editorial, presentation, onboarding).
+Longer-term phases live in `ROADMAP.md` §11 (phases 0–4 ✅, phase 5 🟡: decks ✅ except Tabloid, dictionaries ✅
+except Slang — both wait for a licensable slang list — denylist ✅), plus parallel tracks (CI, seed entry, Daily
+Editorial, presentation, onboarding).
 
 **Playtests (the user's side):**
 0. **The Lexicographer's Deck** (`--dict=tech-shorthand` / `atlas` / `olde-folio`, or win 4–6 runs): do acronyms,
@@ -357,6 +358,11 @@ dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Edito
   Each is a console app referencing `src/Crossword.Core` running `RunSimulator.PlayRun` over paired seeds with
   `.AsParallel()`; 200 runs × 4–8 arms ≈ 8–20 min on 20 cores. Harness baselines must set `StationeryGain = null`
   explicitly if they mean "no Stationery" (the default bot buys Margin Clips).
+- Dictionary checks (2026-10-10): the whole-run numbers come straight from CLI `runsim 200 <skill> frac
+  deck=lexicographer dict=<id>` (~3–5 min per arm). Scratch harness `themecheck` measures a theme bonus at the round
+  level instead: `RoundSimulator.PlayRound` over 400 seeds with `ScoringConfig.Default with { Theme = … }` at several
+  `MultPerWord` values vs no theme (seconds, not minutes). Word lists were drafted as `NAME | text` in the scratchpad
+  and a Python script dropped ENABLE words / over-long names and wrote the sorted `.tsv` (header comments included).
 - Balance experiments: a throwaway console project in the scratchpad referencing `src/Crossword.Core` (loop over configs, call `RunSimulator.PlayRun(seed, config, lexicon, skill, strategy, botConfig, model: SkillModel.ScoreFraction)` with `.AsParallel()`, build `-c Release`) is faster than editing defaults repeatedly. 100 runs ≈ 1 min with the evaluating bot. Note `RunConfig.Days` multipliers must be set explicitly in such harnesses. n=60 runs is too noisy (±6 pts) to compare close variants; use 150+.
 - The user's machine has old Godot crash dumps; the project uses the **GL Compatibility** renderer, which has been stable.
 
@@ -370,6 +376,7 @@ dictionaries + denylist next), plus parallel tracks (CI, seed entry, Daily Edito
 ## 9. Commit history (newest first)
 
 ```
+a871547 Document The Olde English Folio in rules, roadmap and handoff
 9eaafb2 Add The Olde English Folio as a bonus theme dictionary
 a3bd257 Document The Atlas Unlocked in rules, roadmap and handoff
 4a4f20d Add The Atlas Unlocked dictionary of place names
