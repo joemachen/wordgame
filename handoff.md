@@ -5,12 +5,12 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-10 · HEAD `f3ecbbb` (code) · 507 unit tests passing · UI self-test 79/79 passing · CI green_
+_Last updated: 2026-10-10 · HEAD `5061d03` (code) · 507 unit tests passing · UI self-test 80/80 passing · CI green_
 
 ## 0. ▶ Queued for the next session — the user will say "go"
 
 The user approved everything from 2026-10-10 (title menu, profiles, Settings; **fullscreen tested by hand and
-approved**). Next, two tasks, in this order:
+approved**). The dev-only Best button (B) is built (see §3); the economy re-examination (A) is next:
 
 ### A. Re-examine the economy ("I never feel like I have enough money")
 The user says money feels very hard to make in playtests, and suspects it's partly their own skill. **Measure first,
@@ -50,18 +50,12 @@ user's calls; see §3).
 - Deliverables: a measurement table for the user, then the chosen change with tests (pin the new numbers in tests'
   own configs), a `runsim` re-check, and doc updates (§2, §3, §4c, CLAUDE.md Economy line).
 
-### B. Dev-only "Best" button
-The user wants a dev-only button that works like Hint but places the **absolute highest-scoring play**.
-- Today `--dev` changes the Hint button itself ("Hint (dev)", `ShowHint(best: _devMode)`;
-  `game/Scripts/Main.Round.cs` ~L51 and ~L460). **Plan:** keep Hint as the normal *decent* hint even with `--dev`, and
-  add a separate **"Best (dev)"** button next to it, created always but visible only when `_devMode`. It calls
-  `ShowHint(best: true)`, which uses `Hints.Best` = the top of `MoveRanker.Rank` (scored with the run's Desk Items,
-  boss, theme and censored letter, so it's the highest-*scoring* play, cross words included). Mention this in the
-  hand-off if the user meant "longest word" instead.
-- Self-test (`Main.SelfTest.cs` ~L172 has a `_devMode` branch for the hint check): make the button visible in the
-  test, click it, and check the pending play scores `ranked[0]`'s total. Also check that Hint still isn't the best
-  play.
-- Docs: CLAUDE.md (Hint bullet, `--dev` flag in Commands) and handoff §2 Hint row.
+### B. ~~Dev-only "Best" button~~ ✅ 2026-10-10
+Built as planned: `--dev` no longer changes Hint; it shows a separate **Best (dev)** button (`Main.Round.cs`,
+`_bestButton`, created always, `Visible = _devMode`) that calls `ShowHint(best: true)`. Self-test step 6b covers it
+(80 checks now). **Note for the user:** "best" = the highest-*scoring* play (`Hints.Best`, the top of
+`MoveRanker.Rank` with the run's Desk Items, boss, theme and censored letter, cross words included), not the
+longest word — say so if you meant the longest word.
 
 ---
 
@@ -81,13 +75,13 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5). Endless mode. |
 | Content | 23 Desk Items (Common/Uncommon/Rare, incl. scaling items; Phase 2 added **Etymology Tome**, **Rubber Stamp**, **Printing Press Roller**, **Tile Rack**, **Coffee Stain** — the last two via the round-start hook `IDeskItem.ModifyRound`), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 7 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, **Redundant Copy**, The Strict Grammarian, **The Puzzle Master** = two Early/Mid bosses at once), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each except Margin Clip $6, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round), **Fountain Pen** (a hand tile turns wild this round). **Wild tiles**: any letter (picked when placed), 0 letter chips; 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5). Holding Scissors/White-Out/Fountain Pen keeps a stuck round alive. Lifetime **player stats** in a saved profile (words by length, newest words, runs/wins, best play, intersections, close calls, bosses beaten, full-spread rounds). |
-| Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
+| Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` adds a **Best (dev)** button next to Hint that places the best play (Hint stays decent). |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`, plus Stationery (`use <slot> [LETTERS|cell]`, `sellst`, `give`) and `save`/`load` (game save format). The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. **Title menu** on launch (Continue — Enter — / New run / Profile / Stats / Settings / Quit; sidebar Menu button reopens it), **profiles** (list, switch, create; each keeps its stats, unlocks and run; last one remembered), **Settings** (reduced motion, fullscreen, text size 90–120%; `user://settings.cfg`), New-run picker with a **seed box**. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
 | Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and offered by the title menu's **Continue** on launch ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. The title's New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. The CLI can `save`/`load` the same format. **Seeded runs** (seed box or `--seed`, `RunState.Seeded`) count in the stats but unlock nothing (`PlayerStats.SeededRunsWon`). |
 | Press Runs | 8 stacking difficulty levels (`Core/Run/PressRuns.cs`, numbers in `PressRunConfig`): Proofreader → First Edition (Dailies pay $1) → Late Edition (targets ×1.05/week) → Rush Job (−1 Sunday submission) → Ink Shortage (−1 discard) → Heavy Printing (rerolls +$1) → Censored Press (one of B C F G H M P W Y unplayable per round) → Final Print Run (the Sunday boss adds a second Early/Mid rule, `Reprint`). Level stored in `RunState.PressRun` and re-applied to the config on load. **Unlocks:** winning level N unlocks N+1 (`PlayerStats.HighestPressRunWon`; old profiles with wins start at 1). Game: New run opens a picker once level 2 is unlocked (locked rows greyed), victory screen announces unlocks, sidebar shows the level + censored letter, censored hand tiles struck through; `--press=N` dev flag. CLI: `runsim … press=N`, `new [seed] [press=N]`. |
 | Starting decks | `Core/Run/Decks.cs` (numbers in `DeckConfig`): **Standard**, **The Crossword Draft Deck** (+1 Mult per intersection, deadlines ×0.7; words need 3+ letters; no Strict Grammarian), **The Redactor Deck** (thin 30-tile deck incl. Q Z X J; −1 discard), **The Copy Editor's Deck** (starts with Red Pen, +1 discard; 4 Desk Item slots), **The Lexicographer's Deck** (pick an unlocked dictionary; deadlines ×0.85; 4 Desk Item slots). A deck is a `RunConfig` transform applied before the Press Run (`RunRules.ConfigFor`); the run stores `RunState.DeckId`. New knobs: `RunConfig.MinWordLength`, `DeskSlots`, `StartingDeskItems`, `ExcludedBosses`. **Unlocks:** one deck per run won (`StatsQueries.UnlockedDecks`); Press Run unlocks are **per deck** (`PlayerStats.HighestPressRunWon`: deck id → level; old profiles count theirs for Standard). Game: one New-run screen (decks left, the deck's Press Runs right), `--deck=id`; victory screen announces deck unlocks. CLI: `runsim … deck=id`, `new … deck=id`. Each deck wins within ~±7 pts of Standard (§4). **Dictionary unlocks:** the first comes with The Lexicographer's Deck (4 wins), then one more per win (`StatsQueries.UnlockedDictionaries`): The Atlas Unlocked at 5 wins, The Olde English Folio at 6. New-run picker shows a dictionary row for that deck; `--dict=id` dev flag; CLI `new`/`runsim … dict=id`. Tabloid waits for a licensable Slang list. |
-| QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. **GitHub Actions CI** (`.github/workflows/ci.yml`): restore, build (incl. the Godot project) and test in Release on every push/PR to `main`, ~50 s. |
+| QA | `run_local_qa.bat` (double-click): build → tests → opens game window. Launches the game **in dev mode** (the Best button; user's choice 2026-10-10); `--nodev` for the player's view, `--cli` for console. **GitHub Actions CI** (`.github/workflows/ci.yml`): restore, build (incl. the Godot project) and test in Release on every push/PR to `main`, ~50 s. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
 
@@ -184,7 +178,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   (130% overflowed vertically). Two layout fixes came out of it: the sidebar scrolls instead of growing past the
   window, and the seed/run-name line wraps on its own row (a long custom-run name used to widen the sidebar to
   ~670 px).
-- **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
+- **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps an unlimited best play for development — since 2026-10-10 as a separate **Best (dev)** button next to Hint (user's request), so a dev build still shows the player's decent Hint. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Starting decks (2026-10-06)
 
@@ -399,7 +393,7 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
-0. **Queued by the user (§0): economy re-examination, then the dev-only Best button.**
+0. **Queued by the user (§0): economy re-examination** (the dev-only Best button is done ✅ 2026-10-10).
 1. ~~Cheap parallel tracks~~ ✅ 2026-10-10 (CI, seed box, profile picker, CLI save/load + Stationery) plus a title
    menu and Settings v1. Leftovers: copyable seed, profile delete/rename, volume (with audio).
 2. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
@@ -415,7 +409,7 @@ Editorial, presentation, onboarding).
 ## 7. How to work in this repo (practical tips learned the hard way)
 
 - **Verify, don't assume.** After changes: `dotnet build wordgame.sln` (warnings are errors) → `dotnet test`. For UI changes also run the screenshot and self-test flags:
-  - `"D:/Projects/Godot/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path game -- --seed=42 --screenshot=<scratchpad>/shot.png` then view the PNG. Extra flags: `--give=red-pen,pulitzer,answer-key --autoplay=3 --hint --dev` (`--give` takes Desk Item or Stationery ids; `--dev` = best-play Hint button).
+  - `"D:/Projects/Godot/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path game -- --seed=42 --screenshot=<scratchpad>/shot.png` then view the PNG. Extra flags: `--give=red-pen,pulitzer,answer-key --autoplay=3 --hint --dev` (`--give` takes Desk Item or Stationery ids; `--dev` = the Best (dev) button that places the best play).
   - `... --path game -- --seed=42 --selftest` → PASS/FAIL lines, exit 1 on failure. Extend `game/Scripts/Main.SelfTest.cs` for new interactions.
   - QA flags (`--selftest`/`--screenshot`/`--autoplay`) skip the title menu, so `--screenshot` shows the game; to see the
     title, profiles or settings, call `ShowTitle()`/`ShowProfiles()`/`ShowSettings()` in a temporary self-test step and
