@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-10 · HEAD `9eaafb2` (code) · 501 unit tests passing · UI self-test 65/65 passing_
+_Last updated: 2026-10-10 · HEAD `f3ecbbb` (code) · 507 unit tests passing · UI self-test 79/79 passing · CI green_
 
 ---
 
@@ -26,12 +26,12 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5). Endless mode. |
 | Content | 23 Desk Items (Common/Uncommon/Rare, incl. scaling items; Phase 2 added **Etymology Tome**, **Rubber Stamp**, **Printing Press Roller**, **Tile Rack**, **Coffee Stain** — the last two via the round-start hook `IDeskItem.ModifyRound`), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 7 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, **Redundant Copy**, The Strict Grammarian, **The Puzzle Master** = two Early/Mid bosses at once), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each except Margin Clip $6, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round), **Fountain Pen** (a hand tile turns wild this round). **Wild tiles**: any letter (picked when placed), 0 letter chips; 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5). Holding Scissors/White-Out/Fountain Pen keeps a stuck round alive. Lifetime **player stats** in a saved profile (words by length, newest words, runs/wins, best play, intersections, close calls, bosses beaten, full-spread rounds). |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` flag restores the best-play Hint. |
-| Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`. The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
-| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
-| Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and **auto-resumed on launch** ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. Sidebar New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. |
+| Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`, plus Stationery (`use <slot> [LETTERS|cell]`, `sellst`, `give`) and `save`/`load` (game save format). The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
+| UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring, Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides popup (Tab / sidebar button: every tier's guide, level, chips × mult, owned + current-play highlights), shop + tile picker, paycheck, win/lose screens. **Title menu** on launch (Continue — Enter — / New run / Profile / Stats / Settings / Quit; sidebar Menu button reopens it), **profiles** (list, switch, create; each keeps its stats, unlocks and run; last one remembered), **Settings** (reduced motion, fullscreen, text size 90–120%; `user://settings.cfg`), New-run picker with a **seed box**. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
+| Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and offered by the title menu's **Continue** on launch ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. The title's New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. The CLI can `save`/`load` the same format. **Seeded runs** (seed box or `--seed`, `RunState.Seeded`) count in the stats but unlock nothing (`PlayerStats.SeededRunsWon`). |
 | Press Runs | 8 stacking difficulty levels (`Core/Run/PressRuns.cs`, numbers in `PressRunConfig`): Proofreader → First Edition (Dailies pay $1) → Late Edition (targets ×1.05/week) → Rush Job (−1 Sunday submission) → Ink Shortage (−1 discard) → Heavy Printing (rerolls +$1) → Censored Press (one of B C F G H M P W Y unplayable per round) → Final Print Run (the Sunday boss adds a second Early/Mid rule, `Reprint`). Level stored in `RunState.PressRun` and re-applied to the config on load. **Unlocks:** winning level N unlocks N+1 (`PlayerStats.HighestPressRunWon`; old profiles with wins start at 1). Game: New run opens a picker once level 2 is unlocked (locked rows greyed), victory screen announces unlocks, sidebar shows the level + censored letter, censored hand tiles struck through; `--press=N` dev flag. CLI: `runsim … press=N`, `new [seed] [press=N]`. |
 | Starting decks | `Core/Run/Decks.cs` (numbers in `DeckConfig`): **Standard**, **The Crossword Draft Deck** (+1 Mult per intersection, deadlines ×0.7; words need 3+ letters; no Strict Grammarian), **The Redactor Deck** (thin 30-tile deck incl. Q Z X J; −1 discard), **The Copy Editor's Deck** (starts with Red Pen, +1 discard; 4 Desk Item slots), **The Lexicographer's Deck** (pick an unlocked dictionary; deadlines ×0.85; 4 Desk Item slots). A deck is a `RunConfig` transform applied before the Press Run (`RunRules.ConfigFor`); the run stores `RunState.DeckId`. New knobs: `RunConfig.MinWordLength`, `DeskSlots`, `StartingDeskItems`, `ExcludedBosses`. **Unlocks:** one deck per run won (`StatsQueries.UnlockedDecks`); Press Run unlocks are **per deck** (`PlayerStats.HighestPressRunWon`: deck id → level; old profiles count theirs for Standard). Game: one New-run screen (decks left, the deck's Press Runs right), `--deck=id`; victory screen announces deck unlocks. CLI: `runsim … deck=id`, `new … deck=id`. Each deck wins within ~±7 pts of Standard (§4). **Dictionary unlocks:** the first comes with The Lexicographer's Deck (4 wins), then one more per win (`StatsQueries.UnlockedDictionaries`): The Atlas Unlocked at 5 wins, The Olde English Folio at 6. New-run picker shows a dictionary row for that deck; `--dict=id` dev flag; CLI `new`/`runsim … dict=id`. Tabloid waits for a licensable Slang list. |
-| QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. |
+| QA | `run_local_qa.bat` (double-click): build → tests → opens game window. `--cli` for console. **GitHub Actions CI** (`.github/workflows/ci.yml`): restore, build (incl. the Godot project) and test in Release on every push/PR to `main`, ~50 s. |
 
 ## 3. Decisions already made (don't re-litigate without the user)
 
@@ -114,6 +114,20 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   no-rare-letter Redactor Deck won 61% → **Q Z X J swapped in** (over −3 discards, 54%). Claude's calls: a deck is a
   `RunConfig` transform like a Press Run (config still not saved; deck applied first); the Redactor tiles are
   hand-picked; clicking a Press Run row starts the run (no separate Start button); a starting Red Pen can be sold.
+- **Cheap parallel tracks + title menu** (user's choices, 2026-10-10): built CI, CLI Stationery + save/load, a seed
+  box and a profile picker. **Seeded runs count stats but unlock nothing** (over counting everything or nothing).
+  **New run always opens the picker** (the seed box lives there; the old "skip until something is unlocked" is gone).
+  The user first put the profile picker in the Stats popup, then asked for a **start menu** instead: launch now shows
+  a **title menu** (Continue default + Enter, so resuming is still one keypress) — this **replaces the 2026-10-05
+  auto-resume decision**; the sidebar's New run became Menu. **Settings v1** = reduced motion, fullscreen, text size
+  (+ a "sound comes later" row). Claude's calls: settings are game-wide (`user://settings.cfg`), profiles have no
+  delete/rename (deleting is permanent), a profile appears in the list once it has a file (any run start writes it),
+  `--seed` counts as a chosen seed, CI on `ubuntu-latest` without a NuGet cache. **Text size scales fonts, not the
+  window**: zooming the whole UI (`ContentScaleFactor`) overflowed the 1440×900 layout at any size above 100%, so
+  `UiKit.TextScale` multiplies every font except tile faces and a change rebuilds the UI; sizes stop at 120%
+  (130% overflowed vertically). Two layout fixes came out of it: the sidebar scrolls instead of growing past the
+  window, and the seed/run-name line wraps on its own row (a long custom-run name used to widen the sidebar to
+  ~670 px).
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps the unlimited best-play hint for development. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Starting decks (2026-10-06)
@@ -274,12 +288,17 @@ human-like player won 81–87% of rounds in 1–2 submissions and runs died at a
 3. ~~No save/load~~ ✅ (save & resume, see §2/§3). Saves have no migrations: any change to `RunSaveJson.CurrentVersion`
    discards players' runs — add a migration before the first external playtest build changes the format. Known quirk:
    after "Keep going (endless)" the run end is already recorded, so a later endless loss isn't counted in stats.
-4. **UI is first-pass:** no art, sound, or settings (no reduced-motion option for the shake/confetti yet). Animations: scoring ring-up, NEW-tile pop-in, hand-reorder slide. Hand drag confirmed good by the user with a real mouse. The art direction (`art/art-direction.jpg`) is the target for the visual overhaul.
+4. **UI is first-pass:** no art or sound. Settings v1 exists (reduced motion, fullscreen, text size ≤120%; larger text
+   needs a layout that reflows). Fullscreen isn't covered by the self-test (it would flip the QA window) — check it by hand. Animations: scoring ring-up, NEW-tile pop-in, hand-reorder slide. Hand drag confirmed good by the user with a real mouse. The art direction (`art/art-direction.jpg`) is the target for the visual overhaul.
 5. **Content hygiene for release:** ~~ENABLE slurs~~ ✅ denylist + clean definitions (2026-10-06). Borderline calls worth a second look: MULATTO, HEBE, HOMO, MIDGET, MICK, KRAUT, BLACKAMOOR, PAPIST are denied; GRINGO, REDNECK, CRACKER, SHIKSA, QUADROON, GYP, COOLY are kept. Old profiles may still list a now-denied word in their stats. "Q without U" is a dead tile (consider a "Qu" tile).
 6. **Hand arrangement is UI-only** but saved with the run (pending tiles are not).
 7. **~38% of ENABLE has no definition** (mostly obscure words, e.g. GLEY, the user's own example; 2–5-letter words ~73% covered, every 2-letter word covered). Options if it matters: extend `supplement.txt` for words that come up often, or add a second source after a license check (Wiktionary is CC BY-SA).
-8. **The CLI has no Stationery commands** (dev `give` only covers Desk Items); the game UI is the only way to use it.
-9. **Player profile is one file per name, no picker yet** (`--profile=name`); stats aren't shown in the CLI. Vocabulary grading not started.
+8. ~~The CLI has no Stationery commands~~ ✅ (`use`, `sellst`, `give`, plus `save`/`load`).
+9. ~~No profile picker~~ ✅ (title menu → Profile). Profiles can't be deleted or renamed in-game yet; stats aren't
+   shown in the CLI. Vocabulary grading not started.
+17. **Self-test flakiness:** the first self-test run after a rebuild occasionally fails a few early hand click/drag
+    checks (timing while Godot warms up); a rerun passes. Seen twice on 2026-10-10. If it gets worse, add a few
+    warm-up frames before step 1.
 10. **Wild items don't pay off for the bot**: wild tile / wild edit ±0.5 pts, Fountain Pen −1.5, all three −5 (200 paired runs), so its buying gains stay 0 — a human may value the flexibility more; check prices ($6 / $5 / $3) in playtests. The CLI plays a wild automatically for a missing letter; `?` selects one in discard/strike letters.
 11. **Rerolls are ~30% of shop spending** for the bot ($2.11 of ~$7.30 per shop). Not a problem yet, but watch whether players feel rerolls are mandatory.
 12. **Phase 2 items to watch in playtests:** Tile Rack (+1 hand size) is worthless to the bot — a human may value it
@@ -307,6 +326,9 @@ except Slang — both wait for a licensable slang list — denylist ✅), plus p
 Editorial, presentation, onboarding).
 
 **Playtests (the user's side):**
+0. **Title menu, profiles and Settings** (new 2026-10-10): launch normally — the title should show Continue for
+   your saved run (Enter resumes it). Try Profile → create one and switch back, Settings → reduced motion, fullscreen
+   and text size, and the seed box in New run (a seeded win should say it unlocks nothing).
 0. **The Lexicographer's Deck** (`--dict=tech-shorthand` / `atlas` / `olde-folio`, or win 4–6 runs): do acronyms,
    place names and the archaic bonus feel fun or jarring; is ×0.85 enough to pay for the 4th slot; skim the lists
    (§5.14–5.16).
@@ -321,8 +343,8 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
-1. **Cheap parallel tracks:** GitHub Actions CI (build + `dotnet test`), a seed entry box on the New-run screen, a
-   profile picker, CLI `save`/`load` and Stationery commands.
+1. ~~Cheap parallel tracks~~ ✅ 2026-10-10 (CI, seed box, profile picker, CLI save/load + Stationery) plus a title
+   menu and Settings v1. Leftovers: copyable seed, profile delete/rename, volume (with audio).
 2. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
    open-license fonts, legible premium labels, Desk Items as physical objects, then re-enable the clue columns as
    quiet background.
@@ -330,13 +352,18 @@ Editorial, presentation, onboarding).
    worth buying, Margin Clip (give it a cost if it still dominates), Tile Rack.
 4. **Deferred content:** Magnifying Glass (rework to "letters left in the bag"?), Brass Paperclip (keep-tiles picker),
    Highlighter, Correction Tape.
-5. **UI polish:** tile placement animation, sound, deck viewer, tooltips for Desk Items/bosses, reduced-motion option.
+5. **UI polish:** tile placement animation, sound, deck viewer, tooltips for Desk Items/bosses; a reflowing layout so
+   text can go past 120%.
 
 ## 7. How to work in this repo (practical tips learned the hard way)
 
 - **Verify, don't assume.** After changes: `dotnet build wordgame.sln` (warnings are errors) → `dotnet test`. For UI changes also run the screenshot and self-test flags:
   - `"D:/Projects/Godot/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path game -- --seed=42 --screenshot=<scratchpad>/shot.png` then view the PNG. Extra flags: `--give=red-pen,pulitzer,answer-key --autoplay=3 --hint --dev` (`--give` takes Desk Item or Stationery ids; `--dev` = best-play Hint button).
   - `... --path game -- --seed=42 --selftest` → PASS/FAIL lines, exit 1 on failure. Extend `game/Scripts/Main.SelfTest.cs` for new interactions.
+  - QA flags (`--selftest`/`--screenshot`/`--autoplay`) skip the title menu, so `--screenshot` shows the game; to see the
+    title, profiles or settings, call `ShowTitle()`/`ShowProfiles()`/`ShowSettings()` in a temporary self-test step and
+    save the viewport there. Profile tests point `_profileRoot`/`_saveRoot` at `__selftest` folders and delete them.
+    `TypeText("abc")` types into the focused `LineEdit`.
   - Build the Godot project (`dotnet build game/Wordgame.Godot.csproj`) before launching Godot; it loads assemblies from `game/.godot/mono/temp/bin`.
 - **Desktop control (computer-use) can't target the portable Godot exe** — use `--selftest`/`--screenshot` instead.
 - **Simulated input quirk:** under `Viewport.PushInput`, `_DropData`'s `atPosition` arrives in the wrong coordinate space. Don't base UI logic on it: hand reorder tracks the cursor in `Main._Input` (canvas coords for real and pushed input, matching `GetGlobalRect()`) and drops into the ghost's slot.
@@ -376,6 +403,12 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
+f3ecbbb Add a Settings page: reduced motion, fullscreen and text size
+5d3d811 Open the game on a title menu with profile switching
+256edf3 Start seeded runs from a seed box in the New-run picker
+9d39c95 Use, sell and give Stationery and save/load runs in the CLI
+c0da8b1 Build and test every push with GitHub Actions
+afed9e0 Bring handoff up to date: phase 5 status, dictionary harness notes
 a871547 Document The Olde English Folio in rules, roadmap and handoff
 9eaafb2 Add The Olde English Folio as a bonus theme dictionary
 a3bd257 Document The Atlas Unlocked in rules, roadmap and handoff

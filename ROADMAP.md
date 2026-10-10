@@ -206,7 +206,7 @@ modes cheap to build on the core.
 | Mode | Design (*proposed*) | Status |
 |---|---|---|
 | **Endless Mode** | After Week 5, targets ×2 per week (`RunConfig.EndlessGrowth`). Offered on the victory screen in the game and CLI. | ✅ |
-| **Custom / seeded runs** | Seeds already work (`--seed=` dev flag; shown in the game footer). Planned: a seed entry box on the new-run screen and a copyable seed. Note: two players get the same boards, bosses and **first** shop, but later shop offers drift once their purchases differ (offers exclude owned items), as in Balatro. | 🟡 partial |
+| **Custom / seeded runs** | Seed box in the New-run picker (and `--seed=`); the seed shows in the sidebar footer. A run on a chosen seed counts in the stats but **unlocks nothing** (user's choice, as in Balatro: a known seed could be replayed to farm unlocks). Note: two players get the same boards, bosses and **first** shop, but later shop offers drift once their purchases differ (offers exclude owned items), as in Balatro. Later: a copyable seed. | ✅ seed box + seeded runs (`RunState.Seeded`, `PlayerStats.SeededRunsWon`) · 🟡 copy seed |
 | **Daily Editorial** (daily seeded puzzle) | One seed per UTC date, one attempt per day, with a **local** best score and streak. Online leaderboards are out of scope for now. Name check: distinct from the "Daily" round, but keep the UI wording clear. | 🟡 |
 
 ---
@@ -231,7 +231,7 @@ modes cheap to build on the core.
 | Feature | Design (*proposed*) | Status |
 |---|---|---|
 | **In-run save & resume** | Save on exit, resume on launch: board, hand, bag order, deck, Desk Items (with scaling state), shop offers and every RNG state. All state is immutable records, so this is mostly serialization: `System.Text.Json` (in the BCL, so Core rules allow it) with a **type discriminator** for polymorphic Desk Items/bosses/offers, plus a save **version number** for migrations. Hand arrangement is UI-only today; save it alongside. | ✅ `Core/Save/RunSaveJson` + `RunSaveStore` (`user://saves/<profile>.json`), saved after every change and on close, auto-resumed on launch. The config isn't stored (resumed runs use current tuning). No migrations yet: other versions are rejected. |
-| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | ✅ profile + player stats (`Core/Profile`, `user://profiles/<name>.json`, Stats popup: per-length word counts, top/bottom 5, newest 10, runs/wins/best play) · ✅ Press Run unlocks per deck (`HighestPressRunWon`: deck id → level) · ✅ deck unlocks (one per run won, `StatsQueries.UnlockedDecks`) · 🟡 profile picker, dictionary unlocks |
+| **Profile & unlock tracking** | Local JSON profile: unlocked decks, dictionaries, item-pool additions, highest Press Run cleared per deck, stats. Kept separate from run saves. | ✅ profile + player stats (`Core/Profile`, `user://profiles/<name>.json`, Stats popup: per-length word counts, top/bottom 5, newest 10, runs/wins/best play) · ✅ Press Run unlocks per deck (`HighestPressRunWon`: deck id → level) · ✅ deck unlocks (one per run won, `StatsQueries.UnlockedDecks`) · ✅ dictionary unlocks · ✅ profile picker (title menu → Profile: list, switch, create; last profile remembered) |
 | **Vocabulary grading** | Grade the player's vocabulary and estimate its size from the words they use (e.g. by how rare each word is). Needs a word-frequency list with a license we can ship (check before use; Wiktionary-derived lists are CC BY-SA). | 🟡 |
 
 ---
@@ -240,7 +240,10 @@ modes cheap to build on the core.
 
 - **Tutorial / onboarding:** with current targets the reference simulated player (ScoreFraction 0.75) wins ~39% of
   runs and a weaker one (0.6) ~14%, so a guided first round would matter before external playtests.
-- **Settings & accessibility:** volume, text size, colorblind-safe palette, reduced motion, key rebinding.
+- **Settings & accessibility:** volume, text size, colorblind-safe palette, reduced motion, key rebinding. ✅ title menu
+  (Continue / New run / Profile / Stats / Settings / Quit) and a first Settings page (reduced motion, fullscreen, text
+  size 90–120%); still to come: volume (with audio), colorblind-safe palette, key rebinding, larger text once the
+  layout can reflow.
 - **Localization:** UI text can be translated, but **gameplay in another language needs its own licensed word
   list and letter values**, which is a major project per language. Plan for English-only at launch.
 - **Release legal checklist:** word-list licenses/credits, font and audio licenses, trademark sweep of all names.
@@ -266,10 +269,10 @@ tests and a `runsim` balance check.
 
 | Parallel track | Work | Best time |
 |---|---|---|
-| Infra | CI pipeline (cheap, do early); simulator throughput work when sims become the bottleneck | anytime |
-| Modes | Seed entry box for custom runs (small); Daily Editorial | seed box anytime; Daily Editorial after phase 4 |
+| Infra | CI pipeline ✅ (GitHub Actions: build + tests on every push); simulator throughput work when sims become the bottleneck | anytime |
+| Modes | Seed entry box for custom runs ✅; Daily Editorial | Daily Editorial after phase 4 |
 | Presentation | Newsroom visual system → audio/animation → shop colors, tooltips, Deck View / Style Guide modals | after phases 1–3 settle the content |
-| Onboarding | Tutorial and settings (§10) | before external playtests |
+| Onboarding | Tutorial and settings (§10; title menu + first Settings page ✅) | before external playtests |
 
 ---
 
