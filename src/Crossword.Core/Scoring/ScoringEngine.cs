@@ -11,7 +11,8 @@ namespace Crossword.Core.Scoring;
 ///    under Redundant Copy a word already formed this round adds none.
 /// 3. Enhancements — each enhanced tile triggers once per formed word containing it (new or existing tiles).
 /// 4. Intersections — each new tile in both an Across and a Down word adds Mult.
-/// 4b. Round bonus — flat Mult from Stationery used this round (Red Ink Bottle).
+/// 4b. Theme words — each formed word in the run's theme dictionary adds Mult (The Olde English Folio).
+/// 4c. Round bonus — flat Mult from Stationery used this round (Red Ink Bottle).
 /// 5. Desk Items — applied in slot order.
 /// 6. Total — floor(Chips × Mult).
 /// </summary>
@@ -24,6 +25,7 @@ public static class ScoringEngine
         public const string Intersection = "intersection";
         public const string Enhancement = "enhancement";
         public const string Bonus = "bonus";
+        public const string Theme = "theme";
     }
 
     public static ScoreContext Score(PlayAnalysis play, IReadOnlyList<IDeskItem> deskItemsInSlotOrder, ScoringConfig config,
@@ -33,6 +35,9 @@ public static class ScoringEngine
         context = play.Words.Aggregate(context, (ctx, word) => ApplyWord(ctx, word, config));
         context = play.Words.Aggregate(context, (ctx, word) => ApplyEnhancements(ctx, word, config));
         context = ApplyIntersections(context, config);
+        if (config.Theme is { } theme)
+            context = play.Words.Where(word => theme.Words.Contains(word.Text)).Aggregate(context, (ctx, word) =>
+                ctx.AddMult(theme.MultPerWord).Record(Sources.Theme, $"{word.Text} ({theme.Name}): +{theme.MultPerWord} mult"));
         if (config.BonusMult != 0)
             context = context.AddMult(config.BonusMult).Record(Sources.Bonus, $"Red ink: +{config.BonusMult} mult");
         return EffectPipeline.Apply(deskItemsInSlotOrder, context);

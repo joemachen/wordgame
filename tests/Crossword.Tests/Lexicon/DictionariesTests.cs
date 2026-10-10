@@ -20,7 +20,7 @@ public class DictionariesTests
 
     [Theory]
     [MemberData(nameof(Ids))]
-    public void EveryEntry_IsANewWordOfTheMinimumLength_WithAnExpansion(string id)
+    public void EveryEntry_IsAWordOfTheMinimumLength_WithAnExpansion_NewUnlessTheDictionaryIsATheme(string id)
     {
         var dictionary = Dictionaries.Get(id);
         var words = Dictionaries.Words(id).ToList();
@@ -30,7 +30,8 @@ public class DictionariesTests
         {
             Assert.Matches("^[A-Z]+$", word);
             Assert.InRange(word.Length, dictionary.MinLength, WordNormalizer.MaxLength);
-            Assert.False(LexiconLoader.Enable.Contains(word), $"{word} is already an ENABLE word.");
+            if (!dictionary.IsTheme)
+                Assert.False(LexiconLoader.Enable.Contains(word), $"{word} is already an ENABLE word.");
             Assert.False(Denylist.Default.Contains(word), $"{word} is denied.");
             Assert.False(string.IsNullOrWhiteSpace(Dictionaries.Define(word, [id])?.Summary), $"{word} has no expansion.");
         });
@@ -69,6 +70,43 @@ public class DictionariesTests
         Assert.Null(Dictionaries.Define("OSLO", TechShorthand));
         Assert.Equal("abbr. central processing unit",
             Dictionaries.Define("CPU", [Dictionaries.AtlasId, Dictionaries.TechShorthandId])?.Summary);
+    }
+
+    [Fact]
+    public void TheFolio_IsATheme_OfArchaicWords_ThatFitTheBoard_AndAddsAFewNewOnes()
+    {
+        var folio = Dictionaries.Get(Dictionaries.OldeFolioId);
+        var words = Dictionaries.Words(folio.Id).ToList();
+
+        Assert.True(folio.IsTheme);
+        Assert.False(Dictionaries.Get(Dictionaries.AtlasId).IsTheme);
+        Assert.All(words, word => Assert.InRange(word.Length, 3, 7));
+        Assert.Contains("THEE", words);
+        Assert.Equal(["EEN", "EER", "NEER", "OER", "OLDE"], words.Where(w => !LexiconLoader.Enable.Contains(w)).Order());
+        Assert.Equal("arch. you (as the object of a verb)", Dictionaries.Define("THEE", [folio.Id])?.Summary);
+    }
+
+    [Fact]
+    public void Theme_IsTheFirstThemeDictionarysWords_OrNull()
+    {
+        var theme = Dictionaries.Theme([Dictionaries.AtlasId, Dictionaries.OldeFolioId]);
+
+        Assert.NotNull(theme);
+        Assert.Equal("The Olde English Folio", theme.Name);
+        Assert.Equal(Dictionaries.OldeFolioMult, theme.MultPerWord);
+        Assert.True(theme.Words.SetEquals(Dictionaries.Words(Dictionaries.OldeFolioId)));
+        Assert.Null(Dictionaries.Theme([Dictionaries.TechShorthandId]));
+        Assert.Null(Dictionaries.Theme([]));
+    }
+
+    [Fact]
+    public void LexiconFor_ATheme_AddsOnlyItsNewWords()
+    {
+        var lexicon = LexiconLoader.For([Dictionaries.OldeFolioId]);
+
+        Assert.True(lexicon.Contains("OER"));
+        Assert.True(lexicon.Contains("THEE"));
+        Assert.Equal(LexiconLoader.Enable.WordCount + 5, lexicon.WordCount);
     }
 
     [Fact]

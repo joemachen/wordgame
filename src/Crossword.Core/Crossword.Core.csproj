@@ -19,6 +19,7 @@
     <!-- Dictionary overlays (hand-written), one per Dictionaries entry. -->
     <EmbeddedResource Include="Lexicon\Data\tech-shorthand.tsv" LogicalName="Crossword.Core.Lexicon.tech-shorthand.tsv" />
     <EmbeddedResource Include="Lexicon\Data\atlas.tsv" LogicalName="Crossword.Core.Lexicon.atlas.tsv" />
+    <EmbeddedResource Include="Lexicon\Data\olde-folio.tsv" LogicalName="Crossword.Core.Lexicon.olde-folio.tsv" />
   </ItemGroup>
 
 </Project>

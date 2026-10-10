@@ -30,8 +30,8 @@ public static class RunRules
     public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon, Func<RunState, RunState>? setup = null,
         int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null)
     {
-        config = ConfigFor(config, deck, pressRun);
         var dictionaries = Decks.DictionariesFor(deck, dictionary);
+        config = ConfigFor(config, deck, pressRun, dictionaries);
         var run = RunState.New(seed) with
         {
             Money = config.Economy.StartingMoney,
@@ -44,9 +44,15 @@ public static class RunRules
         return StartRound(config, setup?.Invoke(run) ?? run, dictionaries.IsEmpty ? lexicon : LexiconLoader.For(dictionaries));
     }
 
-    /// <summary>The base <paramref name="config"/> with a deck's rules applied, then a Press Run's (both unchanged = the same instance).</summary>
-    public static RunConfig ConfigFor(RunConfig config, string deck, int pressRun) =>
-        PressRuns.Apply(Decks.Apply(config, deck), pressRun);
+    /// <summary>
+    /// The base <paramref name="config"/> with a deck's rules applied, then a Press Run's, then the bonus of a theme
+    /// dictionary among <paramref name="dictionaries"/> (all unchanged = the same instance).
+    /// </summary>
+    public static RunConfig ConfigFor(RunConfig config, string deck, int pressRun, IEnumerable<string>? dictionaries = null)
+    {
+        config = PressRuns.Apply(Decks.Apply(config, deck), pressRun);
+        return Dictionaries.Theme(dictionaries ?? []) is { } theme ? config with { Scoring = config.Scoring with { Theme = theme } } : config;
+    }
 
     /// <summary>
     /// The week's boss, picked from that week's tier pool (<see cref="RunConfig.BossPoolFor"/>) using only the seed

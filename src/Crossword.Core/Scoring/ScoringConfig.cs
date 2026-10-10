@@ -13,6 +13,12 @@ public sealed record WordTier(int MinLength, long BaseChips, decimal BaseMult, l
 }
 
 /// <summary>
+/// A theme dictionary's bonus (The Olde English Folio): each formed word in <see cref="Words"/> adds
+/// <see cref="MultPerWord"/> Mult. <see cref="Name"/> labels the scoring log.
+/// </summary>
+public sealed record WordTheme(string Name, ImmutableHashSet<string> Words, decimal MultPerWord);
+
+/// <summary>
 /// All scoring numbers in one place so balance can be tuned without code changes.
 /// <see cref="Default"/> was tuned with greedy simulations (CLI 'sim'): flat-ish tier Mult (1→3) plus +3 Mult per
 /// intersection makes building onto the grid outscore isolated long words (~77% of non-opening greedy plays
@@ -20,6 +26,7 @@ public sealed record WordTier(int MinLength, long BaseChips, decimal BaseMult, l
 /// <see cref="BonusMult"/> is a flat per-play Mult added before Desk Items; it is only set for a round in progress
 /// (Red Ink Bottle, via <see cref="Domain.RoundConfig.EffectiveScoring"/>).
 /// <see cref="RepeatWordsScoreZero"/> (boss Redundant Copy): a word already formed earlier this round adds no letter chips.
+/// <see cref="Theme"/> is set from the run's theme dictionary (<see cref="Run.RunRules.ConfigFor"/>), null otherwise.
 /// </summary>
 public sealed record ScoringConfig(
     ImmutableArray<WordTier> Tiers,
@@ -29,7 +36,8 @@ public sealed record ScoringConfig(
     decimal ItalicMult = 2,
     int GildedMoney = 1,
     decimal BonusMult = 0,
-    bool RepeatWordsScoreZero = false)
+    bool RepeatWordsScoreZero = false,
+    WordTheme? Theme = null)
 {
     public static ScoringConfig Default { get; } = new(
         Tiers:

@@ -301,6 +301,17 @@ public class RunSaveJsonTests
     }
 
     [Fact]
+    public void AThemeDictionary_IsReappliedToTheScoringOnLoad()
+    {
+        var session = RunRules.NewGame(9, Config, LexiconLoader.Enable, deck: Decks.LexicographerId, dictionary: Dictionaries.OldeFolioId);
+
+        var loaded = RoundTrip(session);
+
+        Assert.Equal("The Olde English Folio", loaded.Config.Scoring.Theme?.Name);
+        Assert.Equal(Dictionaries.OldeFolioMult, loaded.Scoring.Theme?.MultPerWord);
+    }
+
+    [Fact]
     public void SaveWithAnUnknownOrNullDictionary_FailsWithoutThrowing()
     {
         string json = RunSaveJson.Serialize(RunRules.NewGame(3, Config, LexiconLoader.Enable, deck: Decks.LexicographerId));

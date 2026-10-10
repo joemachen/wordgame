@@ -1,0 +1,114 @@
+# The Olde English Folio: archaic words (Crossword.Core.Lexicon.Dictionaries), hand-written for this game.
+# Line format: WORD<TAB>gloss. '#' comments and blank lines are ignored.
+# A theme dictionary: ENABLE already has nearly every familiar archaic word, so instead of adding words it gives
+# bonus Mult for each of these words a play forms (DictionaryDefinition.ThemeMult). The few that aren't ENABLE words
+# (crossword contractions like OER for o'er, and OLDE) also become legal. Rules (tests enforce the first two): A-Z
+# only, 3-7 letters (2-letter YE would be too easy to farm; longer words can't fit the 7x7 board); every entry has a
+# gloss. Content: words whose main sense is archaic; words still in everyday use (ART, WILT, MINE, ALBEIT) are left
+# out. Entries still go through the denylist.
+AFORE	before
+ALACK	alas
+ANENT	concerning
+ANON	soon; in a little while
+AUGHT	anything
+BEDIGHT	adorned
+BELIKE	probably
+BESEECH	to beg
+BETIDE	to happen; to befall
+BETWIXT	between
+BEWRAY	to reveal
+CANST	can (with thou)
+CERTES	certainly
+CHURL	a rude, ill-bred person
+COULDST	could (with thou)
+DAMSEL	a young unmarried woman
+DIDST	did (with thou)
+DIGHT	dressed; adorned
+DOST	do (with thou)
+DOTH	does
+EEN	even; evening (e'en)
+EER	ever (e'er)
+EGAD	a mild oath
+ENOW	enough
+ERE	before
+ERST	formerly
+FAIN	gladly
+FIE	for shame!
+GOODMAN	the master of a household
+GUERDON	a reward
+HAPLY	perhaps; by chance
+HARK	listen
+HAST	have (with thou)
+HATH	has
+HIE	to hurry
+HIGHT	named; called
+HITHER	to here
+HOLPEN	helped
+HOWBEIT	nevertheless
+IWIS	certainly
+KINE	cows
+KNAVE	a dishonest man; a rogue
+LEMAN	a sweetheart; a lover
+LIEF	willingly
+LIEFER	more willingly
+LIEGE	a lord; a loyal subject
+MAYHAP	perhaps
+MAYST	may (with thou)
+MEED	a reward
+MICKLE	much; great
+MORROW	the next day; the morning
+NAUGHT	nothing
+NAY	no
+NEER	never (ne'er)
+OER	over (o'er)
+OFT	often
+OLDE	old (mock-archaic spelling)
+PELF	wealth, gained dishonestly
+PRITHEE	please (I pray thee)
+QUOTH	said
+REDE	advice; to advise
+RUTH	pity
+SAITH	says
+SHALT	shall (with thou)
+SIRRAH	a form of address to a man or boy of lower rank
+SITH	since
+SOOTH	truth
+SPAKE	spoke
+SWAIN	a young lover or suitor
+SWOUND	a swoon
+THEE	you (as the object of a verb)
+THENCE	from there
+THINE	yours; your (before a vowel)
+THITHER	to there
+THOU	you (as the subject of a verb)
+THRALL	a slave; bondage
+THRICE	three times
+THY	your
+THYSELF	yourself
+TROTH	a pledge of faithfulness
+TROW	believe; suppose
+TWAIN	two
+TWAS	it was
+UNTO	to
+VARLET	a rascal; an attendant
+VERILY	truly
+WAST	was (with thou)
+WELKIN	the sky
+WEND	to go; to travel
+WERT	were (with thou)
+WHENCE	from where
+WHEREOF	of which
+WHILOM	formerly
+WHITHER	to where
+WIGHT	a living being; a creature
+WIST	knew
+WITHAL	besides; nevertheless
+WOT	know
+WOULDST	would (with thou)
+YCLEPT	named; called
+YEA	yes
+YON	that, over there
+YONDER	over there
+YORE	time long past
+YWIS	certainly
+ZOUNDS	a mild oath of surprise

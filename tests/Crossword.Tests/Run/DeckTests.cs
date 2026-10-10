@@ -145,6 +145,19 @@ public class DeckTests
     }
 
     [Fact]
+    public void ATheme_Dictionary_SetsTheRunsScoringTheme_OthersDont()
+    {
+        var folio = RunRules.NewGame(4, Base, LexiconLoader.Enable, deck: Decks.LexicographerId, dictionary: Dictionaries.OldeFolioId);
+        var atlas = RunRules.NewGame(4, Base, LexiconLoader.Enable, deck: Decks.LexicographerId, dictionary: Dictionaries.AtlasId);
+
+        Assert.Equal("The Olde English Folio", folio.Config.Scoring.Theme?.Name);
+        Assert.Equal(folio.Config.Scoring.Theme, folio.Scoring.Theme);
+        Assert.Null(atlas.Config.Scoring.Theme);
+        Assert.Null(RunRules.NewGame(4, Base, LexiconLoader.Enable).Config.Scoring.Theme);
+        Assert.Same(Base, RunRules.ConfigFor(Base, Decks.StandardId, 1, [Dictionaries.AtlasId]));
+    }
+
+    [Fact]
     public void AnOverlayWord_IsLegal_OnlyOnTheRunsWordGraph()
     {
         var session = RunRules.NewGame(4, Base, LexiconLoader.Enable, deck: Decks.LexicographerId);

@@ -434,13 +434,20 @@ public partial class Main
     private static WordDefinition? Define(string word) =>
         DefinitionLoader.Default.Define(word) ?? Dictionaries.Define(word, Dictionaries.All.Select(d => d.Id));
 
-    /// <summary>One line per distinct word: "[b]GLEY[/b] n. a sticky clay soil" (BBCode).</summary>
-    private static string DefinitionsText(IEnumerable<string> words) => string.Join('\n', words.Distinct().Select(word =>
+    /// <summary>
+    /// One line per distinct word: "[b]GLEY[/b] n. a sticky clay soil" (BBCode). The run's own dictionaries come first
+    /// (a theme dictionary's gloss beats WordNet's), and a theme word is tagged with its bonus.
+    /// </summary>
+    private string DefinitionsText(IEnumerable<string> words) => string.Join('\n', words.Distinct().Select(word =>
     {
         string head = $"[b][color=#{UiKit.Text.ToHtml(false)}]{word}[/color][/b]  ";
-        return Define(word) is { } definition
-            ? head + definition.Summary.Replace("[", "[lb]")
-            : head + "[i]valid word — no definition on file[/i]";
+        string body = (Dictionaries.Define(word, Run.Dictionaries) ?? Define(word)) is { } definition
+            ? definition.Summary.Replace("[", "[lb]")
+            : "[i]valid word — no definition on file[/i]";
+        string tag = RoundScoring.Theme is { } theme && theme.Words.Contains(word)
+            ? $"  [color=#{ThemeColor.ToHtml(false)}]+{theme.MultPerWord} mult · {theme.Name}[/color]"
+            : "";
+        return head + body + tag;
     }));
 
     private IReadOnlyList<RankedPlay> RankedPlays() =>
@@ -620,6 +627,9 @@ public partial class Main
     /// <summary>The last finish level shown (self-test hook).</summary>
     private Juice.Level? _lastCelebration;
 
+    /// <summary>Theme dictionary words (The Olde English Folio): old gold.</summary>
+    private static readonly Color ThemeColor = new("d9b77a");
+
     private static Color ColorFor(string source) => source switch
     {
         ScoringEngine.Sources.Tier => UiKit.Text,
@@ -627,6 +637,7 @@ public partial class Main
         ScoringEngine.Sources.Intersection => UiKit.Mult.Lightened(0.3f),
         ScoringEngine.Sources.Enhancement => UiKit.Money,
         ScoringEngine.Sources.Bonus => StationeryColor,
+        ScoringEngine.Sources.Theme => ThemeColor,
         _ => new Color("c9a6ff"), // desk items
     };
 

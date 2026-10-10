@@ -427,6 +427,30 @@ public partial class Main
             Run.Dictionaries.SequenceEqual([Dictionaries.AtlasId]) && _lexicon.Contains("OSLO") && !_lexicon.Contains("CPU")
             && _seedLabel.Text.Contains("The Atlas Unlocked"));
 
+        // 21. One more win unlocks The Olde English Folio: an archaic word previews with its gloss and its bonus.
+        _profile.Update(s => s with { RunsWon = s.RunsWon + 1 });
+        ChooseNewRun();
+        await Frames(2);
+        await Click(Centre(DeckCard(Decks.LexicographerId)));
+        if (_pressRunBox.FindChild($"Dictionary_{Dictionaries.OldeFolioId}", owned: false) is Button { Disabled: false } folioButton)
+            await Click(Centre(folioButton));
+        await Click(Centre(PressRow(1)));
+        var theeIds = Round.Hand.Tiles.Take(4).Select(t => t.Id).ToList();
+        var thee = Round.Hand.Tiles.Select(t => theeIds.IndexOf(t.Id) is var i and >= 0
+            ? t with { Letter = Crossword.Core.Domain.Letter.From("THEE"[i]), IsWild = false } : t);
+        _session = _session with { Round = Round with { Hand = new Crossword.Core.Domain.Hand(thee.ToImmutableArray()) } };
+        Refresh();
+        await Frames(2);
+        for (int i = 0; i < theeIds.Count; i++)
+        {
+            await Click(Centre(_handRow.GetChildren().OfType<TileButton>().First(b => b.TileId == theeIds[i])));
+            await Click(Centre(BoardCell(new GridPos(3, 2 + i))));
+        }
+        string folioText = _definitionsLabel.GetParsedText();
+        Check("an archaic word previews with its gloss and its bonus", Run.Dictionaries.SequenceEqual([Dictionaries.OldeFolioId])
+            && _pending.Count == 4 && folioText.Contains("arch. you") && folioText.Contains($"+{Dictionaries.OldeFolioMult} mult"));
+        await PressKey(global::Godot.Key.Escape);
+
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);
     }

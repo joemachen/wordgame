@@ -180,6 +180,24 @@ public class ScoringEngineTests
     }
 
     [Fact]
+    public void ThemeWords_AddMultPerFormedWord_AfterIntersections_BeforeTheRoundBonus()
+    {
+        var board = BoardFromRows("CAT..", ".....", ".....", ".....", ".....");
+        var play = Play(board, "TO", 1, 1, Direction.Across, "TO"); // forms TO across, AT and TO down
+        var theme = new WordTheme("Test Folio", ["TO"], MultPerWord: 4);
+
+        var plain = ScoringEngine.Score(play, [], Config with { BonusMult = 3 });
+        var themed = ScoringEngine.Score(play, [], Config with { BonusMult = 3, Theme = theme });
+
+        Assert.Equal(plain.Mult + 8, themed.Mult); // both TOs count
+        Assert.Equal(plain.Chips, themed.Chips);
+        Assert.Equal(
+            [ScoringEngine.Sources.Intersection, ScoringEngine.Sources.Theme, ScoringEngine.Sources.Theme, ScoringEngine.Sources.Bonus],
+            themed.Log.Select(e => e.SourceId).TakeLast(4));
+        Assert.Contains("TO (Test Folio): +4 mult", themed.Log.Select(e => e.Description));
+    }
+
+    [Fact]
     public void RoundConfig_BonusMult_StacksOnTheEffectiveScoring()
     {
         var round = new RoundConfig(TargetScore: 1, BonusMult: 3);
