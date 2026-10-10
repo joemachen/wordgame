@@ -315,14 +315,19 @@ public partial class Main
         foreach (var file in backups)
             File.Delete(file);
 
-        // 16. Abandoning a run in progress takes a second click on New run.
+        // 16. The sidebar's Menu button opens the title menu; abandoning a run in progress takes a second click on its
+        //     New run.
         var runBefore = _session;
-        await Click(Centre(_newRunButton));
-        bool armed = ReferenceEquals(_session, runBefore) && _newRunButton.Text.StartsWith("Abandon");
-        await Click(Centre(_newRunButton));
+        await Click(Centre(_menuButton));
+        bool menuOpened = _titleOverlay.Visible && _titleContinue.Visible;
+        await Click(Centre(_titleNewRun));
+        bool armed = ReferenceEquals(_session, runBefore) && _titleNewRun.Text.StartsWith("Abandon") && !_pressRunOverlay.Visible;
+        await Click(Centre(_titleNewRun));
         bool pickerOpened = _pressRunOverlay.Visible && ReferenceEquals(_session, runBefore);
         await Click(Centre((Control)_pressRunBox.FindChild("PressRun1", owned: false)!));
-        Check("new run asks before abandoning a run", armed && !ReferenceEquals(_session, runBefore) && _newRunButton.Text == "New run");
+        Check("the menu button opens the title menu", menuOpened);
+        Check("new run asks before abandoning a run", armed && !ReferenceEquals(_session, runBefore) && _titleNewRun.Text == "New run"
+            && !_titleOverlay.Visible);
         Check("with only Proofreader unlocked, new run still opens the picker", pickerOpened && !_pressRunOverlay.Visible
             && Run.PressRun == 1 && !Run.Seeded);
 
@@ -474,6 +479,45 @@ public partial class Main
         Check("an archaic word previews with its gloss and its bonus", Run.Dictionaries.SequenceEqual([Dictionaries.OldeFolioId])
             && _pending.Count == 4 && folioText.Contains("arch. you") && folioText.Contains($"+{Dictionaries.OldeFolioMult} mult"));
         await PressKey(global::Godot.Key.Escape);
+
+        // 22. Title menu: Enter continues the run; profiles each keep their own run (on scratch folders, removed after).
+        ShowTitle();
+        await Frames(2);
+        Check("the title offers the run in progress", _titleOverlay.Visible && _titleContinue.Visible && _titleContinueDetail.Text.StartsWith("Week"));
+        await PressKey(global::Godot.Key.Enter);
+        Check("enter on the title continues the run", !_titleOverlay.Visible && _session.Phase == Crossword.Core.Run.RunPhase.InRound);
+
+        _profileRoot = "user://profiles/__selftest";
+        _saveRoot = "user://saves/__selftest";
+        foreach (string dir in new[] { _profileRoot, _saveRoot }.Select(ProjectSettings.GlobalizePath).Where(Directory.Exists))
+            Directory.Delete(dir, recursive: true);
+        string firstProfile = _profile.Profile.Name;
+        _runSave = RunSaveStore.ForProfile(firstProfile, _saveRoot);
+        _profile = ProfileStore.Load(firstProfile, _profileRoot);
+        _profile.Update(stats => stats); // on disk, like any profile that has played
+        ulong firstSeed = Run.Seed;
+        ShowTitle();
+        await Click(Centre(_titleProfile));
+        Check("the profile button lists the current profile", _profilesOverlay.Visible
+            && _profilesBox.FindChild($"Profile_{ProfileStore.SafeName(firstProfile)}", owned: false) is Button { Disabled: true });
+        await Click(Centre((Control)_profilesBox.FindChild("ProfileNameField", owned: false)!));
+        await TypeText("selftestb");
+        await Click(Centre((Control)_profilesBox.FindChild("CreateProfile", owned: false)!));
+        Check("a new profile has no run to continue", _profile.Profile.Name == "selftestb" && !_profilesOverlay.Visible
+            && _titleOverlay.Visible && !_titleContinue.Visible && _titlePlayingAs.Text == "Playing as selftestb");
+        await PressKey(global::Godot.Key.Enter); // no run: Enter opens the picker
+        await Click(Centre(PressRow(1)));
+        Check("a new profile starts its own run", !_titleOverlay.Visible && _profile.Profile.Stats.RunsStarted == 1 && Run.Seed != firstSeed);
+        ShowTitle();
+        await Click(Centre(_titleProfile));
+        await Click(Centre((Control)_profilesBox.FindChild($"Profile_{ProfileStore.SafeName(firstProfile)}", owned: false)!));
+        Check("switching back offers that profile's run", _profile.Profile.Name == firstProfile && _titleContinue.Visible && Run.Seed == firstSeed);
+        File.WriteAllText(Path.Combine(ProjectSettings.GlobalizePath(_profileRoot), "selftestb.json.20260101-000000.bak"), "{}");
+        var listed = ProfileStore.List(_profileRoot);
+        Check("the profile list holds each profile once, not backups", listed.Count == 2 && listed.Contains("selftestb")
+            && listed.Contains(firstProfile));
+        foreach (string dir in new[] { _profileRoot, _saveRoot }.Select(ProjectSettings.GlobalizePath).Where(Directory.Exists))
+            Directory.Delete(dir, recursive: true);
 
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);

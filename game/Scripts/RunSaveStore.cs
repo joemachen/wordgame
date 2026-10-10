@@ -22,8 +22,10 @@ public sealed class RunSaveStore
 
     public static RunSaveStore InMemory() => new(null);
 
-    public static RunSaveStore ForProfile(string profileName) =>
-        AtPath(Path.Combine(ProjectSettings.GlobalizePath("user://saves"), ProfileStore.SafeName(profileName) + ".json"));
+    public const string DefaultRoot = "user://saves";
+
+    public static RunSaveStore ForProfile(string profileName, string root = DefaultRoot) =>
+        AtPath(Path.Combine(ProjectSettings.GlobalizePath(root), ProfileStore.SafeName(profileName) + ".json"));
 
     public static RunSaveStore AtPath(string path) => new(path);
 

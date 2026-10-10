@@ -56,9 +56,10 @@ public partial class Main
         var stats = _profile.Profile.Stats;
         _pickerSeed = "";
         // Start from the last run's deck when it's still unlocked.
-        _pickerDeck = StatsQueries.UnlockedDecks(stats).Any(d => d.Id == Run.DeckId) ? Run.DeckId : Decks.StandardId;
+        string lastDeck = _session is null ? Decks.StandardId : Run.DeckId;
+        _pickerDeck = StatsQueries.UnlockedDecks(stats).Any(d => d.Id == lastDeck) ? lastDeck : Decks.StandardId;
         var dictionaries = StatsQueries.UnlockedDictionaries(stats);
-        _pickerDictionary = dictionaries.FirstOrDefault(d => Run.Dictionaries.Contains(d.Id))?.Id ?? Dictionaries.All[0].Id;
+        _pickerDictionary = dictionaries.FirstOrDefault(d => _session is not null && Run.Dictionaries.Contains(d.Id))?.Id ?? Dictionaries.All[0].Id;
         RefreshPressRuns();
         _pressRunOverlay.Visible = true;
     }

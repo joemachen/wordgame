@@ -24,12 +24,14 @@ public sealed class ProfileStore
     /// <summary>A message about the load (e.g. a corrupt file was set aside), or null.</summary>
     public string? Notice { get; private init; }
 
+    public const string DefaultRoot = "user://profiles";
+
     public static ProfileStore InMemory(string name) => new(PlayerProfile.New(name), null);
 
-    public static ProfileStore Load(string name)
+    public static ProfileStore Load(string name, string root = DefaultRoot)
     {
         string safe = SafeName(name);
-        string dir = ProjectSettings.GlobalizePath("user://profiles");
+        string dir = ProjectSettings.GlobalizePath(root);
         Directory.CreateDirectory(dir);
         string path = Path.Combine(dir, safe + ".json");
         if (!File.Exists(path))
@@ -61,6 +63,30 @@ public sealed class ProfileStore
         {
             GD.PushWarning($"Couldn't save the profile: {e.Message}");
         }
+    }
+
+    /// <summary>The names of the profiles saved under <paramref name="root"/> (not backups), sorted.</summary>
+    public static List<string> List(string root = DefaultRoot)
+    {
+        string dir = ProjectSettings.GlobalizePath(root);
+        if (!Directory.Exists(dir))
+            return [];
+        var names = new List<string>();
+        foreach (string path in Directory.GetFiles(dir, "*.json"))
+        {
+            string name = Path.GetFileNameWithoutExtension(path);
+            try
+            {
+                if (ProfileJson.Deserialize(File.ReadAllText(path, Encoding.UTF8)) is { IsOk: true } loaded)
+                    name = loaded.Value.Name;
+            }
+            catch (IOException)
+            {
+                // listed by its file name
+            }
+            names.Add(name);
+        }
+        return names.OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     internal static string SafeName(string name)

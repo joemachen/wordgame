@@ -15,11 +15,12 @@ namespace Wordgame.Godot;
 /// Command-line user args (after "--"): --seed=N, --give=id,id (dev: Desk Items or Stationery, e.g. answer-key), --autoplay=N (play N best moves / leave shops),
 /// --hint (pre-place the best play), --dev (the Hint button shows the best play), --screenshot=path.png (save a screenshot after loading and quit),
 /// --selftest (drive the UI with simulated input, print PASS/FAIL, quit), --profile=name (player profile to load/save;
-/// default "Player"), --week=N (dev: start at week N), --press=N (dev: start at Press Run N, locked or not), --deck=id
+/// default: the last one played, else "Player"), --week=N (dev: start at week N), --press=N (dev: start at Press Run N, locked or not), --deck=id
 /// (dev: that starting deck), --dict=id (dev: that dictionary overlay; implies The Lexicographer's Deck). --selftest,
-/// --screenshot and --autoplay keep the profile in memory so QA runs never touch stats. The run is saved per profile and
-/// resumed on launch, except with --seed (a new seeded run that replaces the save) and QA / dev-setup flags (--give,
-/// --week, --press, --deck, --dict), which never touch the saved run.
+/// --screenshot and --autoplay keep the profile and settings in memory so QA runs never touch stats. The run is saved
+/// per profile; launch shows the title menu, whose Continue resumes it. --seed (a new seeded run that replaces the
+/// save), QA flags and dev-setup flags (--give, --week, --press, --deck, --dict) skip the title and start a run; the
+/// last two never touch the saved run.
 /// </summary>
 public partial class Main : Control
 {
@@ -38,6 +39,7 @@ public partial class Main : Control
     private Crossword.Core.Random.Rng _arrangementRng = Crossword.Core.Random.Rng.FromSeed(Time.GetTicksUsec());
     private bool _animating;
     private bool _devMode;
+    private SettingsStore _settings = null!;
 
     // Hand drag in progress: the dragged tile (shown as a ghost in the row), its starting slot, the latest cursor.
     private int? _handDragId;
@@ -78,6 +80,7 @@ public partial class Main : Control
     private VBoxContainer _logBox = null!;
     private Label _seedLabel = null!;
     private Button _statsButton = null!;
+    private Button _menuButton = null!;
 
     // Centre
     private HBoxContainer _deskRow = null!;
@@ -101,8 +104,9 @@ public partial class Main : Control
         _lexicon = LexiconLoader.Enable;
         _ = Task.Run(() => DefinitionLoader.Default); // warm up off the main thread so the first preview doesn't hitch
         _devMode = args.ContainsKey("dev");
-        string profileName = args.TryGetValue("profile", out var named) && named.Length > 0 ? named : "Player";
         bool qaRun = args.ContainsKey("selftest") || args.ContainsKey("screenshot") || args.ContainsKey("autoplay");
+        _settings = qaRun ? SettingsStore.InMemory() : SettingsStore.Load();
+        string profileName = args.TryGetValue("profile", out var named) && named.Length > 0 ? named : _settings.Settings.LastProfile ?? "Player";
         _profile = qaRun ? ProfileStore.InMemory(profileName) : ProfileStore.Load(profileName);
         BuildLayout();
 
@@ -120,13 +124,16 @@ public partial class Main : Control
         bool devSetup = startWeek > 0 || give is not null || pressRun > PressRuns.Lowest || deck != Decks.StandardId;
         // QA and dev-setup runs never touch the saved run; an explicit --seed starts (and saves) a new run.
         _runSave = qaRun || devSetup ? RunSaveStore.InMemory() : RunSaveStore.ForProfile(profileName);
-        if (!devSetup && !args.ContainsKey("seed") && _runSave.Load(_baseConfig) is { } saved)
+        bool showTitle = !qaRun && !devSetup && !seeded;
+        if (!devSetup && !seeded && _runSave.Load(_baseConfig) is { } saved)
             Resume(saved);
-        else
+        else if (!showTitle)
             NewRun(seed, devSetup
                 ? run => Give(run with { RoundIndex = startWeek * _baseConfig.RoundsPerWeek }, give ?? "")
                 : null, pressRun, deck, dictionary, seeded);
-        if (_profile.Notice is { } notice)
+        if (showTitle)
+            ShowTitle(_profile.Notice ?? _runSave.Notice);
+        else if (_profile.Notice is { } notice)
             SetMessage(notice, UiKit.Bad);
         else if (_runSave.Notice is { } saveNotice)
             SetMessage(saveNotice, UiKit.Bad);
@@ -136,7 +143,7 @@ public partial class Main : Control
 
         Refresh();
 
-        if (args.ContainsKey("hint") && _session.Phase == RunPhase.InRound)
+        if (args.ContainsKey("hint") && _session?.Phase == RunPhase.InRound)
             ShowHint(best: true);
 
         if (args.TryGetValue("screenshot", out var path))
@@ -200,6 +207,7 @@ public partial class Main : Control
         string? dictionary = null, bool seeded = false)
     {
         _session = RunRules.NewGame(seed, _baseConfig, LexiconLoader.Enable, setup, pressRun, deck, dictionary, seeded);
+        _titleOverlay.Visible = false;
         _lexicon = LexiconLoader.For(Run.Dictionaries);
         _justUnlockedPressRun = null;
         _justUnlockedDeck = null;
@@ -263,6 +271,10 @@ public partial class Main : Control
         _fxLayer.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_fxLayer);
 
+        // The title covers the game; every popup below opens on top of it.
+        _titleOverlay = BuildTitleOverlay();
+        AddChild(_titleOverlay);
+
         _styleGuidesOverlay = BuildStyleGuidesOverlay();
         AddChild(_styleGuidesOverlay);
         _statsOverlay = BuildStatsOverlay();
@@ -271,6 +283,8 @@ public partial class Main : Control
         AddChild(_wildOverlay);
         _pressRunOverlay = BuildPressRunOverlay();
         AddChild(_pressRunOverlay);
+        _profilesOverlay = BuildProfilesOverlay();
+        AddChild(_profilesOverlay);
     }
 
     private Control BuildSidebar()
@@ -340,9 +354,10 @@ public partial class Main : Control
         _seedLabel = UiKit.MakeLabel("", 13, UiKit.TextMuted);
         _seedLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         footer.AddChild(_seedLabel);
-        _newRunButton = UiKit.MakeButton("New run", UiKit.PanelRaised, 14);
-        _newRunButton.Pressed += PressNewRun;
-        footer.AddChild(_newRunButton);
+        _menuButton = UiKit.MakeButton("Menu", UiKit.PanelRaised, 14);
+        _menuButton.TooltipText = "Title menu: new run, profiles, quit";
+        _menuButton.Pressed += () => ShowTitle();
+        footer.AddChild(_menuButton);
         var guides = UiKit.MakeButton("Guides  Tab", UiKit.PanelRaised, 14);
         guides.TooltipText = "Style Guides: every word tier's level and chips × mult";
         guides.Pressed += ToggleStyleGuides;
@@ -359,6 +374,8 @@ public partial class Main : Control
     /// <summary>Redraws everything from the current session and visual state.</summary>
     private void Refresh()
     {
+        if (_session is null)
+            return; // the title is up and this profile has no run yet
         PersistRunIfChanged();
         RecordRoundWonIfDone();
         RecordRunEndIfOver();

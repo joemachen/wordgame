@@ -678,6 +678,20 @@ public partial class Main
             GetViewport().SetInputAsHandled();
             return;
         }
+        if (_profilesOverlay.Visible)
+        {
+            if (key.Keycode == Key.Escape)
+                _profilesOverlay.Visible = false;
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        // Title menu: Enter continues; nothing else reacts.
+        if (_titleOverlay.Visible)
+        {
+            HandleTitleKey(key);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
 
         // Style Guides popup: Tab toggles it anywhere; while it's open, Esc closes it and nothing else reacts.
         if (key.Keycode == Key.Tab || (_styleGuidesOverlay.Visible && key.Keycode == Key.Escape))
