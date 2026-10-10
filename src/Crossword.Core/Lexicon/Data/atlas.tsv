@@ -1,0 +1,574 @@
+# The Atlas Unlocked: place names (Crossword.Core.Lexicon.Dictionaries), hand-written for this game.
+# Line format: WORD<TAB>description. '#' comments and blank lines are ignored.
+# Rules (tests enforce the first three): A-Z only, 3-15 letters; no word already in ENABLE (it would add nothing:
+# NICE, CHINA, TURKEY...); every entry has a description. Content: countries, capitals and cities, states and
+# provinces, regions, islands, seas, rivers, lakes, mountains and ancient sites; single-word names only, accents
+# dropped, 7 letters at most (the board is 7x7, so longer names could never be played). Contested places get a
+# geographic description. Entries still go through the denylist.
+AARHUS	city in Denmark
+ABIDJAN	largest city of Ivory Coast
+ABUJA	capital of Nigeria
+ACCRA	capital of Ghana
+AEGEAN	sea between Greece and Turkey
+AFRICA	continent south of Europe
+AGRA	city in India, home of the Taj Mahal
+AKRON	city in Ohio
+ALABAMA	U.S. state
+ALBANIA	country in the Balkans
+ALBANY	capital of New York
+ALBERTA	province of Canada
+ALEPPO	city in northern Syria
+ALGERIA	country in North Africa
+ALGIERS	capital of Algeria
+ALMATY	largest city of Kazakhstan
+ALTAI	mountain range in Central Asia
+AMMAN	capital of Jordan
+AMUR	river between Russia and China
+ANDES	mountain range in South America
+ANDORRA	country in the Pyrenees
+ANGOLA	country in southern Africa
+ANKARA	capital of Turkey
+ANTALYA	city in southern Turkey
+ANTWERP	port city in Belgium
+APIA	capital of Samoa
+AQABA	port city in Jordan
+ARABIA	peninsula in western Asia
+ARAL	sea in Central Asia
+ARARAT	mountain in eastern Turkey
+ARIZONA	U.S. state
+ARMENIA	country in the Caucasus
+ARNO	river through Florence
+ARUBA	island in the Caribbean
+ASIA	the largest continent
+ASMARA	capital of Eritrea
+ASSAM	state in northeastern India
+ASSISI	town in central Italy
+ASTANA	capital of Kazakhstan
+ASWAN	city in Egypt on the Nile
+ATACAMA	desert in Chile
+ATHENS	capital of Greece
+ATLANTA	capital of Georgia
+AUGUSTA	capital of Maine; city in Georgia
+AUSTIN	capital of Texas
+AUSTRIA	country in central Europe
+AVIGNON	city in southern France
+BABYLON	ancient city of Mesopotamia
+BAGHDAD	capital of Iraq
+BAHAMAS	island country in the Atlantic
+BAHRAIN	island country in the Persian Gulf
+BAIKAL	lake in Siberia, the world's deepest
+BAKU	capital of Azerbaijan
+BALATON	lake in Hungary
+BALI	island in Indonesia
+BALKANS	peninsula in southeastern Europe
+BALTIC	sea in northern Europe
+BAMAKO	capital of Mali
+BANDUNG	city on Java
+BANGOR	city in Maine
+BANGUI	capital of the Central African Republic
+BANJUL	capital of Gambia
+BARI	port city in southern Italy
+BASEL	city on the Rhine, Switzerland
+BASRA	city in southern Iraq
+BAVARIA	state in southern Germany
+BEIJING	capital of China
+BEIRUT	capital of Lebanon
+BELARUS	country in eastern Europe
+BELEM	city in Brazil
+BELFAST	capital of Northern Ireland
+BELGIUM	country in western Europe
+BELIZE	country in Central America
+BENIN	country in West Africa
+BERGEN	port city in Norway
+BERING	sea and strait between Asia and Alaska
+BERMUDA	island territory in the Atlantic
+BERN	capital of Switzerland
+BHUTAN	country in the Himalayas
+BILBAO	city in northern Spain
+BILOXI	city in Mississippi
+BISHKEK	capital of Kyrgyzstan
+BISSAU	capital of Guinea-Bissau
+BOGOTA	capital of Colombia
+BOISE	capital of Idaho
+BONN	city on the Rhine, Germany
+BORNEO	island in Southeast Asia
+BRAGA	city in northern Portugal
+BREMEN	city in northern Germany
+BREST	port city in Brittany; city in Belarus
+BRITAIN	island of England, Scotland and Wales
+BRNO	city in Czechia
+BRUGES	city of canals in Belgium
+BRUNEI	country on the island of Borneo
+BUKHARA	city in Uzbekistan
+BURUNDI	country in East Africa
+BUSAN	port city in South Korea
+BYBLOS	ancient port city in Lebanon
+CADIZ	port city in southern Spain
+CAEN	city in Normandy
+CAIRO	capital of Egypt
+CALAIS	port city in northern France
+CALGARY	city in Alberta
+CALI	city in Colombia
+CAMDEN	city in New Jersey
+CANAAN	ancient region of the Levant
+CANADA	country in North America
+CANCUN	resort city in Mexico
+CANNES	city on the French Riviera
+CAPRI	island in the Bay of Naples
+CARACAS	capital of Venezuela
+CARDIFF	capital of Wales
+CASPIAN	sea between Europe and Asia
+CEBU	island and city in the Philippines
+CHENNAI	city in southern India
+CHICAGO	city in Illinois
+CLUJ	city in Romania
+CLYDE	river in Scotland
+COLOMBO	largest city of Sri Lanka
+COMO	lake in northern Italy
+COMOROS	island country in the Indian Ocean
+CONAKRY	capital of Guinea
+CORINTH	city in Greece
+CORSICA	French island in the Mediterranean
+CRETE	largest Greek island
+CROATIA	country in the Balkans
+CUBA	island country in the Caribbean
+CUSCO	city in Peru, the old Inca capital
+CZECHIA	country in central Europe
+DAKAR	capital of Senegal
+DALLAS	city in Texas
+DANUBE	river in central Europe
+DARWIN	city in northern Australia
+DAVAO	city in the Philippines
+DAYTON	city in Ohio
+DELHI	city and territory in northern India
+DELPHI	ancient site of the oracle in Greece
+DENALI	highest mountain in North America
+DENMARK	country in northern Europe
+DENVER	capital of Colorado
+DETROIT	city in Michigan
+DHAKA	capital of Bangladesh
+DIJON	city in Burgundy
+DILI	capital of Timor-Leste
+DNIEPER	river in eastern Europe
+DODOMA	capital of Tanzania
+DOHA	capital of Qatar
+DOURO	river in Spain and Portugal
+DOVER	port in England; capital of Delaware
+DRESDEN	city in eastern Germany
+DUBAI	city in the United Arab Emirates
+DUBLIN	capital of Ireland
+DULUTH	city in Minnesota
+DUNEDIN	city in New Zealand
+DURBAN	port city in South Africa
+EBRO	river in Spain
+ECUADOR	country in South America
+EGYPT	country in North Africa
+EIGER	mountain in the Swiss Alps
+ELBA	island where Napoleon was exiled
+ELBE	river in central Europe
+ELBRUS	highest mountain in Europe
+ELKO	city in Nevada
+ENGLAND	country in the United Kingdom
+ENID	city in Oklahoma
+ENTEBBE	city in Uganda
+EPHESUS	ancient city in western Turkey
+ERBIL	city in northern Iraq
+ERIE	one of the Great Lakes
+ERITREA	country in East Africa
+ESSEN	city in western Germany
+ESSEX	county in eastern England
+ESTONIA	country on the Baltic Sea
+EURASIA	Europe and Asia as one landmass
+EUROPE	continent west of Asia
+EVEREST	the world's highest mountain
+FARGO	city in North Dakota
+FIJI	island country in the South Pacific
+FINLAND	country in northern Europe
+FLORIDA	U.S. state
+FRANCE	country in western Europe
+GABON	country in central Africa
+GANGES	river in India
+GARDA	lake in northern Italy
+GAUL	ancient region of western Europe
+GDANSK	port city in Poland
+GEORGIA	country in the Caucasus; U.S. state
+GERMANY	country in central Europe
+GHANA	country in West Africa
+GHENT	city in Belgium
+GITEGA	capital of Burundi
+GIZA	city in Egypt, home of the pyramids
+GLASGOW	city in Scotland
+GOBI	desert in Mongolia and China
+GRANADA	city in southern Spain
+GRAZ	city in Austria
+GREECE	country in southern Europe
+GRENADA	island country in the Caribbean
+GUAM	island in the western Pacific
+GUYANA	country in South America
+HAIFA	port city in Israel
+HAITI	country in the Caribbean
+HALIFAX	capital of Nova Scotia
+HANOI	capital of Vietnam
+HARARE	capital of Zimbabwe
+HAVANA	capital of Cuba
+HAWAII	U.S. state in the Pacific
+HEKLA	volcano in Iceland
+HELENA	capital of Montana
+HILO	city on the island of Hawaii
+HOBART	city in Tasmania
+HONIARA	capital of the Solomon Islands
+HONSHU	largest island of Japan
+HORMUZ	strait at the mouth of the Persian Gulf
+HOUSTON	city in Texas
+HUDSON	river in New York
+HUNGARY	country in central Europe
+HURON	one of the Great Lakes
+IBADAN	city in Nigeria
+IBERIA	peninsula of Spain and Portugal
+IBIZA	Spanish island in the Mediterranean
+ICELAND	island country in the North Atlantic
+IDA	mountain in Crete
+IDAHO	U.S. state
+INDIA	country in South Asia
+INDIANA	U.S. state
+INDUS	river in Pakistan
+IONIAN	sea west of Greece
+IOWA	U.S. state
+IRAN	country in western Asia
+IRAQ	country in western Asia
+IRELAND	island and country in northwestern Europe
+IRTYSH	river in Central Asia
+ISFAHAN	city in central Iran
+ISRAEL	country in western Asia
+ITALY	country in southern Europe
+ITHACA	city in New York; Greek island home of Odysseus
+IZMIR	city in western Turkey
+JAFFA	old port city in Israel
+JAIPUR	city in northwestern India
+JAKARTA	largest city of Indonesia
+JAMAICA	island country in the Caribbean
+JEDDAH	city in Saudi Arabia
+JERICHO	ancient city in the Jordan Valley
+JUDEA	ancient region of the Levant
+JUNEAU	capital of Alaska
+KABUL	capital of Afghanistan
+KAMPALA	capital of Uganda
+KANDY	city in Sri Lanka
+KANO	city in northern Nigeria
+KANSAS	U.S. state
+KARACHI	city in Pakistan
+KASHGAR	oasis city in western China
+KAUAI	Hawaiian island
+KAUNAS	city in Lithuania
+KAZAN	city on the Volga
+KENYA	country in East Africa
+KERALA	state in southwestern India
+KHARKIV	city in eastern Ukraine
+KHIVA	oasis city in Uzbekistan
+KIEL	port city in northern Germany
+KIGALI	capital of Rwanda
+KNOSSOS	ancient palace city on Crete
+KOBE	port city in Japan
+KOLKATA	city in eastern India
+KOLYMA	river in eastern Siberia
+KOREA	peninsula in East Asia
+KRAKOW	city in southern Poland
+KUMASI	city in Ghana
+KUWAIT	country on the Persian Gulf
+KYIV	capital of Ukraine
+KYOTO	city in Japan, its old capital
+KYUSHU	island in southern Japan
+LADOGA	lake in Russia, Europe's largest
+LAGOS	largest city of Nigeria
+LAHORE	city in Pakistan
+LAOS	country in Southeast Asia
+LATVIA	country on the Baltic Sea
+LEBANON	country in western Asia
+LEEDS	city in northern England
+LEIDEN	city in the Netherlands
+LEIPZIG	city in eastern Germany
+LENA	river in Siberia
+LESOTHO	country in southern Africa
+LHASA	city in Tibet
+LIBERIA	country in West Africa
+LIBYA	country in North Africa
+LILLE	city in northern France
+LIMPOPO	river in southern Africa
+LINZ	city on the Danube, Austria
+LISBON	capital of Portugal
+LODZ	city in central Poland
+LOIRE	river in France
+LOME	capital of Togo
+LONDON	capital of the United Kingdom
+LOURDES	town in southwestern France
+LUANDA	capital of Angola
+LUGANO	city in southern Switzerland
+LUSAKA	capital of Zambia
+LUXOR	city in Egypt on the Nile
+LUZON	largest island of the Philippines
+LVIV	city in western Ukraine
+LYON	city in France
+MACAU	city on the southern coast of China
+MADRID	capital of Spain
+MAINE	U.S. state
+MAINZ	city on the Rhine, Germany
+MAJORCA	Spanish island in the Mediterranean
+MAJURO	capital of the Marshall Islands
+MALABO	capital of Equatorial Guinea
+MALAGA	port city in southern Spain
+MALAWI	country in southeastern Africa
+MALI	country in West Africa
+MALMO	city in southern Sweden
+MALTA	island country in the Mediterranean
+MANAGUA	capital of Nicaragua
+MANAMA	capital of Bahrain
+MANAUS	city on the Amazon
+MAPUTO	capital of Mozambique
+MASERU	capital of Lesotho
+MASHHAD	city in northeastern Iran
+MAUI	Hawaiian island
+MBABANE	capital of Eswatini
+MEDAN	city on Sumatra
+MEKONG	river in Southeast Asia
+MEMPHIS	city in Tennessee; ancient capital of Egypt
+METZ	city in northeastern France
+MEUSE	river in western Europe
+MEXICO	country in North America
+MIAMI	city in Florida
+MILAN	city in northern Italy
+MINSK	capital of Belarus
+MOJAVE	desert in the southwestern U.S.
+MOLDOVA	country in eastern Europe
+MOLOKAI	Hawaiian island
+MOMBASA	port city in Kenya
+MONACO	city-state on the French Riviera
+MONTANA	U.S. state
+MORONI	capital of the Comoros
+MOSCOW	capital of Russia
+MOSTAR	city in Bosnia and Herzegovina
+MOSUL	city in northern Iraq
+MUMBAI	city in western India
+MUNICH	city in southern Germany
+MURRAY	river in Australia
+MYANMAR	country in Southeast Asia
+NAGOYA	city in Japan
+NAIROBI	capital of Kenya
+NAMIB	coastal desert in southern Africa
+NAMIBIA	country in southern Africa
+NANJING	city in eastern China
+NANTES	city in western France
+NAPLES	city in southern Italy
+NARA	city in Japan, an ancient capital
+NASSAU	capital of the Bahamas
+NAURU	island country in the Pacific
+NEGEV	desert in southern Israel
+NEPAL	country in the Himalayas
+NEVADA	U.S. state
+NEWARK	city in New Jersey
+NIAMEY	capital of Niger
+NICOSIA	capital of Cyprus
+NIGER	river and country in West Africa
+NIGERIA	country in West Africa
+NILE	river in Africa, the world's longest
+NINEVEH	ancient city of Assyria
+NORWAY	country in northern Europe
+NUNAVUT	territory in northern Canada
+NYASA	lake in southeastern Africa
+OAHU	Hawaiian island
+OAXACA	city and state in Mexico
+OCEANIA	region of the Pacific islands and Australia
+ODENSE	city in Denmark
+ODER	river in central Europe
+ODESA	port city in Ukraine
+OGDEN	city in Utah
+OHIO	U.S. state and river
+OHRID	lake and city in North Macedonia
+OKHOTSK	sea in the northwestern Pacific
+OKINAWA	island in southern Japan
+OLYMPUS	mountain in Greece, home of the gods
+OMAHA	city in Nebraska
+OMAN	country on the Arabian Peninsula
+OMSK	city in Siberia
+ONTARIO	one of the Great Lakes; province of Canada
+ORAN	port city in Algeria
+OREGON	U.S. state
+ORINOCO	river in Venezuela
+ORKNEY	island group off northern Scotland
+OSAKA	city in Japan
+OSHKOSH	city in Wisconsin
+OSLO	capital of Norway
+OTTAWA	capital of Canada
+OULU	city in Finland
+OXUS	old name of the Amu Darya river
+OZARKS	upland region in the central U.S.
+PADUA	city in northern Italy
+PALAU	island country in the western Pacific
+PALERMO	city in Sicily
+PALIKIR	capital of Micronesia
+PAMIR	mountain range in Central Asia
+PARANA	river in South America
+PARMA	city in northern Italy
+PATNA	city in eastern India
+PATRAS	port city in Greece
+PEORIA	city in Illinois
+PERSIA	old name for Iran
+PERTH	city in Western Australia
+PERU	country in South America
+PETRA	ancient city in Jordan
+PHUKET	island in Thailand
+PISA	city in Italy with a leaning tower
+PLATTE	river in Nebraska
+PLOVDIV	city in Bulgaria
+POCONOS	mountains in Pennsylvania
+POLAND	country in central Europe
+POMPEII	Roman city buried by Vesuvius
+POTOMAC	river through Washington, D.C.
+POTSDAM	city near Berlin
+POZNAN	city in western Poland
+PRAGUE	capital of Czechia
+PRAIA	capital of Cape Verde
+PROVO	city in Utah
+PUEBLA	city in Mexico
+PUNE	city in western India
+PUNJAB	region of India and Pakistan
+QATAR	country on the Persian Gulf
+QUEBEC	province and city in Canada
+QUITO	capital of Ecuador
+RALEIGH	capital of North Carolina
+RAVENNA	city in northern Italy
+RECIFE	city in Brazil
+REIMS	city in Champagne, France
+RENO	city in Nevada
+RHINE	river in western Europe
+RHODES	Greek island in the Aegean
+RHONE	river in Switzerland and France
+RIGA	capital of Latvia
+RIYADH	capital of Saudi Arabia
+ROCKIES	mountain range in North America
+ROMANIA	country in southeastern Europe
+ROME	capital of Italy
+ROSARIO	city in Argentina
+ROSEAU	capital of Dominica
+RUSSIA	country in eastern Europe and northern Asia
+RWANDA	country in East Africa
+SAHARA	desert in North Africa
+SAHEL	semi-arid region south of the Sahara
+SALEM	capital of Oregon; town in Massachusetts
+SAMARIA	ancient region of the Levant
+SAMOA	island country in the South Pacific
+SANAA	capital of Yemen
+SAPPORO	city in northern Japan
+SEATTLE	city in Washington State
+SENDAI	city in northern Japan
+SENEGAL	river and country in West Africa
+SEOUL	capital of South Korea
+SERBIA	country in the Balkans
+SEVERN	river in Wales and England
+SEVILLE	city in southern Spain
+SHANNON	river in Ireland
+SHASTA	volcano in California
+SHIRAZ	city in southern Iran
+SIBERIA	region of northern Asia
+SICILY	island off southern Italy
+SIDON	ancient port city in Lebanon
+SIENA	city in Tuscany
+SINAI	peninsula and mountain in Egypt
+SITKA	town in Alaska
+SKOPJE	capital of North Macedonia
+SOCHI	resort city on the Black Sea
+SOFIA	capital of Bulgaria
+SOWETO	township of Johannesburg
+SPAIN	country in southwestern Europe
+SPARTA	city in ancient Greece
+SPOKANE	city in Washington State
+SUDAN	country in northeastern Africa
+SUEZ	canal linking the Mediterranean and the Red Sea
+SUMATRA	island in Indonesia
+SURAT	city in western India
+SUVA	capital of Fiji
+SWEDEN	country in northern Europe
+SYDNEY	largest city of Australia
+SYRIA	country in western Asia
+TABRIZ	city in northwestern Iran
+TACOMA	city in Washington State
+TAGUS	river in Spain and Portugal
+TAHITI	island in French Polynesia
+TAHOE	lake in the Sierra Nevada
+TAIPEI	city in northern Taiwan
+TAIWAN	island in East Asia
+TALLINN	capital of Estonia
+TAMPA	city in Florida
+TARAWA	capital of Kiribati
+TARTU	city in Estonia
+TASMAN	sea between Australia and New Zealand
+TBILISI	capital of Georgia
+TEHRAN	capital of Iran
+TEIDE	volcano in the Canary Islands
+TETON	mountain range in Wyoming
+THAMES	river in England
+THEBES	ancient city in Greece and in Egypt
+THIMPHU	capital of Bhutan
+TIANJIN	city in northern China
+TIBER	river through Rome
+TIGRIS	river in Mesopotamia
+TIJUANA	city in Mexico
+TIRANA	capital of Albania
+TOBAGO	island in the Caribbean
+TOGO	country in West Africa
+TOKYO	capital of Japan
+TOMSK	city in Siberia
+TOPEKA	capital of Kansas
+TORONTO	largest city of Canada
+TOULON	port city in southern France
+TRENT	river in England
+TRENTON	capital of New Jersey
+TUCSON	city in Arizona
+TULSA	city in Oklahoma
+TUNIS	capital of Tunisia
+TUNISIA	country in North Africa
+TURIN	city in northern Italy
+TURKU	city in Finland
+TUSCANY	region of central Italy
+TUVALU	island country in the Pacific
+TYROL	Alpine region of Austria and Italy
+UGANDA	country in East Africa
+UKRAINE	country in eastern Europe
+ULM	city on the Danube, Germany
+UMBRIA	region of central Italy
+UPPSALA	city in Sweden
+URAL	river and mountain range in Russia
+URALS	mountain range between Europe and Asia
+URUGUAY	country in South America
+UTAH	U.S. state
+UTICA	city in New York
+UTRECHT	city in the Netherlands
+VADUZ	capital of Liechtenstein
+VANUATU	island country in the South Pacific
+VATICAN	city-state within Rome
+VENICE	city of canals in Italy
+VERMONT	U.S. state
+VERONA	city in northern Italy
+VIENNA	capital of Austria
+VIETNAM	country in Southeast Asia
+VILNIUS	capital of Lithuania
+VISTULA	river in Poland
+VOLGA	river in Russia, Europe's longest
+WEIMAR	city in central Germany
+WICHITA	city in Kansas
+WROCLAW	city in western Poland
+WUHAN	city in central China
+WYOMING	U.S. state
+XIAN	city in China, home of the Terracotta Army
+YAKUTSK	city in eastern Siberia
+YANGON	largest city of Myanmar
+YANGTZE	river in China
+YAOUNDE	capital of Cameroon
+YEMEN	country on the Arabian Peninsula
+YENISEI	river in Siberia
+YEREVAN	capital of Armenia
+YUKON	river and territory in northwestern Canada
+YUMA	city in Arizona
+ZAGREB	capital of Croatia
+ZAMBEZI	river in southern Africa
+ZAMBIA	country in southern Africa
+ZURICH	largest city of Switzerland

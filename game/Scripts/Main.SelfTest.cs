@@ -415,6 +415,18 @@ public partial class Main
         NewRun(42);
         Check("a standard run doesn't take the dictionary's words", Run.Dictionaries.IsEmpty && !_lexicon.Contains("CPU"));
 
+        // 20. One more win unlocks The Atlas Unlocked; picking it swaps the run's extra words.
+        _profile.Update(s => s with { RunsWon = s.RunsWon + 1 });
+        ChooseNewRun();
+        await Frames(2);
+        await Click(Centre(DeckCard(Decks.LexicographerId)));
+        if (_pressRunBox.FindChild($"Dictionary_{Dictionaries.AtlasId}", owned: false) is Button { Disabled: false } atlasButton)
+            await Click(Centre(atlasButton));
+        await Click(Centre(PressRow(1)));
+        Check("a win unlocks the atlas and picking it starts a run with place names",
+            Run.Dictionaries.SequenceEqual([Dictionaries.AtlasId]) && _lexicon.Contains("OSLO") && !_lexicon.Contains("CPU")
+            && _seedLabel.Text.Contains("The Atlas Unlocked"));
+
         GD.Print(_selfTestFailures == 0 ? "SELFTEST: ALL PASSED" : $"SELFTEST: {_selfTestFailures} FAILED");
         GetTree().Quit(_selfTestFailures == 0 ? 0 : 1);
     }

@@ -63,6 +63,23 @@ public class DictionariesTests
     }
 
     [Fact]
+    public void Define_UsesEachDictionarysSenseLabel_FromTheFirstThatHasTheWord()
+    {
+        Assert.Equal("n. capital of Norway", Dictionaries.Define("oslo", [Dictionaries.AtlasId])?.Summary);
+        Assert.Null(Dictionaries.Define("OSLO", TechShorthand));
+        Assert.Equal("abbr. central processing unit",
+            Dictionaries.Define("CPU", [Dictionaries.AtlasId, Dictionaries.TechShorthandId])?.Summary);
+    }
+
+    [Fact]
+    public void TheAtlas_HoldsOnlyNamesThatFitTheBoard()
+    {
+        Assert.All(Dictionaries.Words(Dictionaries.AtlasId), word => Assert.True(word.Length <= 7, $"{word} can't fit a 7x7 board."));
+        Assert.Contains("ERIE", Dictionaries.Words(Dictionaries.AtlasId));
+        Assert.DoesNotContain("PARIS", Dictionaries.Words(Dictionaries.AtlasId)); // an ENABLE word already
+    }
+
+    [Fact]
     public void LexiconFor_NoDictionaries_IsEnable()
     {
         Assert.Same(LexiconLoader.Enable, LexiconLoader.For([]));

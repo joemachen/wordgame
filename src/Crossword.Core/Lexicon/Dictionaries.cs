@@ -5,25 +5,29 @@ namespace Crossword.Core.Lexicon;
 
 /// <summary>
 /// A dictionary overlay: extra words legal on top of ENABLE in a run that turns it on. <see cref="Kind"/> says what the
-/// words are ("Acronyms &amp; Initialisms"); entries shorter than <see cref="MinLength"/> are left out.
+/// words are ("Acronyms &amp; Initialisms"); entries shorter than <see cref="MinLength"/> are left out. Its definitions
+/// show as "<see cref="SenseLabel"/>. &lt;the entry's text&gt;" ("abbr. central processing unit").
 /// </summary>
-public sealed record DictionaryDefinition(string Id, string Name, string Kind, string Description, int MinLength);
+public sealed record DictionaryDefinition(string Id, string Name, string Kind, string Description, int MinLength, string SenseLabel);
 
 /// <summary>
 /// Dictionary overlays (ROADMAP §1), unlocked one per run won in the order of <see cref="All"/> once The Lexicographer's
 /// Deck is (<see cref="Profile.StatsQueries.UnlockedDictionaries"/>). A run's dictionaries live in
 /// <see cref="Domain.RunState.Dictionaries"/>; their words are merged with ENABLE into the run's word graph
 /// (<see cref="LexiconLoader.For"/>). Data: embedded <c>Lexicon/Data/&lt;id&gt;.tsv</c>, one <c>WORD&lt;TAB&gt;expansion</c>
-/// per line, '#' comments and blank lines ignored. Every entry goes through <see cref="Denylist.Default"/>.
+/// (or description) per line, '#' comments and blank lines ignored. Every entry goes through <see cref="Denylist.Default"/>.
 /// </summary>
 public static class Dictionaries
 {
     public const string TechShorthandId = "tech-shorthand";
+    public const string AtlasId = "atlas";
 
     public static ImmutableArray<DictionaryDefinition> All { get; } =
     [
         new(TechShorthandId, "The Tech Shorthand", "Acronyms & Initialisms",
-            "Acronyms and initialisms of 3+ letters are legal: CPU, NASA, FAQ…", 3),
+            "Acronyms and initialisms of 3+ letters are legal: CPU, NASA, FAQ…", 3, "abbr"),
+        new(AtlasId, "The Atlas Unlocked", "Proper Nouns & Places",
+            "Place names of 3+ letters are legal: OSLO, ERIE, PERU…", 3, "n"),
     ];
 
     private static readonly ConcurrentDictionary<string, Lazy<ImmutableDictionary<string, string>>> Cache = new();
@@ -38,15 +42,15 @@ public static class Dictionaries
     public static IEnumerable<string> Words(string id) => Entries(id).Keys;
 
     /// <summary>
-    /// The definition of <paramref name="word"/> from the first of <paramref name="ids"/> that has it ("abbr." + its
-    /// expansion), or null.
+    /// The definition of <paramref name="word"/> from the first of <paramref name="ids"/> that has it (the dictionary's
+    /// <see cref="DictionaryDefinition.SenseLabel"/> + the entry's text), or null.
     /// </summary>
     public static WordDefinition? Define(string word, IEnumerable<string> ids)
     {
         string key = word.Trim().ToUpperInvariant();
         foreach (string id in ids)
             if (Entries(id).TryGetValue(key, out var expansion))
-                return new WordDefinition(key, [new WordSense("abbr", expansion)]);
+                return new WordDefinition(key, [new WordSense(Get(id).SenseLabel, expansion)]);
         return null;
     }
 
