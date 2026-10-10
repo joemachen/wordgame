@@ -7,6 +7,62 @@
 
 _Last updated: 2026-10-10 · HEAD `f3ecbbb` (code) · 507 unit tests passing · UI self-test 79/79 passing · CI green_
 
+## 0. ▶ Queued for the next session — the user will say "go"
+
+The user approved everything from 2026-10-10 (title menu, profiles, Settings; **fullscreen tested by hand and
+approved**). Next, two tasks, in this order:
+
+### A. Re-examine the economy ("I never feel like I have enough money")
+The user says money feels very hard to make in playtests, and suspects it's partly their own skill. **Measure first,
+then bring options with a recommendation to the user before changing any numbers** (economy and difficulty are the
+user's calls; see §3).
+- **Current economy** (`EconomyConfig` in `Core/Run/RunConfig.cs`, payout in `Core/Run/Economy.cs`): start $4;
+  base pay Daily $3 / Saturday $4 / Sunday $5 (`RoundKind.BasePay`); +$1 per unused submission; overkill $1 per full
+  25% over the target (cap $3); interest $1 per $4 held (cap $5). Other income: Gilded tiles (+$1 per word),
+  Syndication Desk Item ($1 per intersection), selling (half price). Prices: Desk Items $4 / $6 / $8, Style Guide $3,
+  Stationery $3 (Margin Clip $6), wild tile $6, reroll $5 (+$1 each).
+- **Last measurement** (§4c, reference bot at ScoreFraction 0.75): $6.57 income per round (base $3.71, unused
+  submissions $1.33, overkill $1.09, interest $0.38), about $9.8 held entering a shop.
+- **Hypothesis to test:** a weaker player loses most of the skill-based income (unused submissions, overkill), so their
+  paycheck is close to base pay alone (~$3–5), less than one Common Desk Item per shop.
+- **Step 1, measure income by skill.** Recreate the `econsim` scratch harness (§7: `RunSimulator.PlayRun` over paired
+  seeds, read `SimulatedRunRound.Payout` / `InRoundMoney` / `Shop`). Cover ScoreFraction 0.5 / 0.6 / 0.75 / 0.9 and
+  report: income per round by source, money held entering each shop, how often the player can afford ≥1 Desk Item,
+  and spending by category, all by week. Also measure what fraction of shop visits end with nothing affordable.
+- **Step 2, candidate levers.** Measure each against the baseline on the same 200 seeds, for win % at 0.6 and 0.75
+  and for income:
+  - +$1 base pay. In 2026-10-05 this measured +14.5 pts at 0.75, so it's a big lever.
+  - Unused discards pay $1. This rewards a cautious player, not just a strong one.
+  - A minimum paycheck floor.
+  - Cheaper Commons ($3).
+  - Reroll base $3 (previously measured +1.5 pts).
+  - Interest per $3.
+  - A boss-win bonus.
+  - New money sources: a "freelance check" Stationery, or more money Desk Items.
+
+  **Prefer levers that help weaker players more than strong ones** (flat or base income over overkill), which matches
+  the user's complaint.
+- **Step 3, retune.** More income raises win rates, so retune `WeekTargets` to keep the reference (0.75) near
+  37–39%. Alternatively, ask the user whether the game should simply get easier. The Press Run ladder (§4a) and decks
+  (§4) shift with it, so re-check the deck table.
+- Also consider **clarity**: the paycheck screen (`Main.Shop.cs` `BuildPaycheck`) could say how to earn more (e.g.
+  "+$1 for every submission you don't use"). Players may not know where money comes from.
+- Deliverables: a measurement table for the user, then the chosen change with tests (pin the new numbers in tests'
+  own configs), a `runsim` re-check, and doc updates (§2, §3, §4c, CLAUDE.md Economy line).
+
+### B. Dev-only "Best" button
+The user wants a dev-only button that works like Hint but places the **absolute highest-scoring play**.
+- Today `--dev` changes the Hint button itself ("Hint (dev)", `ShowHint(best: _devMode)`;
+  `game/Scripts/Main.Round.cs` ~L51 and ~L460). **Plan:** keep Hint as the normal *decent* hint even with `--dev`, and
+  add a separate **"Best (dev)"** button next to it, created always but visible only when `_devMode`. It calls
+  `ShowHint(best: true)`, which uses `Hints.Best` = the top of `MoveRanker.Rank` (scored with the run's Desk Items,
+  boss, theme and censored letter, so it's the highest-*scoring* play, cross words included). Mention this in the
+  hand-off if the user meant "longest word" instead.
+- Self-test (`Main.SelfTest.cs` ~L172 has a `_devMode` branch for the hint check): make the button visible in the
+  test, click it, and check the pending play scores `ranked[0]`'s total. Also check that Hint still isn't the best
+  play.
+- Docs: CLAUDE.md (Hint bullet, `--dev` flag in Commands) and handoff §2 Hint row.
+
 ---
 
 ## 1. What this is
@@ -343,6 +399,7 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
+0. **Queued by the user (§0): economy re-examination, then the dev-only Best button.**
 1. ~~Cheap parallel tracks~~ ✅ 2026-10-10 (CI, seed box, profile picker, CLI save/load + Stationery) plus a title
    menu and Settings v1. Leftovers: copyable seed, profile delete/rename, volume (with audio).
 2. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
