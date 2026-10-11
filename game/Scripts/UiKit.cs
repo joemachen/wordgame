@@ -31,6 +31,15 @@ public static class UiKit
     public static readonly Color Cell = new("2a3142");
     public static readonly Color Blocked = new("07090d");
 
+    // Paper: the scoring receipt and the (hidden) clue columns print on newsprint.
+    public static readonly Color Paper = new("f6f1e4");
+    public static readonly Color PaperInk = new("2b2620");
+    public static readonly Color PaperMuted = new("6b6253");
+    public static readonly Color PaperEdge = new("cfc4a8");
+
+    /// <summary>Typewriter face for the receipt (a system font for now; the visual overhaul brings an open-license one).</summary>
+    public static readonly Font Mono = new SystemFont { FontNames = ["Consolas", "Courier New", "monospace"] };
+
     public static Color PremiumColor(Premium premium) => premium switch
     {
         Premium.DoubleLetter => new Color("5aa9e6"),
@@ -80,6 +89,14 @@ public static class UiKit
         label.AddThemeColorOverride("font_color", color);
         if (wrap)
             label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        return label;
+    }
+
+    /// <summary>A label in the typewriter face (<see cref="Mono"/>).</summary>
+    public static Label MakeMonoLabel(string text, int size, Color color, HorizontalAlignment align = HorizontalAlignment.Left)
+    {
+        var label = MakeLabel(text, size, color, align);
+        label.AddThemeFontOverride("font", Mono);
         return label;
     }
 

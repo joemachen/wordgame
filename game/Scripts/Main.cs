@@ -77,7 +77,6 @@ public partial class Main : Control
     private Label _moneyLabel = null!;
     private Label _messageLabel = null!;
     private RichTextLabel _definitionsLabel = null!;
-    private VBoxContainer _logBox = null!;
     private Label _seedLabel = null!;
     private Button _statsButton = null!;
     private Button _menuButton = null!;
@@ -149,6 +148,13 @@ public partial class Main : Control
             ShowHint(best: true);
         if (args.ContainsKey("guides") && _session is not null)
             OpenStyleGuides(instant: true);
+        if (args.ContainsKey("ringup") && _lastAutoplay is { } last)
+        {
+            // Dev/QA: replay the last autoplayed submission's ring-up (the receipt, pops and stamp) for screenshots.
+            _animating = true;
+            Refresh();
+            AnimateScore(last.Score, last.ScoreBefore);
+        }
 
         if (args.TryGetValue("screenshot", out var path))
             _ = ScreenshotAndQuit(path);
@@ -175,9 +181,14 @@ public partial class Main : Control
     {
         for (int i = 0; i < 3; i++)
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        while (_animating) // --ringup: wait for the playback to finish
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         GetViewport().GetTexture().GetImage().SavePng(path);
         GetTree().Quit();
     }
+
+    // The last submission --autoplay made, for --ringup.
+    private (Crossword.Core.Effects.ScoreContext Score, long ScoreBefore)? _lastAutoplay;
 
     /// <summary>Dev/QA: plays the best move or leaves the shop, <paramref name="steps"/> times, without animation.</summary>
     private void Autoplay(int steps)
@@ -191,7 +202,10 @@ public partial class Main : Control
             }
             if (_session.Phase != RunPhase.InRound || BestPlay() is not { } best)
                 return;
-            _session = RunRules.Submit(_session, best.Play.Placed, _lexicon).Value.Session;
+            long scoreBefore = Round.Score;
+            var outcome = RunRules.Submit(_session, best.Play.Placed, _lexicon).Value;
+            _session = outcome.Session;
+            _lastAutoplay = (outcome.Score, scoreBefore);
         }
     }
 
@@ -359,11 +373,7 @@ public partial class Main : Control
         box.AddChild(_moneyLabel);
         box.AddChild(new HSeparator());
 
-        var logScroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-        _logBox = UiKit.VBox(2);
-        _logBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        logScroll.AddChild(_logBox);
-        box.AddChild(logScroll);
+        box.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill }); // keeps the footer at the bottom
 
         // The seed and run name get the sidebar's full width (wrapping, so a custom run's long name can't widen the
         // sidebar); the buttons sit below, right-aligned.
@@ -396,6 +406,9 @@ public partial class Main : Control
         PersistRunIfChanged();
         RecordRoundWonIfDone();
         RecordRunEndIfOver();
+        // The last play's receipt lingers while the player thinks and scrolls off at the first touch of a tile.
+        if (!_animating && _session.Phase == RunPhase.InRound && (_pending.Count > 0 || _selected.Count > 0))
+            _receipt.Dismiss();
         RefreshSidebar();
         RefreshDesk();
 
@@ -546,12 +559,6 @@ public partial class Main : Control
         _messageLabel.AddThemeColorOverride("font_color", color);
     }
 
-    private void ClearLog() => UiKit.ClearChildren(_logBox);
-
-    private Label AddLog(string text, Color color)
-    {
-        var label = UiKit.MakeLabel(text, 14, color, wrap: true);
-        _logBox.AddChild(label);
-        return label;
-    }
+    /// <summary>Empties the scoring receipt (a new play, run, resume or round).</summary>
+    private void ClearLog() => _receipt.Clear();
 }

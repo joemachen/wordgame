@@ -21,6 +21,9 @@ public partial class Main
 
     private ScoringConfig RoundScoring => Round.Config.EffectiveScoring(_session.Scoring);
 
+    // The scoring receipt beside the board (see Receipt).
+    private Receipt _receipt = null!;
+
     /// <summary>Appends what the tile's enhancement does to a tooltip (nothing for a plain tile).</summary>
     private string WithEnhancementTip(string tooltip, Tile tile) =>
         tile.Enhancement == TileEnhancement.None ? tooltip
@@ -29,7 +32,13 @@ public partial class Main
 
     private Control BuildRoundArea()
     {
+        // Board, hand and buttons share one centred column; the scoring receipt is a paper strip to its right.
+        var columns = UiKit.HBox(12);
         var box = UiKit.VBox(16);
+        box.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        columns.AddChild(box);
+        _receipt = new Receipt { CustomMinimumSize = new Vector2(Juice.ReceiptWidth, 0), SizeFlagsVertical = SizeFlags.ExpandFill };
+        columns.AddChild(_receipt);
 
         // The board sits between its ACROSS and DOWN clue columns, like a printed crossword.
         var boardRow = UiKit.HBox(12);
@@ -69,7 +78,7 @@ public partial class Main
             buttons.AddChild(b);
         buttonsHolder.AddChild(buttons);
         box.AddChild(buttonsHolder);
-        return box;
+        return columns;
     }
 
     // ---------------------------------------------------------------- board & hand
@@ -549,6 +558,8 @@ public partial class Main
         _chipsLabel.Text = "0";
         _multLabel.Text = "0";
 
+        _receipt.Begin($"{_session.Kind.Name.ToUpperInvariant()}  ·  PLAY {Round.SubmissionsMade} OF {Round.Config.Submissions}",
+            score.Play.Words.Select(w => w.Text));
         var tween = CreateTween();
         long chips = 0;
         decimal mult = 0;
@@ -564,7 +575,7 @@ public partial class Main
         }
         tween.TweenCallback(Callable.From(() =>
         {
-            AddLog($"= {score.Total:N0} points" + (score.Money > 0 ? $"  (+${score.Money})" : ""), UiKit.Text);
+            _receipt.AddTotal(score.Total, score.Money, Juice.FinalCountSeconds);
             Juice.CountUp(_scoreLabel, scoreBefore, scoreBefore + score.Total, Juice.FinalCountSeconds, "N0");
             SetMessage($"+{score.Total:N0}", UiKit.Good);
         }));
@@ -595,7 +606,7 @@ public partial class Main
             Juice.Pop(_multPanel, punch);
         }
         var color = ColorFor(e.SourceId);
-        AddLog(e.Description, color);
+        _receipt.AddLine(e, Receipt.InkFor(e.SourceId, color));
 
         int colon = e.Description.IndexOf(": ", StringComparison.Ordinal);
         string delta = colon >= 0 ? e.Description[(colon + 2)..] : e.Description;

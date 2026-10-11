@@ -13,7 +13,7 @@ namespace Wordgame.Godot;
 public partial class Main
 {
     private const float GuidesDrawerWidth = 420;
-    private const float GuidesHandleDrop = 90; // below the vertical centre, clear of the shop's Next round button
+    private const float GuidesHandleDrop = 130; // below the vertical centre, clear of the shop's Next round button
 
     private Control _styleGuidesOverlay = null!;
     private PanelContainer _styleGuidesPanel = null!;

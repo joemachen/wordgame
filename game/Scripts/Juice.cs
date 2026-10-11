@@ -38,6 +38,16 @@ public static class Juice
     public const int ConfettiAmount = 90;
     public const string StampText = "STOP THE PRESSES!";
 
+    // The scoring receipt beside the board: paper fade-in, one printed line per scoring step (faster than the slowest
+    // ring-up step so lines never pile up), the TOTAL punch, and the scroll-off when the player touches a tile.
+    public const float ReceiptWidth = 300f;
+    public const double ReceiptPaperSeconds = 0.15;
+    public const double ReceiptLineSeconds = 0.12;
+    public const float ReceiptSlidePixels = 40f; // the scroll-off nudge
+    public const float ReceiptUnrollStart = 0.3f; // a printed line unrolls from this fraction of its height
+    public const float ReceiptTotalPunch = 1.3f;
+    public const double ReceiptScrollOffSeconds = 0.25;
+
     // The Style Guides drawer slides in and out over this long (instant with reduced motion).
     public const double DrawerSeconds = 0.22;
 

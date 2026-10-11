@@ -298,17 +298,29 @@ public partial class Main
         Check("white-out removes the clicked tile", !Round.Board.IsOccupied(spot) && Run.Stationery.IsEmpty && _whiteOutSlot is null);
 
         // 13. Submitting rings the score up: the Desk Item that fired pops, the finish plays, then input unlocks.
+        //     The lowest-ranked play keeps the round going (a win would swap the board for the shop before 13a).
         _session = _session with { Run = Run with { DeskItems = [Crossword.Core.DeskItems.DeskItemCatalog.Find("red-pen")!] } };
         Refresh();
-        var submitted = RankedPlays()[0];
+        var submitted = RankedPlays()[^1];
         PlacePlay(submitted, null);
         int popsBefore = _deskPops;
+        bool receiptHidden = !_receipt.IsShowing && _receipt.LineCount == 0;
         await PressKey(global::Godot.Key.Enter);
         bool animatingAfterSubmit = _animating;
         for (int i = 0; i < 100 && _animating; i++)
             await Seconds(0.1);
         Check("scoring pops the desk item and finishes", animatingAfterSubmit && _deskPops > popsBefore
             && _lastCelebration is not null && !_animating);
+
+        // 13a. The receipt beside the board printed one line per scoring step and the total, and scrolls off at the
+        //      first touch of a tile.
+        Check("receipt prints one line per step plus the total", receiptHidden && _receipt.IsShowing
+            && _receipt.LineCount == submitted.Score.Log.Count && _receipt.HasTotal
+            && _receipt.TotalText == submitted.Score.Total.ToString("N0"));
+        await Click(Centre(HandButton(0)));
+        await Seconds(Juice.ReceiptScrollOffSeconds + 0.15);
+        Check("touching a tile scrolls the receipt off", !_receipt.IsShowing && _receipt.LineCount == 0);
+        await Click(Centre(HandButton(0))); // deselect
 
         // 13b. The submitted words appear in the clue columns, numbered like a crossword, and their record clues too.
         var numbered = BoardWords.Numbered(Round.Board);
@@ -595,6 +607,11 @@ public partial class Main
         CloseStyleGuides();
         await Frames(1);
         Check("reduced motion opens and closes the guides drawer instantly", drawerInstant && !_styleGuidesOpen && !_styleGuidesOverlay.Visible);
+        _receipt.Begin("TEST", []);
+        var printed = _receipt.AddLine(new Crossword.Core.Effects.EffectEvent("tier", "x", 1, 1), UiKit.PaperInk);
+        await Frames(1);
+        Check("reduced motion prints receipt lines instantly", printed.Scale == Vector2.One && printed.Modulate.A == 1 && _receipt.Modulate.A == 1);
+        _receipt.Clear();
         await Click(Centre((Control)_settingsBox.FindChild("TextScale_120", owned: false)!));
         await Frames(2);
         bool scaled = _settings.Settings.TextScale == 1.2f && _titlePlayingAs.GetThemeFontSize("font_size") == UiKit.FontSize(16)

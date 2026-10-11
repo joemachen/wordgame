@@ -22,8 +22,6 @@ public partial class Main
     private const int ClueSlots = 12;
     private const float ClueColumnWidth = 230;
 
-    private static readonly Color ClueInk = new("2b2620");
-    private static readonly Color ClueMuted = new("6b6253");
 
     private VBoxContainer _acrossBox = null!;
     private VBoxContainer _downBox = null!;
@@ -33,7 +31,7 @@ public partial class Main
 
     private Control BuildClueColumn(out VBoxContainer box)
     {
-        var panel = UiKit.MakePanel(UiKit.Newsprint, padding: 10, radius: 4, border: new Color("cfc4a8"), borderWidth: 1);
+        var panel = UiKit.MakePanel(UiKit.Newsprint, padding: 10, radius: 4, border: UiKit.PaperEdge, borderWidth: 1);
         panel.Visible = ShowClueColumns;
         panel.CustomMinimumSize = new Vector2(ClueColumnWidth, 0);
         panel.SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -57,7 +55,7 @@ public partial class Main
     private static void FillClueColumn(VBoxContainer box, string title, IReadOnlyList<MarginClue> clues)
     {
         UiKit.ClearChildren(box);
-        var heading = UiKit.MakeLabel(title, 17, ClueInk);
+        var heading = UiKit.MakeLabel(title, 17, UiKit.PaperInk);
         heading.Name = "Heading";
         box.AddChild(heading);
         box.AddChild(new HSeparator());
@@ -69,7 +67,7 @@ public partial class Main
             {
                 section = clue.Kind;
                 if (clue.Kind != ClueKind.Board)
-                    box.AddChild(UiKit.MakeLabel(clue.Kind == ClueKind.Record ? "FROM THE MORGUE" : "EDITOR'S NOTES", 11, ClueMuted));
+                    box.AddChild(UiKit.MakeLabel(clue.Kind == ClueKind.Record ? "FROM THE MORGUE" : "EDITOR'S NOTES", 11, UiKit.PaperMuted));
             }
             var line = new RichTextLabel
             {
@@ -82,7 +80,7 @@ public partial class Main
             };
             line.AddThemeFontSizeOverride("normal_font_size", UiKit.FontSize(13));
             line.AddThemeFontSizeOverride("bold_font_size", UiKit.FontSize(13));
-            line.AddThemeColorOverride("default_color", ClueInk);
+            line.AddThemeColorOverride("default_color", UiKit.PaperInk);
             string number = clue.Number is int n ? $"[b]{n}[/b]  " : "";
             line.Text = $"{number}[b]{Escape(clue.Answer)}[/b] — {Escape(clue.Text)}";
             box.AddChild(line);
