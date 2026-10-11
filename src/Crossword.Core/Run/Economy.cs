@@ -52,7 +52,7 @@ public static class Economy
         if (config.PerUnusedDiscard > 0)
             parts.Add($"+${config.PerUnusedDiscard} per unused discard");
         if (config.OverkillCap > 0)
-            parts.Add($"+$1 per {config.OverkillStep:P0} over the deadline (max ${config.OverkillCap})");
+            parts.Add($"+$1 per {(int)(config.OverkillStep * 100)}% over the deadline (max ${config.OverkillCap})");
         if (config.InterestCap > 0)
             parts.Add($"+$1 interest per ${config.InterestPer} held (max ${config.InterestCap})");
         if (config.MinPaycheck > 0)
