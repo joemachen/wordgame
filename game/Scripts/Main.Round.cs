@@ -719,6 +719,13 @@ public partial class Main
             GetViewport().SetInputAsHandled();
             return;
         }
+        if (_howToPlayOverlay.Visible)
+        {
+            if (key.Keycode == Key.Escape)
+                HideHowToPlay(); // back to the title or pause screen underneath
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (_pressRunOverlay.Visible)
         {
             if (key.Keycode == Key.Escape)

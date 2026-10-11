@@ -132,12 +132,6 @@ public static class Program
             case "load":
                 Load(rest.Length > 0 ? string.Join(' ', rest) : DefaultSavePath);
                 break;
-            case "move":
-                if (rest.Length == 2 && int.TryParse(rest[0], out var from) && int.TryParse(rest[1], out var to))
-                    ApplyRun(Run.MoveDeskItem(from - 1, to - 1));
-                else
-                    Console.WriteLine("Usage: move <from-slot> <to-slot>");
-                break;
             case "board" or "b" or "status" or "s":
                 PrintPhase();
                 break;
@@ -589,7 +583,6 @@ public static class Program
               desk / deck                    Show Desk Items (+catalog) / your tile deck
               sell <slot>                    Sell a Desk Item for half price
               sellst <slot>                  Sell a Stationery item for half price
-              move <from> <to>               Reorder Desk Items (they apply left to right)
               give <id>                      (dev) Add a Desk Item or Stationery for free
               save / load [path]             Save or load the run (default {DefaultSavePath}; the
                                              game's own saves load too)

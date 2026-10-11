@@ -11,6 +11,7 @@ public partial class Main
     private Control _pauseOverlay = null!;
     private Button _pauseResume = null!;
     private Button _pauseSettings = null!;
+    private Button _pauseHowToPlay = null!;
     private Button _pauseMainMenu = null!;
 
     private Control BuildPauseOverlay()
@@ -39,6 +40,7 @@ public partial class Main
 
         box.AddChild(UiKit.MakeLabel("Paused", 30, UiKit.Text, HorizontalAlignment.Center));
         _pauseResume = PauseButton(box, "Resume", UiKit.Good.Darkened(0.25f), HidePause);
+        _pauseHowToPlay = PauseButton(box, "How to play", UiKit.PanelRaised, ShowHowToPlay);
         _pauseSettings = PauseButton(box, "Settings", UiKit.PanelRaised, ShowSettings);
         _pauseMainMenu = PauseButton(box, "Main menu", UiKit.PanelRaised, () => ShowTitle());
         PauseButton(box, "Quit", UiKit.PanelRaised, QuitGame);

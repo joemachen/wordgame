@@ -9,6 +9,14 @@ public class RunStateDeskTests
         items.Aggregate(RunState.New(1), (run, item) => run.AddDeskItem(item).Value);
 
     [Fact]
+    public void AddDeskItem_KeepsTheBestOrder_StableWithinAKind()
+    {
+        var run = With(new Pulitzer(), new RedPen(), new Thesaurus(), new Archive(), new Syndication());
+
+        Assert.Equal(["thesaurus", "red-pen", "archive", "syndication", "pulitzer"], run.DeskItems.Select(i => i.Id));
+    }
+
+    [Fact]
     public void AddDeskItem_AppendsToRightmostSlot_WithoutMutatingOriginal()
     {
         var run = RunState.New(1);
@@ -36,20 +44,9 @@ public class RunStateDeskTests
     [Fact]
     public void RemoveDeskItem_RemovesSlot_AndRejectsEmptySlot()
     {
-        var run = With(new RedPen(), new Thesaurus());
+        var run = With(new RedPen(), new Thesaurus()); // sorted: Thesaurus (+Chips), Red Pen (+Mult)
 
-        Assert.IsType<Thesaurus>(Assert.Single(run.RemoveDeskItem(0).Value.DeskItems));
+        Assert.IsType<RedPen>(Assert.Single(run.RemoveDeskItem(0).Value.DeskItems));
         Assert.False(run.RemoveDeskItem(2).IsOk);
-    }
-
-    [Fact]
-    public void MoveDeskItem_ReordersSlots()
-    {
-        var run = With(new RedPen(), new Thesaurus(), new Inkwell());
-
-        var moved = run.MoveDeskItem(0, 2).Value;
-
-        Assert.Equal(["thesaurus", "inkwell", "red-pen"], moved.DeskItems.Select(i => i.Id));
-        Assert.False(run.MoveDeskItem(0, 3).IsOk);
     }
 }

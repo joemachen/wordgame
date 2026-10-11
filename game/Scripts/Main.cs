@@ -267,7 +267,7 @@ public partial class Main : Control
         _deskRow = UiKit.HBox(8);
         centre.AddChild(_deskRow);
         _deskCaption = UiKit.MakeLabel(
-            "Desk Items fire left to right, 1 ▸ 5. ×Mult multiplies everything to its left, so put +Chips and +Mult items first. Hover ◀ ▶ to compare scores.",
+            "Desk Items fire left to right, 1 ▸ 5; the game keeps them in the best order. Menu ▸ How to play explains why.",
             13, UiKit.TextMuted);
         centre.AddChild(_deskCaption);
 
@@ -309,6 +309,8 @@ public partial class Main : Control
         AddChild(_pauseOverlay);
         _statsOverlay = BuildStatsOverlay();
         AddChild(_statsOverlay);
+        _howToPlayOverlay = BuildHowToPlayOverlay();
+        AddChild(_howToPlayOverlay);
         _wildOverlay = BuildWildOverlay();
         AddChild(_wildOverlay);
         _pressRunOverlay = BuildPressRunOverlay();

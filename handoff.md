@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-11 · HEAD `d07ef87` + desk bar / two Stationery (code) · 566 unit tests passing · UI self-test 106/106 passing · CI green_
+_Last updated: 2026-10-11 · HEAD `d07ef87` + desk bar / two Stationery (code) · 568 unit tests passing · UI self-test 108/108 passing · CI green_
 
 ## 0. ▶ Queued for the next session — the user will say "go"
 
@@ -113,7 +113,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Style Guides are a right-edge drawer** (2026-10-10, user's playtest ask: the popup was "really hidden"): an always-visible GUIDES bookmark on the right edge, Tab or the sidebar button slides a 420 px panel over the board without dimming the game. Replaces the 2026-10-05 Run Info-style popup (then chosen over a sidebar table or desk-bar badges). Claude's calls: the bookmark is non-focusable (a focused Button turns Tab into Godot focus navigation and the key never reaches `_UnhandledInput`), it sits 90 px below centre to stay clear of the shop's Next round button, and `--guides` opens the drawer instantly for screenshots.
 - **Stationery batch (user's choice, 2026-10-05):** Margin Clip, Scissors, White-Out, Red Ink Bottle, $3 each except
   **Margin Clip $6** (user's call after it measured +13 pts at $3; per-item prices via `ShopConfig.StationeryPrices`). Red Ink is a round-level `RoundConfig.BonusMult` (scoring step 4b, before Desk Items, so ×Mult items multiply it). White-Out's tile is gone for the round (not returned); leftover fragments are only checked when a later play crosses them. **Deadlock escape** (Claude's call, flagged to the user): holding Scissors/White-Out postpones the "no play, no discards" loss, since otherwise the round would end while the player holds the way out.
-- **Playtest batch (user's choices, 2026-10-05):** only *pending* tiles can be moved (submitted tiles stay — White-Out is the way to remove one); Desk Item order is explained by a live score preview on the ◀ ▶ arrows (since 2026-10-11 also by a kind tag on each card — +CHIPS, +MULT, ×MULT… — numbered slots and an always-shown caption; user's choice over an auto-order button) (Stationery isn't reorderable); stats = profile + core stats now, **vocabulary grading later** (needs a licensed word-frequency list). Stats count **every word a play forms** (main + cross). QA flags (`--selftest`, `--screenshot`, `--autoplay`) never write the profile.
+- **Playtest batch (user's choices, 2026-10-05):** only *pending* tiles can be moved (submitted tiles stay — White-Out is the way to remove one); Desk Item order is explained by a live score preview on the ◀ ▶ arrows (since 2026-10-11 also by a kind tag on each card — +CHIPS, +MULT, ×MULT… — and numbered slots). **Superseded the same day (user's choice): the game orders Desk Items itself** (`DeskOrder`, applied on every purchase, new run and load); the ◀ ▶ arrows, CLI `move` and the bot's position search are gone, and a **How to play** screen (title + pause) explains the rules, the tags and every item. Late Edition's text now spells out +0 / +3 / +6. (Stationery isn't reorderable); stats = profile + core stats now, **vocabulary grading later** (needs a licensed word-frequency list). Stats count **every word a play forms** (main + cross). QA flags (`--selftest`, `--screenshot`, `--autoplay`) never write the profile.
 - **Phase 2 content** (user's choices, 2026-10-05): ship 5 of the 7 proposed Desk Items; **Magnifying Glass deferred**
   (balanced draws have no fixed "next 3 tiles"; a pre-shuffled bag would change every seed — rework idea: show the
   letters left in the bag) and **Brass Paperclip deferred** (needs a keep-tiles picker + `RunState` carry-over).
@@ -363,6 +363,8 @@ the bot more as money and a slot than they return, so `ShopBotConfig` keeps thei
 Correction Tape are bot-invisible. Their value is for humans to judge in playtests.
 
 **Two Stationery per shop** (2026-10-11, user's pick; drawn without replacement): `runsim 200 … frac` 12 / 33 / 42% at 0.6 / 0.75 / 0.9 (was 12 / 30 / 41%) — +3 at the reference, within noise.
+
+**Auto-ordered desks** (2026-10-11): unchanged, 12 / 33 / 42% — the bot already searched every slot position, and `DeskOrder` reaches the same optimum directly (and makes the bot faster).
 
 **Why the reference dropped ~10 pts:** the old-23 arm itself went 36.0 → 30.5 between the two item sweeps, and the only
 change that touches it is the Stationery pool growing from 6 to 11 — Margin Clip, the one Stationery the bot buys and the

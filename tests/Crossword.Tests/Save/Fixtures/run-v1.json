@@ -615,18 +615,18 @@
         "chips": 42
       },
       {
-        "id": "printing-press-roller",
-        "minWords": 3,
-        "gain": 0.1,
-        "factor": 1.4
-      },
-      {
         "id": "thesaurus",
         "chipsPerLetter": 4
       },
       {
         "id": "margin-notes",
         "multPerDiscard": 2
+      },
+      {
+        "id": "printing-press-roller",
+        "minWords": 3,
+        "gain": 0.1,
+        "factor": 1.4
       }
     ],
     "roundIndex": 1,
@@ -1388,7 +1388,7 @@
     "rng": {
       "state": 14281421380742822323
     },
-    "score": 3794,
+    "score": 4687,
     "submissionsLeft": 3,
     "discardsLeft": 3,
     "deadlocked": false,

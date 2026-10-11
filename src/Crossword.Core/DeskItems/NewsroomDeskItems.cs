@@ -84,7 +84,8 @@ public sealed record LateEdition(decimal MultPerSubmission = 3) : IDeskItem
     public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Late Edition";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
-    public string Description => $"+{MultPerSubmission} Mult per submission already made this round.";
+    public string Description =>
+        $"+{MultPerSubmission} Mult for each play already made this round: +0 on the first, +{MultPerSubmission} on the second, +{MultPerSubmission * 2} on the third.";
 
     public ScoreContext Apply(ScoreContext c)
     {

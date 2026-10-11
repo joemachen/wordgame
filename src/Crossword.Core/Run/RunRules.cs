@@ -37,7 +37,7 @@ public static class RunRules
         {
             Money = config.Economy.StartingMoney,
             Deck = config.StartingTiles,
-            DeskItems = config.StartingDeskItems,
+            DeskItems = Effects.DeskOrder.Sorted(config.StartingDeskItems),
             PressRun = pressRun,
             DeckId = Decks.Get(deck).Id,
             Dictionaries = dictionaries,

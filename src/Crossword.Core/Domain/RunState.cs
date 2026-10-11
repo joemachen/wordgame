@@ -66,22 +66,13 @@ public sealed record RunState(
             return Result<RunState, string>.Fail($"All {slots} desk slots are full.");
         if (DeskItems.Any(d => d.Id == item.Id))
             return Result<RunState, string>.Fail($"You already have {item.Name}.");
-        return Result<RunState, string>.Ok(this with { DeskItems = DeskItems.Add(item) });
+        return Result<RunState, string>.Ok(this with { DeskItems = DeskOrder.Sorted(DeskItems.Add(item)) });
     }
 
     public Result<RunState, string> RemoveDeskItem(int slot) =>
         IsSlot(slot)
             ? Result<RunState, string>.Ok(this with { DeskItems = DeskItems.RemoveAt(slot) })
             : Result<RunState, string>.Fail($"No desk item in slot {slot + 1}.");
-
-    /// <summary>Reorders items; slot order is the order effects apply in.</summary>
-    public Result<RunState, string> MoveDeskItem(int from, int to)
-    {
-        if (!IsSlot(from) || !IsSlot(to))
-            return Result<RunState, string>.Fail("Both slots must hold desk items.");
-        var item = DeskItems[from];
-        return Result<RunState, string>.Ok(this with { DeskItems = DeskItems.RemoveAt(from).Insert(to, item) });
-    }
 
     public Result<RunState, string> AddStationery(IStationery item) =>
         Stationery.Length >= MaxStationerySlots

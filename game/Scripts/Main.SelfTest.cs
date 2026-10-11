@@ -258,19 +258,21 @@ public partial class Main
         Refresh();
         await Frames(1);
 
-        // 7b. With ×Mult before +Mult, the +Mult item's ◀ arrow previews a higher score for the pending play (green).
-        _session = _session with
+        // 7b. Desk Items order themselves: buying Red Pen (+Mult) with Pulitzer (×Mult) on the desk puts Red Pen first,
+        //     and the cards have no arrows to reorder them.
+        var inRound = _session with { Run = Run with { DeskItems = [Crossword.Core.DeskItems.DeskItemCatalog.Find("pulitzer")!] } };
+        var shopping = inRound with
         {
-            Run = Run with
-            {
-                DeskItems = [Crossword.Core.DeskItems.DeskItemCatalog.Find("pulitzer")!, Crossword.Core.DeskItems.DeskItemCatalog.Find("red-pen")!],
-            },
+            Phase = Crossword.Core.Run.RunPhase.Shop,
+            Shop = new Crossword.Core.Run.ShopState([new Crossword.Core.Run.DeskItemOffer(Crossword.Core.DeskItems.DeskItemCatalog.Find("red-pen")!, 0)],
+                5, Crossword.Core.Random.Rng.FromSeed(1)),
         };
+        var bought = Crossword.Core.Run.ShopRules.Buy(shopping, 0).Value;
+        _session = inRound with { Run = bought.Run };
         Refresh();
         await Frames(2);
-        var moveLeft = _deskRow.GetChild(1).FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "◀");
-        Check("desk arrow previews a better order", moveLeft.TooltipText.StartsWith("Move left:")
-            && moveLeft.TooltipText.Contains("(+") && moveLeft.GetThemeColor("font_color") == UiKit.Good);
+        bool arrows = _deskRow.FindChildren("*", nameof(Button), owned: false).OfType<Button>().Any(b => b.Text is "◀" or "▶");
+        Check("desk items order themselves, with no arrows", Run.DeskItems.Select(i => i.Id).SequenceEqual(["red-pen", "pulitzer"]) && !arrows);
         _session = _session with { Run = Run with { DeskItems = [] } };
         Refresh();
 
@@ -499,6 +501,34 @@ public partial class Main
             && !_titleOverlay.Visible);
         Check("with only Proofreader unlocked, new run still opens the picker", pickerOpened && !_pressRunOverlay.Visible
             && Run.PressRun == 1 && !Run.Seeded);
+
+        // 16a. How to play opens from the title and the pause screen, shows its four tabs and lists every Desk Item.
+        await Click(Centre(_menuButton));
+        await Click(Centre(_titleHowToPlay));
+        bool howOpen = _howToPlayOverlay.Visible;
+        await Click(Centre((Control)_howToPlayTabRow.FindChild("HowTo_2", owned: false)!));
+        string deskText = string.Join("\n", _howToPlayBox.GetChildren().Select(c => c switch { Label l => l.Text, RichTextLabel r => r.GetParsedText(), _ => "" }));
+        bool listsItems = Crossword.Core.DeskItems.DeskItemCatalog.All.All(i => deskText.Contains(i.Name)) && deskText.Contains("best order");
+        bool tabsWork = true;
+        for (int t = 0; t < 4; t++)
+        {
+            await Click(Centre((Control)_howToPlayTabRow.FindChild($"HowTo_{t}", owned: false)!));
+            tabsWork &= _howToPlayBox.GetChildCount() > 2;
+        }
+        await PressKey(global::Godot.Key.Escape);
+        bool backToTitle = !_howToPlayOverlay.Visible && _titleOverlay.Visible;
+        await PressKey(global::Godot.Key.Escape); // continue the run
+        Check("how to play opens from the title, with every desk item", howOpen && listsItems && tabsWork && backToTitle && !_titleOverlay.Visible);
+        _pending.Clear();
+        _selected.Clear();
+        Refresh();
+        await PressKey(global::Godot.Key.Escape);
+        await Click(Centre(_pauseHowToPlay));
+        bool fromPause = _howToPlayOverlay.Visible && _pauseOverlay.Visible;
+        await PressKey(global::Godot.Key.Escape);
+        bool howBackToPause = !_howToPlayOverlay.Visible && _pauseOverlay.Visible;
+        await PressKey(global::Godot.Key.Escape);
+        Check("how to play opens from the pause screen and esc returns to it", fromPause && howBackToPause && !_pauseOverlay.Visible);
 
         // 16b. In a round, Esc with tiles selected recalls them; with nothing placed it pauses. Settings opens over the
         //      pause screen and Esc returns to it; Main menu shows the title, and Esc on the title continues the run.

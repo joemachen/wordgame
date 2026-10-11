@@ -90,13 +90,13 @@ public class ShopBotTests
     }
 
     [Fact]
-    public void ReordersOwnedItems_ForAHigherScore()
+    public void BoughtItems_LandInTheBestOrder()
     {
-        var session = InShop(0, 0, [new Pulitzer(Factor: 2, PerBoss: 0), new RedPen(5)]);
+        var session = InShop(10, 0, [new Pulitzer(Factor: 2, PerBoss: 0)], new DeskItemOffer(new RedPen(5), 4));
 
         var after = EvaluatingShopBot.Shop(session, History(Plays()), Bot);
 
-        Assert.Equal(["red-pen", "pulitzer"], Ids(after));
+        Assert.Equal(["red-pen", "pulitzer"], Ids(after)); // +Mult before ×Mult, whatever the purchase order
     }
 
     [Fact]

@@ -17,6 +17,7 @@ public partial class Main
     private Button _titleNewRun = null!;
     private Button _titleProfile = null!;
     private Button _titleSettings = null!;
+    private Button _titleHowToPlay = null!;
     private Label _titlePlayingAs = null!;
     private Label _titleNotice = null!;
     private ulong _newRunArmedUntil;
@@ -51,6 +52,8 @@ public partial class Main
         _titleProfile = TitleButton("Profile", UiKit.PanelRaised, ShowProfiles);
         box.AddChild(_titleProfile);
         box.AddChild(TitleButton("Stats", UiKit.PanelRaised, ToggleStats));
+        _titleHowToPlay = TitleButton("How to play", UiKit.PanelRaised, ShowHowToPlay);
+        box.AddChild(_titleHowToPlay);
         _titleSettings = TitleButton("Settings", UiKit.PanelRaised, ShowSettings);
         box.AddChild(_titleSettings);
         box.AddChild(TitleButton("Quit", UiKit.PanelRaised, QuitGame));
@@ -75,6 +78,7 @@ public partial class Main
     {
         _statsOverlay.Visible = false;
         _pauseOverlay.Visible = false;
+        _howToPlayOverlay.Visible = false;
         _styleGuidesOverlay.Visible = false;
         _titleNotice.Text = notice ?? "";
         RefreshTitle();

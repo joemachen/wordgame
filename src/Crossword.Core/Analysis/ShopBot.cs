@@ -151,7 +151,7 @@ public static class EvaluatingShopBot
             break;
         }
 
-        return Reorder(session, evaluator);
+        return session;
     }
 
     private static IEnumerable<Candidate> Candidates(GameSession session, Evaluator evaluator, ShopBotConfig config, HashSet<int> failed)
@@ -171,13 +171,12 @@ public static class EvaluatingShopBot
                 case DeskItemOffer desk when run.DeskItems.Length < session.Config.DeskSlots:
                     if (run.Money < offer.Price)
                         break;
-                    for (int pos = 0; pos <= run.DeskItems.Length; pos++)
                     {
-                        int at = pos;
-                        var m = evaluator.Measure(run.DeskItems.Insert(pos, desk.Item), run.TierUpgrades);
+                        // The desk keeps itself in the best order (DeskOrder), so value the desk the player will have.
+                        var m = evaluator.Measure(DeskOrder.Sorted(run.DeskItems.Add(desk.Item)), run.TierUpgrades);
                         yield return new Candidate(index, evaluator.Gain(baseline, m) + config.GainOf(desk.Item),
                             offer.Price - evaluator.Earnings(baseline, m), offer.Price,
-                            s => BuyItem(s, index, null, at));
+                            s => BuyItem(s, index, null));
                     }
                     break;
 
@@ -187,16 +186,12 @@ public static class EvaluatingShopBot
                         int sell = session.Config.Shop.SellValueOf(run.DeskItems[slot]);
                         if (run.Money + sell < offer.Price)
                             continue;
-                        var without = run.DeskItems.RemoveAt(slot);
-                        for (int pos = 0; pos <= without.Length; pos++)
-                        {
-                            int sold = slot, at = pos;
-                            var m = evaluator.Measure(without.Insert(pos, desk.Item), run.TierUpgrades);
-                            double fixedGain = config.GainOf(desk.Item) - config.GainOf(run.DeskItems[sold]);
-                            yield return new Candidate(index, evaluator.Gain(baseline, m) + fixedGain,
-                                offer.Price - sell - evaluator.Earnings(baseline, m), offer.Price - sell,
-                                s => BuyItem(s, index, sold, at));
-                        }
+                        int sold = slot;
+                        var m = evaluator.Measure(DeskOrder.Sorted(run.DeskItems.RemoveAt(slot).Add(desk.Item)), run.TierUpgrades);
+                        double fixedGain = config.GainOf(desk.Item) - config.GainOf(run.DeskItems[sold]);
+                        yield return new Candidate(index, evaluator.Gain(baseline, m) + fixedGain,
+                            offer.Price - sell - evaluator.Earnings(baseline, m), offer.Price - sell,
+                            s => BuyItem(s, index, sold));
                     }
                     break;
 
@@ -238,7 +233,7 @@ public static class EvaluatingShopBot
         }
     }
 
-    private static Result<GameSession, string> BuyItem(GameSession session, int offer, int? sellSlot, int position)
+    private static Result<GameSession, string> BuyItem(GameSession session, int offer, int? sellSlot)
     {
         if (sellSlot is int slot)
         {
@@ -247,41 +242,7 @@ public static class EvaluatingShopBot
                 return sold;
             session = sold.Value;
         }
-        var bought = ShopRules.Buy(session, offer);
-        if (!bought.IsOk)
-            return bought;
-        session = bought.Value;
-        int last = session.Run.DeskItems.Length - 1;
-        return position == last
-            ? bought
-            : Result<GameSession, string>.Ok(session with { Run = session.Run.MoveDeskItem(last, position).Value });
-    }
-
-    /// <summary>Greedily moves owned items while any single move raises the measured score.</summary>
-    private static GameSession Reorder(GameSession session, Evaluator evaluator)
-    {
-        for (int pass = 0; pass < 10; pass++)
-        {
-            var run = session.Run;
-            long best = evaluator.Measure(run.DeskItems, run.TierUpgrades).Score;
-            RunState? improved = null;
-            for (int from = 0; from < run.DeskItems.Length; from++)
-            {
-                for (int to = 0; to < run.DeskItems.Length; to++)
-                {
-                    if (from == to)
-                        continue;
-                    var moved = run.MoveDeskItem(from, to).Value;
-                    long score = evaluator.Measure(moved.DeskItems, moved.TierUpgrades).Score;
-                    if (score > best)
-                        (best, improved) = (score, moved);
-                }
-            }
-            if (improved is null)
-                break;
-            session = session with { Run = improved };
-        }
-        return session;
+        return ShopRules.Buy(session, offer);
     }
 
     internal readonly record struct Measurement(long Score, double MoneyPerPlay);
