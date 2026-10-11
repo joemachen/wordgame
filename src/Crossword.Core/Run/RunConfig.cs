@@ -38,9 +38,9 @@ public sealed record EconomyConfig(
 /// run is won; endless play continues with targets growing by <see cref="EndlessGrowth"/> per week.
 /// Default targets tuned with <see cref="Analysis.RunSimulator"/>'s evaluating shop bot and the ScoreFraction skill
 /// model (a human-like player; 150–200 runs per cell): raised ×1.3 on 2026-10-05 after balanced draws made hands
-/// fairer, then ×1.15 after the richer economy (overkill every 25%, interest per $4) — the reference skill 0.75 wins
-/// ~36%, won rounds take ~2.6 submissions (55% in 1–2). Retune with 'runsim [runs] [skill] frac' whenever scaling
-/// content changes.
+/// fairer, then ×1.15 after the richer economy (overkill every 25%, interest per $4), then ×0.88 on 2026-10-11 (user's
+/// choice) after the content batch (Epic/Legendary items, rule-breaking Stationery) dropped the reference skill 0.75
+/// from ~40% to ~33% wins. Retune with 'runsim [runs] [skill] frac' whenever scaling content changes.
 /// </summary>
 public sealed record RunConfig(
     ImmutableArray<long> WeekTargets,
@@ -87,7 +87,7 @@ public sealed record RunConfig(
     public ImmutableArray<string> ExcludedBosses { get; init; } = ImmutableArray<string>.Empty;
 
     public static RunConfig Default { get; } = new(
-        WeekTargets: [510, 1790, 5380, 14580, 23920],
+        WeekTargets: [450, 1580, 4730, 12830, 21050],
         Days:
         [
             new RoundKind("Daily", 1m, BasePay: 3, IsBoss: false),

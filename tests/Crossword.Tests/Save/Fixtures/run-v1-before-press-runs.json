@@ -643,7 +643,7 @@
   },
   "round": {
     "config": {
-      "targetScore": 663,
+      "targetScore": 585,
       "boardSize": 7,
       "submissions": 4,
       "discards": 3,
