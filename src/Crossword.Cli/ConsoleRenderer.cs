@@ -90,13 +90,12 @@ public static class ConsoleRenderer
             ? $"[{i + 1}] {run.Stationery[i].Name}: {run.Stationery[i].Description} (sell ${shop.SellValueOf(run.Stationery[i])})"
             : $"[{i + 1}] (empty)"));
 
-    public static string Deck(RunState run)
+    public static string Deck(RunState run, ScoringConfig scoring)
     {
         var counts = run.Deck.GroupBy(t => t.IsWild ? '?' : t.Letter.Char).OrderBy(g => g.Key).Select(g => $"{g.Key}×{g.Count()}");
-        var enhanced = run.Deck.Where(t => t.Enhancement != TileEnhancement.None)
-            .Select(t => $"{t}:{t.Enhancement}").ToList();
-        return $"Deck ({run.Deck.Length} tiles): {string.Join(" ", counts)}" +
-               (enhanced.Count > 0 ? $"\nEnhanced: {string.Join(", ", enhanced)}" : "");
+        var enhanced = run.Deck.Where(t => t.Enhancement != TileEnhancement.None).GroupBy(t => t.Enhancement).OrderBy(g => g.Key)
+            .Select(g => $"\n  {scoring.Describe(g.Key)}: {string.Join(", ", g.Select(t => t.ToString()))}").ToList();
+        return $"Deck ({run.Deck.Length} tiles): {string.Join(" ", counts)}" + string.Concat(enhanced);
     }
 
     /// <summary>Word tier table with Style Guide levels.</summary>
@@ -147,7 +146,7 @@ public static class ConsoleRenderer
                                    $"Next: Week {session.Config.WeekOf(next) + 1} {nextKind.Name}, target {RunRules.TargetFor(session.Config, session.Run, next)}{nextBoss}\n");
         for (int i = 0; i < shop.Offers.Length; i++)
         {
-            string line = shop.Offers[i] is { } offer ? $"${offer.Price,-3} {offer.Description}" : "(sold)";
+            string line = shop.Offers[i] is { } offer ? $"${offer.Price,-3} {offer.Describe(session.Scoring)}" : "(sold)";
             sb.AppendLine($"  [{i + 1}] {line}");
         }
         sb.Append("  buy <n> [LETTERS] · sell <slot> · sellst <slot> · reroll · leave");

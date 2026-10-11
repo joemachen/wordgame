@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Effects;
+using Crossword.Core.Scoring;
 using Crossword.Core.Stationery;
 
 namespace Crossword.Core.Run;
@@ -68,6 +69,12 @@ public sealed record ShopConfig(
 public abstract record ShopOffer(int Price)
 {
     public abstract string Description { get; }
+
+    /// <summary>
+    /// <see cref="Description"/> plus what a tile enhancement does, with the run's numbers
+    /// (<see cref="Scoring.ScoringConfig.Describe"/>); the same as <see cref="Description"/> for other offers.
+    /// </summary>
+    public virtual string Describe(ScoringConfig scoring) => Description;
 }
 
 public sealed record DeskItemOffer(IDeskItem Item, int Price) : ShopOffer(Price)
@@ -81,6 +88,9 @@ public sealed record AddTileOffer(Letter Letter, TileEnhancement Enhancement, in
     public override string Description =>
         Wild ? "Add a wild tile (plays as any letter, 0 chips) to your deck"
         : Enhancement == TileEnhancement.None ? $"Add tile {Letter} to your deck" : $"Add {Enhancement} tile {Letter} to your deck";
+
+    public override string Describe(ScoringConfig scoring) =>
+        Wild || Enhancement == TileEnhancement.None ? Description : $"{Description} — {scoring.Describe(Enhancement)}";
 }
 
 /// <summary>Makes one tile of the player's choice wild (it keeps its enhancement).</summary>
@@ -93,6 +103,8 @@ public sealed record WildOffer(int Price) : ShopOffer(Price)
 public sealed record EnhanceOffer(TileEnhancement Enhancement, int Price) : ShopOffer(Price)
 {
     public override string Description => $"Make one of your tiles {Enhancement}";
+
+    public override string Describe(ScoringConfig scoring) => $"{Description} — {scoring.Describe(Enhancement)}";
 }
 
 /// <summary>Removes up to <see cref="MaxTiles"/> tiles of the player's choice from the deck.</summary>

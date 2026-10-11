@@ -105,7 +105,7 @@ public static class Program
                 PrintDesk(showCatalog: true);
                 break;
             case "deck":
-                Console.WriteLine(ConsoleRenderer.Deck(Run));
+                Console.WriteLine(ConsoleRenderer.Deck(Run, _session.Scoring));
                 Console.WriteLine(ConsoleRenderer.Tiers(_session));
                 break;
             case "give":

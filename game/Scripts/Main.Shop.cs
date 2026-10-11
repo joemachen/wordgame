@@ -120,9 +120,10 @@ public partial class Main
             StationeryOffer st => ("STATIONERY · ONE USE", st.Item.Name, st.Item.Description),
             StyleGuideOffer g => ("STYLE GUIDE", g.Name, $"{g.TierLabel} words: +{g.Chips} chips, +{g.Mult} mult for every play whose longest word is this length. Permanent."),
             AddTileOffer { Wild: true } => ("NEW TILE", "Wild tile", "Plays as any letter you choose (0 chips). Added to your deck."),
-            AddTileOffer a => ("NEW TILE", a.Enhancement == TileEnhancement.None ? $"Tile {a.Letter}" : $"{a.Enhancement} {a.Letter}", "Added to your deck."),
+            AddTileOffer a => ("NEW TILE", a.Enhancement == TileEnhancement.None ? $"Tile {a.Letter}" : $"{a.Enhancement} {a.Letter}",
+                a.Enhancement == TileEnhancement.None ? "Added to your deck." : $"{_session.Scoring.Describe(a.Enhancement)}. Added to your deck."),
             WildOffer => ("EDIT", "Make a tile wild", "It plays as any letter you choose (0 chips) and keeps its enhancement. You choose the tile."),
-            EnhanceOffer e => ("EDIT", $"Make a tile {e.Enhancement}", EnhancementBlurb(e.Enhancement) + " You choose the tile."),
+            EnhanceOffer e => ("EDIT", $"Make a tile {e.Enhancement}", $"{_session.Scoring.Describe(e.Enhancement)}. You choose the tile."),
             StrikeOffer s => ("EDIT", "Strike tiles", $"Remove up to {s.MaxTiles} tiles from your deck."),
             _ => ("", offer.Description, ""),
         };
@@ -140,19 +141,15 @@ public partial class Main
         return card;
     }
 
-    private static string EnhancementBlurb(TileEnhancement enhancement) => enhancement switch
-    {
-        TileEnhancement.Bold => "Bold: +10 chips per word it's in.",
-        TileEnhancement.Italic => "Italic: +2 mult per word it's in.",
-        TileEnhancement.Gilded => "Gilded: +$1 per word it's in.",
-        _ => "",
-    };
-
+    /// <summary>The deck's letter counts, then one line per enhancement present saying what it does.</summary>
     private string DeckSummary()
     {
         var counts = Run.Deck.GroupBy(t => t.IsWild ? '?' : t.Letter.Char).OrderBy(g => g.Key).Select(g => $"{g.Key}{g.Count()}");
         int enhanced = Run.Deck.Count(t => t.Enhancement != TileEnhancement.None);
-        return $"Deck ({Run.Deck.Length} tiles, {enhanced} enhanced)   {string.Join(" ", counts)}";
+        var blurbs = Run.Deck.Where(t => t.Enhancement != TileEnhancement.None).GroupBy(t => t.Enhancement).OrderBy(g => g.Key)
+            .Select(g => $"{g.Key} ×{g.Count()} — {_session.Scoring.Describe(g.Key)}");
+        string summary = $"Deck ({Run.Deck.Length} tiles, {enhanced} enhanced)   {string.Join(" ", counts)}";
+        return enhanced == 0 ? summary : summary + "\n" + string.Join("   ·   ", blurbs);
     }
 
     private void BuyOffer(int index, ShopOffer offer)
@@ -209,7 +206,7 @@ public partial class Main
         };
 
         _shopContent.AddChild(UiKit.MakeLabel($"Choose {(maxTiles == 1 ? "a tile" : $"up to {maxTiles} tiles")} to {verb}", 26, UiKit.Text));
-        _shopContent.AddChild(UiKit.MakeLabel($"{offer.Description} — ${offer.Price}", 16, UiKit.TextMuted));
+        _shopContent.AddChild(UiKit.MakeLabel($"{offer.Describe(_session.Scoring)} — ${offer.Price}", 16, UiKit.TextMuted));
 
         var grid = new HFlowContainer();
         grid.AddThemeConstantOverride("h_separation", 6);
@@ -218,6 +215,7 @@ public partial class Main
         {
             bool chosen = _pickerSelection.Contains(tile.Id);
             var button = UiKit.MakeTile(tile, _session.Scoring.ValueOf(tile), 48, chosen ? UiKit.Selected : UiKit.Newsprint, chosen, blankWild: true);
+            button.TooltipText = _session.Scoring.Describe(tile.Enhancement);
             button.Pressed += () =>
             {
                 if (!_pickerSelection.Remove(tile.Id))

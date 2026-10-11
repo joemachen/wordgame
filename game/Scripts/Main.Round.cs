@@ -21,6 +21,12 @@ public partial class Main
 
     private ScoringConfig RoundScoring => Round.Config.EffectiveScoring(_session.Scoring);
 
+    /// <summary>Appends what the tile's enhancement does to a tooltip (nothing for a plain tile).</summary>
+    private string WithEnhancementTip(string tooltip, Tile tile) =>
+        tile.Enhancement == TileEnhancement.None ? tooltip
+        : tooltip.Length == 0 ? RoundScoring.Describe(tile.Enhancement)
+        : $"{tooltip}\n{RoundScoring.Describe(tile.Enhancement)}";
+
     private Control BuildRoundArea()
     {
         var box = UiKit.VBox(16);
@@ -116,6 +122,8 @@ public partial class Main
                 tile.TooltipText = "Click to white out";
                 tile.Pressed += () => WhiteOutCell(pos);
             }
+            else
+                tile.TooltipText = WithEnhancementTip("", placed);
             return tile;
         }
 
@@ -123,7 +131,7 @@ public partial class Main
         {
             int value = scoring.ValueOf(pending);
             var tile = UiKit.MakeTile(pending, value, CellSize, UiKit.Pending, raised: true);
-            tile.TooltipText = "Click to take back · drag to another square or back to your hand";
+            tile.TooltipText = WithEnhancementTip("Click to take back · drag to another square or back to your hand", pending);
             tile.Pressed += () => ReturnPending(pos);
             if (!_animating)
             {
@@ -172,11 +180,11 @@ public partial class Main
             bool selected = _selected.Contains(tile);
             int value = scoring.ValueOf(tile);
             var button = UiKit.MakeTile(tile, value, HandTileSize, selected ? UiKit.Selected : UiKit.Newsprint, raised: selected, blankWild: true);
-            button.TooltipText = "Click to select · drag to reorder or onto the board";
+            button.TooltipText = WithEnhancementTip("Click to select · drag to reorder or onto the board", tile);
             if (!tile.IsWild && tile.Letter.Char == Round.Config.CensoredLetter)
             {
                 UiKit.MarkCensored(button);
-                button.TooltipText = $"{tile.Letter} is censored this round: it can't be placed. Discard it or cut it with Scissors.";
+                button.TooltipText = WithEnhancementTip($"{tile.Letter} is censored this round: it can't be placed. Discard it or cut it with Scissors.", tile);
             }
             button.Pressed += () => ToggleSelected(tile);
             if (!_animating)

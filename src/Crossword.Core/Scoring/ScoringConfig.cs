@@ -67,6 +67,18 @@ public sealed record ScoringConfig(
     /// <summary>A tile's letter chips: wild tiles are worth 0 whatever letter they play as.</summary>
     public int ValueOf(Tile tile) => tile.IsWild ? 0 : ValueOf(tile.Letter);
 
+    /// <summary>
+    /// The player-facing explanation of a tile enhancement, with this config's numbers ("Bold: +10 chips in every
+    /// word it's in"). The single source for shop cards, tile tooltips and the CLI; empty for <see cref="TileEnhancement.None"/>.
+    /// </summary>
+    public string Describe(TileEnhancement enhancement) => enhancement switch
+    {
+        TileEnhancement.Bold => $"Bold: +{BoldChips} chips in every word it's in",
+        TileEnhancement.Italic => $"Italic: +{ItalicMult:0.##} mult in every word it's in",
+        TileEnhancement.Gilded => $"Gilded: +${GildedMoney} in every word it's in",
+        _ => "",
+    };
+
     /// <summary>Applies Style Guide upgrades (keyed by tier MinLength → number of upgrades).</summary>
     public ScoringConfig WithUpgrades(IReadOnlyDictionary<int, int> upgrades) =>
         upgrades.Count == 0

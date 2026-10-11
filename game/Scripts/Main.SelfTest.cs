@@ -158,6 +158,27 @@ public partial class Main
             && wildPlaced.Letter.Char == 'E');
         await PressKey(global::Godot.Key.Escape);
 
+        // 5g. Tiles and shop cards explain what an enhancement does, with the run's numbers.
+        var boldId = HandButton(1).TileId;
+        _session = _session with
+        {
+            Round = Round with
+            {
+                Hand = new Crossword.Core.Domain.Hand(Round.Hand.Tiles.Select(t => t.Id == boldId
+                    ? t with { Enhancement = Crossword.Core.Domain.TileEnhancement.Bold } : t).ToImmutableArray()),
+            },
+        };
+        Refresh();
+        await Frames(1);
+        string boldBlurb = RoundScoring.Describe(Crossword.Core.Domain.TileEnhancement.Bold);
+        var boldButton = _handRow.GetChildren().OfType<TileButton>().First(b => b.TileId == boldId);
+        var card = BuildOfferCard(0, new Crossword.Core.Run.AddTileOffer(Crossword.Core.Domain.Letter.From('B'), Crossword.Core.Domain.TileEnhancement.Bold, 4));
+        _fxLayer.AddChild(card);
+        string cardText = string.Join("\n", card.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
+        card.QueueFree();
+        Check("tiles and shop cards explain enhancements", boldBlurb.Contains("+10 chips")
+            && boldButton.TooltipText.Contains(boldBlurb) && cardText.Contains(boldBlurb));
+
         // 6. Hint places a play; the preview defines every word it forms.
         await Click(Centre(_hintButton));
         var words = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength,
