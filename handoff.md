@@ -5,50 +5,54 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-10 · HEAD `5061d03` (code) · 507 unit tests passing · UI self-test 80/80 passing · CI green_
+_Last updated: 2026-10-10 · HEAD `b4a03bb` (code) · 514 unit tests passing · UI self-test 81/81 passing · CI green_
 
 ## 0. ▶ Queued for the next session — the user will say "go"
 
 The user approved everything from 2026-10-10 (title menu, profiles, Settings; **fullscreen tested by hand and
 approved**). The dev-only Best button (B) is built (see §3); the economy re-examination (A) is next:
 
-### A. Re-examine the economy ("I never feel like I have enough money")
-The user says money feels very hard to make in playtests, and suspects it's partly their own skill. **Measure first,
-then bring options with a recommendation to the user before changing any numbers** (economy and difficulty are the
-user's calls; see §3).
-- **Current economy** (`EconomyConfig` in `Core/Run/RunConfig.cs`, payout in `Core/Run/Economy.cs`): start $4;
-  base pay Daily $3 / Saturday $4 / Sunday $5 (`RoundKind.BasePay`); +$1 per unused submission; overkill $1 per full
-  25% over the target (cap $3); interest $1 per $4 held (cap $5). Other income: Gilded tiles (+$1 per word),
-  Syndication Desk Item ($1 per intersection), selling (half price). Prices: Desk Items $4 / $6 / $8, Style Guide $3,
-  Stationery $3 (Margin Clip $6), wild tile $6, reroll $5 (+$1 each).
-- **Last measurement** (§4c, reference bot at ScoreFraction 0.75): $6.57 income per round (base $3.71, unused
-  submissions $1.33, overkill $1.09, interest $0.38), about $9.8 held entering a shop.
-- **Hypothesis to test:** a weaker player loses most of the skill-based income (unused submissions, overkill), so their
-  paycheck is close to base pay alone (~$3–5), less than one Common Desk Item per shop.
-- **Step 1, measure income by skill.** Recreate the `econsim` scratch harness (§7: `RunSimulator.PlayRun` over paired
-  seeds, read `SimulatedRunRound.Payout` / `InRoundMoney` / `Shop`). Cover ScoreFraction 0.5 / 0.6 / 0.75 / 0.9 and
-  report: income per round by source, money held entering each shop, how often the player can afford ≥1 Desk Item,
-  and spending by category, all by week. Also measure what fraction of shop visits end with nothing affordable.
-- **Step 2, candidate levers.** Measure each against the baseline on the same 200 seeds, for win % at 0.6 and 0.75
-  and for income:
-  - +$1 base pay. In 2026-10-05 this measured +14.5 pts at 0.75, so it's a big lever.
-  - Unused discards pay $1. This rewards a cautious player, not just a strong one.
-  - A minimum paycheck floor.
-  - Cheaper Commons ($3).
-  - Reroll base $3 (previously measured +1.5 pts).
-  - Interest per $3.
-  - A boss-win bonus.
-  - New money sources: a "freelance check" Stationery, or more money Desk Items.
+### A. ~~Re-examine the economy~~ ✅ 2026-10-10 — **paycheck floor $5 + "Earn more" line** (user's pick)
+The user said money feels very hard to make in playtests. Measured (below), then the user chose option (a): every won
+round pays at least $5 (`EconomyConfig.MinPaycheck` = 5 → `Payout.FloorTopUp`, shown as "Minimum paycheck +$N"),
+and the paycheck screen (game + CLI) prints `Economy.HowToEarnMore(config)` ("Earn more: +$1 per unused submission ·
++$1 per 25% over the deadline (max $3) · +$1 interest per $4 held (max $5) · every paycheck is at least $5"). No
+target retune: +0.5 pts at the reference skill. Also added: `ShopSpend.CheapestDeskItem` / `CheapestOffer` /
+`CouldAffordDeskItem` / `CouldAffordAnything` for harnesses, and the **off-by-default** `EconomyConfig.PerUnusedDiscard`
+(`Payout.UnusedDiscards`, both frontends show its row when non-zero) kept as a measured lever. New saved `Payout`
+fields → fixture regenerated. Tests: 514.
 
-  **Prefer levers that help weaker players more than strong ones** (flat or base income over overkill), which matches
-  the user's complaint.
-- **Step 3, retune.** More income raises win rates, so retune `WeekTargets` to keep the reference (0.75) near
-  37–39%. Alternatively, ask the user whether the game should simply get easier. The Press Run ladder (§4a) and decks
-  (§4) shift with it, so re-check the deck table.
-- Also consider **clarity**: the paycheck screen (`Main.Shop.cs` `BuildPaycheck`) could say how to earn more (e.g.
-  "+$1 for every submission you don't use"). Players may not know where money comes from.
-- Deliverables: a measurement table for the user, then the chosen change with tests (pin the new numbers in tests'
-  own configs), a `runsim` re-check, and doc updates (§2, §3, §4c, CLAUDE.md Economy line).
+**Step 1 — income by skill** (`econsim measure 200`, scratch harness, seeds 1–200, evaluating bot, ScoreFraction):
+
+| Skill | Wins | Income / round played | per won round | of which subs + overkill | $ entering a shop | shops that can afford a Desk Item | nothing affordable |
+|---|---|---|---|---|---|---|---|
+| 0.5 | 5% | $4.72 | $5.86 | $1.27 | $8.49 | 98% | 0% |
+| 0.6 | 13.5% | $5.50 | $6.23 | $1.69 | $8.89 | 98% | 0% |
+| 0.75 | 39% | $6.40 | $6.81 | $2.28 | $9.59 | 99% | 0% |
+| 0.9 | 56% | $7.02 | $7.28 | $2.75 | $10.18 | 99% | 0% |
+
+- **The lock-out hypothesis fails for the bot:** no shop at any skill had nothing affordable; a weak player loses only
+  ~$1.4/round of skill income, not the paycheck. Income is flat across weeks; interest stays ~$0.35 at every skill
+  (the bot spends down each shop). Spend per shop at 0.75: Desk Items $3.98, Style Guides $1.03, Stationery $0.51,
+  rerolls $2.05 (rerolls grow with skill, $0.95 → $2.43). So the feeling is more likely "income buys one thing per
+  shop and I want three" than "I can't buy anything" — a bot can't measure that.
+
+**Step 2 — levers** (`econsim levers 200`, same seeds, vs baseline 13.5% / 39% at 0.6 / 0.75):
+
+| Lever | Δ win 0.6 | Δ win 0.75 | income/round 0.75 | Note |
+|---|---|---|---|---|
+| Base pay +$1 | +4 | +7 | $7.68 | Big, simple, visible on every paycheck; needs a target retune (~×1.05) to keep 0.75 at ~39% |
+| Paycheck floor $5 | **+4.5** | **+0.5** | $6.53 | The only lever that helps the weak player and not the strong one; no retune needed |
+| Paycheck floor $6 | +4 | +5.5 | $6.87 | Between the two above |
+| Unused discards $1 | +21.5 | +20 | $10.00 | **Bot artifact:** it discards only with no play, so it banks ~2.9/round; a human keeps ~1. Would need a human-like discard model before trusting it, and it rewards not discarding |
+| Boss win +$2 | +2 | −1 | $7.12 | Noise |
+| Interest per $3 | +1 | 0 | $6.65 | Bot never saves |
+| Commons $3 | +1.5 | −2 | $6.54 | Noise |
+| Reroll base $3 | +1.5 | −4 | $6.30 | Noise (previously +1.5) |
+
+Noise at 200 paired runs ≈ ±3.5 pts. Options offered: (a) floor $5 + paycheck clarity (no retune), (b) base pay +$1
+with targets ×1.05, (c) both, (d) numbers unchanged, clarity only. **The user chose (a).** If money still feels
+tight in playtests, (b) is the next lever (+7 at 0.75 → retune targets ~×1.05 and re-check decks / Press Runs).
 
 ### B. ~~Dev-only "Best" button~~ ✅ 2026-10-10
 Built as planned: `--dev` no longer changes Hint; it shows a separate **Best (dev)** button (`Main.Round.cs`,
@@ -73,7 +77,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Lexicon | ENABLE (public domain), embedded; DAWG (~1 MB, 0.5 s build); words 2–15 letters. **QI/ZA are not valid** (not in ENABLE). **Slur denylist** (`Core/Lexicon/Denylist.cs` + `Lexicon/Data/denylist.txt`, 128 words incl. inflections; slurs only, profanity stays): denied words are never legal, suggested or defined (168,423 playable words). **Definitions** (embedded, ~1.7 MB gz): Open English WordNet 2025 + hand-written supplement for function words and every 2-letter word; ~62% of ENABLE covered (incl. inflections → lemma), shown in the play preview and CLI `check`. Slur senses and crude glosses are hidden (next clean sense shown: TACO → the food, CHINK → a narrow opening). **Dictionary overlays** (`Core/Lexicon/Dictionaries.cs`): a run's `RunState.Dictionaries` adds words on top of ENABLE (`LexiconLoader.For(ids)`, cached merged DAWG). First one: **The Tech Shorthand** (297 hand-written acronyms/initialisms of 3+ letters with expansions, `Lexicon/Data/tech-shorthand.tsv`; expansions show as "abbr." definitions). Second: **The Atlas Unlocked** (`atlas`, 567 hand-written single-word place names of 3–7 letters, `Lexicon/Data/atlas.tsv`; shown as "n. capital of Norway"; each dictionary has a `SenseLabel`). Third: **The Olde English Folio** (`olde-folio`), a **theme dictionary**: +3 Mult per archaic word a play forms (106 words: THEE, HATH, ERE, YON…; scoring step 4b `theme`, `ScoringConfig.Theme` set by `RunRules.ConfigFor`), plus 5 new words (OER, NEER, EER, EEN, OLDE). |
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
-| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5). Endless mode. |
+| Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5), **at least $5 per won round** (floor, 2026-10-10); the paycheck screen says how to earn more. Endless mode. |
 | Content | 23 Desk Items (Common/Uncommon/Rare, incl. scaling items; Phase 2 added **Etymology Tome**, **Rubber Stamp**, **Printing Press Roller**, **Tile Rack**, **Coffee Stain** — the last two via the round-start hook `IDeskItem.ModifyRound`), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 7 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, **Redundant Copy**, The Strict Grammarian, **The Puzzle Master** = two Early/Mid bosses at once), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each except Margin Clip $6, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round), **Fountain Pen** (a hand tile turns wild this round). **Wild tiles**: any letter (picked when placed), 0 letter chips; 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5). Holding Scissors/White-Out/Fountain Pen keeps a stuck round alive. Lifetime **player stats** in a saved profile (words by length, newest words, runs/wins, best play, intersections, close calls, bosses beaten, full-spread rounds). |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` adds a **Best (dev)** button next to Hint that places the best play (Hint stays decent). |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`, plus Stationery (`use <slot> [LETTERS|cell]`, `sellst`, `give`) and `save`/`load` (game save format). The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
@@ -178,6 +182,11 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   (130% overflowed vertically). Two layout fixes came out of it: the sidebar scrolls instead of growing past the
   window, and the seed/run-name line wraps on its own row (a long custom-run name used to widen the sidebar to
   ~670 px).
+- **Paycheck floor $5** (user's choice, 2026-10-10, over base pay +$1 / both / clarity only): the economy study (§0.A)
+  found the bot could afford a Desk Item in 98% of shops even at skill 0.5, so the complaint is about feel; a $5 floor
+  helps weak players (+4.5 at 0.6) without touching the reference (+0.5), so targets stay. The paycheck screen now
+  says how to earn more. Rejected for now: unused discards paying $1 (+20 pts for the bot, which never discards
+  voluntarily — untrustworthy without a human-like discard model, and it rewards not discarding).
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps an unlimited best play for development — since 2026-10-10 as a separate **Best (dev)** button next to Hint (user's request), so a dev build still shows the player's decent Hint. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Starting decks (2026-10-06)
