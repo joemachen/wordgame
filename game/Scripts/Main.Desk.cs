@@ -26,6 +26,8 @@ public partial class Main
     {
         DeskItemRarity.Uncommon => new Color("4cc38a"),
         DeskItemRarity.Rare => new Color("e5484d"),
+        DeskItemRarity.Epic => new Color("a66cff"),
+        DeskItemRarity.Legendary => new Color("f0a020"),
         _ => new Color("5aa9e6"),
     };
 

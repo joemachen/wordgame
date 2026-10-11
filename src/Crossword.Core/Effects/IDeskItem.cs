@@ -3,11 +3,17 @@ using Crossword.Core.Rules;
 
 namespace Crossword.Core.Effects;
 
+/// <summary>
+/// Shop tier of a Desk Item: sets its price and how often it is offered (<see cref="Run.ShopConfig"/>). Epic and
+/// Legendary (2026-10-10) are the run-defining items: rare in the shop, expensive, and few.
+/// </summary>
 public enum DeskItemRarity
 {
     Common,
     Uncommon,
     Rare,
+    Epic,
+    Legendary,
 }
 
 /// <summary>

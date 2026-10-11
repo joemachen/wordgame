@@ -231,11 +231,16 @@ public static class ShopRules
 
     private static (DeskItemRarity, Rng) RollRarity(ShopConfig config, Rng rng)
     {
-        var (roll, next) = rng.NextInt(config.CommonWeight + config.UncommonWeight + config.RareWeight);
-        var rarity = roll < config.CommonWeight ? DeskItemRarity.Common
-            : roll < config.CommonWeight + config.UncommonWeight ? DeskItemRarity.Uncommon
-            : DeskItemRarity.Rare;
-        return (rarity, next);
+        var weights = config.RarityWeights().ToList();
+        var (roll, next) = rng.NextInt(weights.Sum(w => w.Weight));
+        int running = 0;
+        foreach (var (rarity, weight) in weights)
+        {
+            running += weight;
+            if (roll < running)
+                return (rarity, next);
+        }
+        return (weights[^1].Rarity, next);
     }
 
     private static (TileEnhancement, Rng) PickEnhancement(Rng rng)

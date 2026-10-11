@@ -174,4 +174,36 @@ public class ExpansionDeskItemsTests
         Assert.True(counts[DeskItemRarity.Uncommon] > counts[DeskItemRarity.Rare]);
         Assert.True(counts[DeskItemRarity.Rare] > 0);
     }
+
+    /// <summary>A stand-in item of any rarity, for pricing tests.</summary>
+    private sealed record RarityStub(DeskItemRarity Rarity) : IDeskItem
+    {
+        public string Id => $"stub-{Rarity}";
+        public string Name => Id;
+        public string Description => "";
+        public ScoreContext Apply(ScoreContext context) => context;
+    }
+
+    [Theory]
+    [InlineData(DeskItemRarity.Common, 4, 2)]
+    [InlineData(DeskItemRarity.Uncommon, 6, 3)]
+    [InlineData(DeskItemRarity.Rare, 8, 4)]
+    [InlineData(DeskItemRarity.Epic, 10, 5)]
+    [InlineData(DeskItemRarity.Legendary, 12, 6)]
+    public void Shop_PricesEachRarity(DeskItemRarity rarity, int price, int sell)
+    {
+        var shop = new ShopConfig(CommonPrice: 4, UncommonPrice: 6, RarePrice: 8, EpicPrice: 10, LegendaryPrice: 12);
+
+        Assert.Equal(price, shop.PriceOf(new RarityStub(rarity)));
+        Assert.Equal(sell, shop.SellValueOf(new RarityStub(rarity)));
+    }
+
+    [Fact]
+    public void Shop_RarityWeights_ListEveryTierInOrder()
+    {
+        var shop = new ShopConfig(CommonWeight: 50, UncommonWeight: 30, RareWeight: 12, EpicWeight: 6, LegendaryWeight: 2);
+
+        Assert.Equal([(DeskItemRarity.Common, 50), (DeskItemRarity.Uncommon, 30), (DeskItemRarity.Rare, 12), (DeskItemRarity.Epic, 6), (DeskItemRarity.Legendary, 2)],
+            shop.RarityWeights().ToArray());
+    }
 }

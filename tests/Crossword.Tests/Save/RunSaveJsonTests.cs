@@ -346,6 +346,45 @@ public class RunSaveJsonTests
         Assert.False(RunSaveJson.Deserialize(json.Replace(ids, "\"dictionaries\": null"), Config).IsOk);
     }
 
+    /// <summary>Keys the pre-Press-Run fixture lacks (they didn't exist when it was written); each loads as its default.</summary>
+    private static readonly string[] LegacyMissingKeys =
+        ["pressRun", "deckId", "dictionaries", "seeded", "censoredLetter", "unusedDiscards", "floorTopUp"];
+
+    /// <summary>
+    /// Rewrites both committed fixtures from <see cref="FixtureSession"/> when the environment variable
+    /// <c>WORDGAME_REGENERATE_FIXTURES</c> is <c>1</c> (otherwise it does nothing). Run it after a change that alters
+    /// the saved state or the shop rolls — e.g. <c>WORDGAME_REGENERATE_FIXTURES=1 dotnet test --filter RegenerateFixtures</c>
+    /// — then review the diff: old saves must still load (keep every old key loading, or bump the save version).
+    /// </summary>
+    [Fact]
+    public void RegenerateFixtures()
+    {
+        if (Environment.GetEnvironmentVariable("WORDGAME_REGENERATE_FIXTURES") != "1")
+            return;
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "wordgame.sln")))
+            root = root.Parent;
+        Assert.NotNull(root);
+        string dir = Path.Combine(root.FullName, "tests", "Crossword.Tests", "Save", "Fixtures");
+        string current = RunSaveJson.Serialize(FixtureSession()).ReplaceLineEndings("\n") + "\n";
+        File.WriteAllText(Path.Combine(dir, "run-v1.json"), current);
+        File.WriteAllText(Path.Combine(dir, "run-v1-before-press-runs.json"), WithoutKeys(current, LegacyMissingKeys));
+    }
+
+    /// <summary>Drops the lines holding the given keys from indented JSON, fixing the trailing comma before a closing brace.</summary>
+    private static string WithoutKeys(string json, IEnumerable<string> keys)
+    {
+        var dropped = keys.Select(k => $"\"{k}\":").ToHashSet();
+        var lines = json.Split('\n').Where(l => !dropped.Contains(l.TrimStart().Split(' ')[0])).ToList();
+        for (int i = 0; i + 1 < lines.Count; i++)
+        {
+            string next = lines[i + 1].TrimStart();
+            if (lines[i].EndsWith(',') && (next.StartsWith('}') || next.StartsWith(']')))
+                lines[i] = lines[i][..^1];
+        }
+        return string.Join('\n', lines);
+    }
+
     /// <summary>The state in <c>Save/Fixtures/run-v1.json</c>: a few rounds into seed 21, in the shop.</summary>
     internal static GameSession FixtureSession()
     {

@@ -21,6 +21,8 @@ public sealed record ShopConfig(
     int CommonPrice = 4,
     int UncommonPrice = 6,
     int RarePrice = 8,
+    int EpicPrice = 10,
+    int LegendaryPrice = 12,
     int PlainTilePrice = 2,
     int EnhancedTilePrice = 4,
     int EnhancePrice = 3,
@@ -32,9 +34,11 @@ public sealed record ShopConfig(
     int EnhancedTilePercent = 35,
     int StyleGuideOffers = 1,
     int StyleGuidePrice = 3,
-    int CommonWeight = 60,
-    int UncommonWeight = 30,
+    int CommonWeight = 55,
+    int UncommonWeight = 28,
     int RareWeight = 10,
+    int EpicWeight = 5,
+    int LegendaryWeight = 2,
     int StationeryOffers = 1,
     int StationeryPrice = 3,
     IReadOnlySet<string>? StationeryIds = null,
@@ -55,8 +59,20 @@ public sealed record ShopConfig(
     {
         DeskItemRarity.Uncommon => UncommonPrice,
         DeskItemRarity.Rare => RarePrice,
+        DeskItemRarity.Epic => EpicPrice,
+        DeskItemRarity.Legendary => LegendaryPrice,
         _ => CommonPrice,
     };
+
+    /// <summary>Each rarity with its roll weight, in order (the shop rolls one number against the running sum).</summary>
+    public IEnumerable<(DeskItemRarity Rarity, int Weight)> RarityWeights()
+    {
+        yield return (DeskItemRarity.Common, CommonWeight);
+        yield return (DeskItemRarity.Uncommon, UncommonWeight);
+        yield return (DeskItemRarity.Rare, RareWeight);
+        yield return (DeskItemRarity.Epic, EpicWeight);
+        yield return (DeskItemRarity.Legendary, LegendaryWeight);
+    }
 
     public int SellValueOf(IDeskItem item) => Math.Max(1, PriceOf(item) / 2);
 
