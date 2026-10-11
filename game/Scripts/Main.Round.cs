@@ -458,7 +458,9 @@ public partial class Main
         {
             _chipsLabel.Text = "–";
             _multLabel.Text = "–";
-            SetMessage(validation.Error.Message, UiKit.Bad);
+            SetMessage(validation.Error is PlacementError.InvalidWords invalid && Round.Config.IllegalWordsAllowed > 0
+                ? $"Poetic License covers one made-up word per play — this play has {invalid.Words.Length}: {string.Join(", ", invalid.Words)}."
+                : validation.Error.Message, UiKit.Bad);
             return;
         }
 

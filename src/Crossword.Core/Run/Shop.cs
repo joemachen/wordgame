@@ -39,7 +39,7 @@ public sealed record ShopConfig(
     int RareWeight = 10,
     int EpicWeight = 5,
     int LegendaryWeight = 2,
-    int StationeryOffers = 1,
+    int StationeryOffers = 2,
     int StationeryPrice = 3,
     IReadOnlySet<string>? StationeryIds = null,
     IReadOnlyDictionary<string, int>? StationeryPrices = null,

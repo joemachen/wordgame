@@ -264,10 +264,10 @@ public partial class Main : Control
         centre.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         columns.AddChild(centre);
 
-        _deskRow = UiKit.HBox(10);
+        _deskRow = UiKit.HBox(8);
         centre.AddChild(_deskRow);
         _deskCaption = UiKit.MakeLabel(
-            "Desk Items apply left to right: put +Chips and +Mult items before ×Mult ones. Hover ◀ ▶ to compare scores.",
+            "Desk Items fire left to right, 1 ▸ 5. ×Mult multiplies everything to its left, so put +Chips and +Mult items first. Hover ◀ ▶ to compare scores.",
             13, UiKit.TextMuted);
         centre.AddChild(_deskCaption);
 

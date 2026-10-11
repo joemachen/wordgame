@@ -1436,11 +1436,18 @@
           "premium": "DoubleWord"
         },
         "price": 4
+      },
+      {
+        "type": "stationery",
+        "item": {
+          "id": "clipping"
+        },
+        "price": 4
       }
     ],
     "rerollCost": 5,
     "rng": {
-      "state": 8290915818559949480
+      "state": 1244886564173596349
     }
   },
   "lastPayout": {

@@ -227,6 +227,37 @@ public partial class Main
         Check("the guides bookmark opens and closes the drawer", handleShown && openedByHandle && !_styleGuidesOpen
             && !_styleGuidesOverlay.Visible && _pending.Count == pendingBefore);
 
+        // 7a. The desk bar keeps one height, empty or full of long descriptions; cards show their slot number and what
+        //     they do to the score; the order caption is always there; the board's buttons stay on screen.
+        var heldDesk = Run.DeskItems;
+        var heldStationery = Run.Stationery;
+        _session = _session with { Run = Run with { DeskItems = [], Stationery = [] } };
+        Refresh();
+        await Frames(2);
+        float emptyHeight = _deskRow.Size.Y;
+        bool captionWhenEmpty = _deskCaption.Visible;
+        _session = _session with
+        {
+            Run = Run with
+            {
+                DeskItems = [.. new[] { "pulitzer", "red-pen", "letters-to-the-editor", "second-printing", "crossword-editor" }
+                    .Select(id => Crossword.Core.DeskItems.DeskItemCatalog.Find(id)!)],
+                Stationery = [new Crossword.Core.Stationery.PoeticLicense(), new Crossword.Core.Stationery.Highlighter()],
+            },
+        };
+        Refresh();
+        await Frames(2);
+        string TagOf(string id) => ((Label)_deskCards[id].FindChild("KindTag", owned: false)!).Text;
+        var numbers = _deskRow.FindChildren("SlotNumber", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text).ToList();
+        Check("the desk bar keeps one height, empty or full", Mathf.IsEqualApprox(emptyHeight, _deskRow.Size.Y) && captionWhenEmpty
+            && _deskCaption.Visible && _submitButton.GetGlobalRect().End.Y <= GetViewportRect().Size.Y);
+        Check("a full desk bar stays on screen", _deskRow.GetChildren().OfType<Control>().All(c => c.GetGlobalRect().End.X <= GetViewportRect().Size.X));
+        Check("desk cards show their slot and what they do", TagOf("pulitzer") == "×MULT" && TagOf("red-pen") == "+MULT"
+            && TagOf("second-printing") == "×CHIPS ×MULT" && numbers.SequenceEqual(["1", "2", "3", "4", "5"]));
+        _session = _session with { Run = Run with { DeskItems = heldDesk, Stationery = heldStationery } };
+        Refresh();
+        await Frames(1);
+
         // 7b. With ×Mult before +Mult, the +Mult item's ◀ arrow previews a higher score for the pending play (green).
         _session = _session with
         {
@@ -238,7 +269,7 @@ public partial class Main
         Refresh();
         await Frames(2);
         var moveLeft = _deskRow.GetChild(1).FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "◀");
-        Check("desk arrow previews a better order", _deskCaption.Visible && moveLeft.TooltipText.StartsWith("Move left:")
+        Check("desk arrow previews a better order", moveLeft.TooltipText.StartsWith("Move left:")
             && moveLeft.TooltipText.Contains("(+") && moveLeft.GetThemeColor("font_color") == UiKit.Good);
         _session = _session with { Run = Run with { DeskItems = [] } };
         Refresh();
@@ -413,6 +444,9 @@ public partial class Main
         Check("guides bookmark stays clear of the shop's Next round button", _guidesHandle.IsVisibleInTree()
             && !_guidesHandle.GetGlobalRect().Intersects(nextRound.GetGlobalRect()));
         Check("the shop fits without scrolling", _shopContent.GetCombinedMinimumSize().Y <= _shopArea.Size.Y);
+        var stationeryOffers = _session.Shop!.Offers.OfType<Crossword.Core.Run.StationeryOffer>().ToList();
+        Check("the shop offers two different Stationery items", stationeryOffers.Count == 2
+            && stationeryOffers[0].Item.Id != stationeryOffers[1].Item.Id);
         await PressKey(global::Godot.Key.Escape);
         bool shopPaused = _pauseOverlay.Visible;
         await PressKey(global::Godot.Key.Escape);

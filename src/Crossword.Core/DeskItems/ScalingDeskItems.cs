@@ -10,6 +10,7 @@ namespace Crossword.Core.DeskItems;
 public sealed record WordCount(long ChipsPerTile = 2, long Chips = 0) : IDeskItem
 {
     public string Id => "word-count";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Word Count";
     public string Description => $"Gains +{ChipsPerTile} Chips per tile placed (currently +{Chips} Chips).";
 
@@ -23,6 +24,7 @@ public sealed record WordCount(long ChipsPerTile = 2, long Chips = 0) : IDeskIte
 public sealed record Archive(int MinLength = 5, decimal MultPerLongWord = 1, decimal Mult = 0) : IDeskItem
 {
     public string Id => "archive";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Archive";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"Gains +{MultPerLongWord} Mult per play with a {MinLength}+ letter word (currently +{Mult} Mult).";
@@ -38,6 +40,7 @@ public sealed record Archive(int MinLength = 5, decimal MultPerLongWord = 1, dec
 public sealed record Pulitzer(decimal Factor = 1.5m, decimal PerBoss = 0.5m) : IDeskItem
 {
     public string Id => "pulitzer";
+    public DeskItemKind Kind => DeskItemKind.TimesMult;
     public string Name => "Pulitzer";
     public DeskItemRarity Rarity => DeskItemRarity.Rare;
     public string Description => $"×{Factor} Mult. Gains ×{PerBoss} per Sunday Edition cleared.";

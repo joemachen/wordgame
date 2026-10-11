@@ -116,6 +116,21 @@ public static class UiKit
         return button;
     }
 
+    /// <summary>Tightens a small button's side padding (desk and Stationery card actions) so the cards can stay narrow.</summary>
+    public static Button Compact(Button button)
+    {
+        foreach (var state in new[] { "normal", "hover", "pressed", "disabled" })
+        {
+            if (button.GetThemeStylebox(state) is StyleBoxFlat box)
+            {
+                var copy = (StyleBoxFlat)box.Duplicate();
+                copy.ContentMarginLeft = copy.ContentMarginRight = 5;
+                button.AddThemeStyleboxOverride(state, copy);
+            }
+        }
+        return button;
+    }
+
     /// <summary>A one-line text box in the panel style; the border lights up while it has focus.</summary>
     public static LineEdit MakeLineEdit(string placeholder, float width, int fontSize = 16)
     {

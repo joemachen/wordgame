@@ -85,7 +85,7 @@ public static class ConsoleRenderer
             ? $"Desk: (empty, {slots} slots)"
             : $"Desk ({run.DeskItems.Length}/{slots}): " +
               string.Join("  ", run.DeskItems.Select((item, i) =>
-                  $"[{i + 1}] {item.Name}: {item.Description} (sell ${shop.SellValueOf(item)})"));
+                  $"[{i + 1}] {item.Name} {DeskItemKinds.Tag(item.Kind)}: {item.Description} (sell ${shop.SellValueOf(item)})"));
 
     public static string Stationery(RunState run, ShopConfig shop) =>
         $"Stationery ({run.Stationery.Length}/{RunState.MaxStationerySlots}): " +

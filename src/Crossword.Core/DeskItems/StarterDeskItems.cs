@@ -11,6 +11,7 @@ namespace Crossword.Core.DeskItems;
 public sealed record RedPen(decimal Mult = 2) : IDeskItem
 {
     public string Id => "red-pen";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Red Pen";
     public string Description => $"+{Mult} Mult.";
 
@@ -21,6 +22,7 @@ public sealed record RedPen(decimal Mult = 2) : IDeskItem
 public sealed record Thesaurus(long ChipsPerLetter = 4) : IDeskItem
 {
     public string Id => "thesaurus";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Thesaurus";
     public string Description => $"+{ChipsPerLetter} Chips per letter of the longest word.";
 
@@ -35,6 +37,7 @@ public sealed record Thesaurus(long ChipsPerLetter = 4) : IDeskItem
 public sealed record Inkwell(long ChipsPerExtraWord = 10) : IDeskItem
 {
     public string Id => "inkwell";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Inkwell";
     public string Description => $"+{ChipsPerExtraWord} Chips for each word formed beyond the first.";
 
@@ -52,6 +55,7 @@ public sealed record Inkwell(long ChipsPerExtraWord = 10) : IDeskItem
 public sealed record CrossReference(int MinIntersections = 2, decimal Factor = 2) : IDeskItem
 {
     public string Id => "cross-reference";
+    public DeskItemKind Kind => DeskItemKind.TimesMult;
     public string Name => "Cross-Reference";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"×{Factor} Mult if the play has {MinIntersections}+ intersections.";
@@ -66,6 +70,7 @@ public sealed record CrossReference(int MinIntersections = 2, decimal Factor = 2
 public sealed record Broadsheet(int MinLength = 5, decimal Factor = 2) : IDeskItem
 {
     public string Id => "broadsheet";
+    public DeskItemKind Kind => DeskItemKind.TimesMult;
     public string Name => "Broadsheet";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"×{Factor} Mult if the longest word has {MinLength}+ letters.";
@@ -82,6 +87,7 @@ public sealed record RareInk(decimal MultPerTile = 6) : IDeskItem
     private const string RareLetters = "JQXZ";
 
     public string Id => "rare-ink";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Rare Ink";
     public string Description => $"+{MultPerTile} Mult for each J, Q, X or Z placed this play.";
 

@@ -179,6 +179,7 @@ public class ExpansionDeskItemsTests
     private sealed record RarityStub(DeskItemRarity Rarity) : IDeskItem
     {
         public string Id => $"stub-{Rarity}";
+        public DeskItemKind Kind => DeskItemKind.Chips;
         public string Name => Id;
         public string Description => "";
         public ScoreContext Apply(ScoreContext context) => context;

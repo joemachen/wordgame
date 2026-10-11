@@ -214,16 +214,18 @@ public static class ShopRules
                 tier.LevelMult, config.StyleGuidePrice));
         }
 
-        // Rolled last so the Stationery pool never shifts the other offers. A single-entry pool consumes no RNG.
-        var stationery = config.StationeryIds is { } ids
-            ? StationeryCatalog.All.Where(s => ids.Contains(s.Id)).ToImmutableArray()
-            : StationeryCatalog.All;
-        for (int i = 0; i < config.StationeryOffers && stationery.Length > 0; i++)
+        // Rolled last so the Stationery pool never shifts the other offers; drawn without replacement, so two offers
+        // are two different items. A single-entry pool consumes no RNG.
+        var stationery = (config.StationeryIds is { } ids
+            ? StationeryCatalog.All.Where(s => ids.Contains(s.Id))
+            : StationeryCatalog.All).ToList();
+        for (int i = 0; i < config.StationeryOffers && stationery.Count > 0; i++)
         {
             int pick = 0;
-            if (stationery.Length > 1)
-                (pick, rng) = rng.NextInt(stationery.Length);
+            if (stationery.Count > 1)
+                (pick, rng) = rng.NextInt(stationery.Count);
             offers.Add(new StationeryOffer(stationery[pick], config.PriceOf(stationery[pick])));
+            stationery.RemoveAt(pick);
         }
 
         return (offers.ToImmutable(), rng);

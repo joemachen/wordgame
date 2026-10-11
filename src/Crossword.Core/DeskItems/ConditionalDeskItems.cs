@@ -9,6 +9,7 @@ namespace Crossword.Core.DeskItems;
 public sealed record MarginNotes(decimal MultPerDiscard = 2) : IDeskItem
 {
     public string Id => "margin-notes";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Margin Notes";
     public string Description => $"+{MultPerDiscard} Mult per discard remaining.";
 
@@ -27,6 +28,7 @@ public sealed record VowelSound(long ChipsPerVowel = 6) : IDeskItem
     private const string Vowels = "AEIOU";
 
     public string Id => "vowel-sound";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Vowel Sound";
     public string Description => $"+{ChipsPerVowel} Chips per vowel tile placed this play.";
 
@@ -44,6 +46,7 @@ public sealed record VowelSound(long ChipsPerVowel = 6) : IDeskItem
 public sealed record ShortStory(int MaxLength = 4, decimal Mult = 4) : IDeskItem
 {
     public string Id => "short-story";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Short Story";
     public string Description => $"+{Mult} Mult if the longest word has {MaxLength} or fewer letters.";
 
@@ -54,6 +57,7 @@ public sealed record ShortStory(int MaxLength = 4, decimal Mult = 4) : IDeskItem
 public sealed record GridLock(long ChipsPerIntersection = 15) : IDeskItem
 {
     public string Id => "grid-lock";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Grid Lock";
     public string Description => $"+{ChipsPerIntersection} Chips per intersection.";
 
@@ -71,6 +75,7 @@ public sealed record GridLock(long ChipsPerIntersection = 15) : IDeskItem
 public sealed record SavingsBond(long ChipsPerDollar = 2) : IDeskItem
 {
     public string Id => "savings-bond";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Savings Bond";
     public string Description => $"+{ChipsPerDollar} Chips per $1 you hold.";
 
@@ -87,6 +92,7 @@ public sealed record SavingsBond(long ChipsPerDollar = 2) : IDeskItem
 public sealed record DeadlineRush(decimal Factor = 2) : IDeskItem
 {
     public string Id => "deadline-rush";
+    public DeskItemKind Kind => DeskItemKind.TimesMult;
     public string Name => "Deadline Rush";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"×{Factor} Mult on the round's final submission.";
@@ -99,6 +105,7 @@ public sealed record DeadlineRush(decimal Factor = 2) : IDeskItem
 public sealed record PremiumStock(decimal Mult = 4) : IDeskItem
 {
     public string Id => "premium-stock";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Premium Stock";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"+{Mult} Mult if a tile is placed on a 2W or 3W square.";
@@ -113,6 +120,7 @@ public sealed record PremiumStock(decimal Mult = 4) : IDeskItem
 public sealed record Syndication(int DollarsPerIntersection = 1) : IDeskItem
 {
     public string Id => "syndication";
+    public DeskItemKind Kind => DeskItemKind.Money;
     public string Name => "Syndication";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"Earn ${DollarsPerIntersection} per intersection.";
@@ -131,6 +139,7 @@ public sealed record Syndication(int DollarsPerIntersection = 1) : IDeskItem
 public sealed record EditorInChief(int MinWords = 3, decimal Factor = 3) : IDeskItem
 {
     public string Id => "editor-in-chief";
+    public DeskItemKind Kind => DeskItemKind.TimesMult;
     public string Name => "Editor-in-Chief";
     public DeskItemRarity Rarity => DeskItemRarity.Rare;
     public string Description => $"×{Factor} Mult if the play forms {MinWords}+ words.";

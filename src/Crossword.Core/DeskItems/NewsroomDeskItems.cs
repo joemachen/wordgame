@@ -16,6 +16,7 @@ namespace Crossword.Core.DeskItems;
 public sealed record Classifieds(long ChipsPerWord = 15, int MaxLength = 3) : IDeskItem
 {
     public string Id => "classifieds";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Classifieds";
     public string Description => $"+{ChipsPerWord} Chips per word formed of {MaxLength} letters or fewer.";
 
@@ -33,6 +34,7 @@ public sealed record Classifieds(long ChipsPerWord = 15, int MaxLength = 3) : ID
 public sealed record Typesetter(long ChipsPerPair = 25) : IDeskItem
 {
     public string Id => "typesetter";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Typesetter";
     public string Description => $"+{ChipsPerPair} Chips per pair of identical letters placed this play.";
 
@@ -50,6 +52,7 @@ public sealed record Typesetter(long ChipsPerPair = 25) : IDeskItem
 public sealed record Byline(decimal Mult = 4) : IDeskItem
 {
     public string Id => "byline";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Byline";
     public string Description => $"+{Mult} Mult if a tile is placed on the edge of the board.";
 
@@ -65,6 +68,7 @@ public sealed record Byline(decimal Mult = 4) : IDeskItem
 public sealed record OpEd(decimal Mult = 6) : IDeskItem
 {
     public string Id => "op-ed";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Op-Ed";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"+{Mult} Mult if the play forms exactly one word.";
@@ -77,6 +81,7 @@ public sealed record OpEd(decimal Mult = 6) : IDeskItem
 public sealed record LateEdition(decimal MultPerSubmission = 3) : IDeskItem
 {
     public string Id => "late-edition";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Late Edition";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"+{MultPerSubmission} Mult per submission already made this round.";
@@ -94,6 +99,7 @@ public sealed record LateEdition(decimal MultPerSubmission = 3) : IDeskItem
 public sealed record Morgue(long ChipsPerBoardWord = 4) : IDeskItem
 {
     public string Id => "morgue";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "The Morgue";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"+{ChipsPerBoardWord} Chips per word on the board after the play.";
@@ -112,6 +118,7 @@ public sealed record Morgue(long ChipsPerBoardWord = 4) : IDeskItem
 public sealed record Headline(long ChipsPerLetter = 8) : IDeskItem
 {
     public string Id => "headline";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Headline";
     public DeskItemRarity Rarity => DeskItemRarity.Rare;
     public string Description => $"+{ChipsPerLetter} Chips per letter of every word formed.";
@@ -130,6 +137,7 @@ public sealed record Headline(long ChipsPerLetter = 8) : IDeskItem
 public sealed record LettersToTheEditor(decimal MultPerLetter = 0.5m, string Letters = "") : IDeskItem
 {
     public string Id => "letters-to-the-editor";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Letters to the Editor";
     public DeskItemRarity Rarity => DeskItemRarity.Rare;
     public string Description =>
@@ -154,6 +162,7 @@ public sealed record LettersToTheEditor(decimal MultPerLetter = 0.5m, string Let
 public sealed record FrontPage : IDeskItem
 {
     public string Id => "front-page";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Front Page";
     public DeskItemRarity Rarity => DeskItemRarity.Epic;
     public string Description => "Every word's letter chips count twice.";
@@ -169,6 +178,7 @@ public sealed record FrontPage : IDeskItem
 public sealed record CrosswordEditor(decimal MultPerReusedTile = 2) : IDeskItem
 {
     public string Id => "crossword-editor";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Crossword Editor";
     public DeskItemRarity Rarity => DeskItemRarity.Epic;
     public string Description => $"+{MultPerReusedTile} Mult per tile already on the board that a formed word runs through.";
@@ -187,6 +197,7 @@ public sealed record CrosswordEditor(decimal MultPerReusedTile = 2) : IDeskItem
 public sealed record ExtraExtra(int Submissions = 1) : IDeskItem
 {
     public string Id => "extra-extra";
+    public DeskItemKind Kind => DeskItemKind.Rules;
     public string Name => "Extra! Extra!";
     public DeskItemRarity Rarity => DeskItemRarity.Legendary;
     public string Description => $"+{Submissions} submission every round.";
@@ -200,6 +211,7 @@ public sealed record ExtraExtra(int Submissions = 1) : IDeskItem
 public sealed record SecondPrinting(decimal Factor = 2) : IDeskItem
 {
     public string Id => "second-printing";
+    public DeskItemKind Kind => DeskItemKind.TimesChipsAndMult;
     public string Name => "Second Printing";
     public DeskItemRarity Rarity => DeskItemRarity.Legendary;
     public string Description => $"×{Factor} Chips and ×{Factor} Mult.";

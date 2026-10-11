@@ -129,7 +129,7 @@ public sealed record PoeticLicense : IStationery
 {
     public string Id => "poetic-license";
     public string Name => "Poetic License";
-    public string Description => "Use during a round: one of your next plays may contain a word that isn't in the dictionary, scored in full.";
+    public string Description => "ONE made-up word per play scores in full. Two or more are rejected.";
     public StationeryTarget Target => StationeryTarget.None;
 }
 

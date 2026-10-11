@@ -10,6 +10,7 @@ namespace Crossword.Core.DeskItems;
 public sealed record EtymologyTome : IDeskItem
 {
     public string Id => "etymology-tome";
+    public DeskItemKind Kind => DeskItemKind.Chips;
     public string Name => "Etymology Tome";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => "The longest word's letter chips count twice.";
@@ -26,6 +27,7 @@ public sealed record EtymologyTome : IDeskItem
 public sealed record RubberStamp(decimal Factor = 2) : IDeskItem
 {
     public string Id => "rubber-stamp";
+    public DeskItemKind Kind => DeskItemKind.TimesMult;
     public string Name => "Rubber Stamp";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"×{Factor} Mult on the first submission of each round.";
@@ -38,6 +40,7 @@ public sealed record RubberStamp(decimal Factor = 2) : IDeskItem
 public sealed record PrintingPressRoller(int MinWords = 3, decimal Gain = 0.1m, decimal Factor = 1) : IDeskItem
 {
     public string Id => "printing-press-roller";
+    public DeskItemKind Kind => DeskItemKind.TimesMult;
     public string Name => "Printing Press Roller";
     public DeskItemRarity Rarity => DeskItemRarity.Rare;
     public string Description => $"Gains ×{Gain} Mult per play forming {MinWords}+ words (currently ×{Factor} Mult).";
@@ -53,6 +56,7 @@ public sealed record PrintingPressRoller(int MinWords = 3, decimal Gain = 0.1m, 
 public sealed record TileRack(int ExtraTiles = 1) : IDeskItem
 {
     public string Id => "tile-rack";
+    public DeskItemKind Kind => DeskItemKind.Rules;
     public string Name => "Tile Rack";
     public DeskItemRarity Rarity => DeskItemRarity.Uncommon;
     public string Description => $"+{ExtraTiles} hand size.";
@@ -66,6 +70,7 @@ public sealed record TileRack(int ExtraTiles = 1) : IDeskItem
 public sealed record CoffeeStain(decimal Mult = 4, int StainedPairs = 1) : IDeskItem
 {
     public string Id => "coffee-stain";
+    public DeskItemKind Kind => DeskItemKind.Mult;
     public string Name => "Coffee Stain";
     public string Description => $"+{Mult} Mult. Stains {StainedPairs * 2} mirrored squares each round (blocked).";
 

@@ -12,6 +12,7 @@ public class EffectPipelineTests
     {
         public string Name => $"+{Amount} Mult";
         public string Description => Name;
+        public DeskItemKind Kind => DeskItemKind.Mult;
         public ScoreContext Apply(ScoreContext c) => c.AddMult(Amount).Record(Id, Name);
     }
 
@@ -19,6 +20,7 @@ public class EffectPipelineTests
     {
         public string Name => $"x{Factor} Mult";
         public string Description => Name;
+        public DeskItemKind Kind => DeskItemKind.TimesMult;
         public ScoreContext Apply(ScoreContext c) => c.TimesMult(Factor).Record(Id, Name);
     }
 

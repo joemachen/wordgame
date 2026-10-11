@@ -47,7 +47,6 @@ public partial class Main
             && (_session.Phase != RunPhase.InRound || targeting >= Run.Stationery.Length || !TargetsBoard(Run.Stationery[targeting].Target)))
             _targetingSlot = null;
         bool canEdit = _session.Phase is RunPhase.InRound or RunPhase.Shop && !_animating;
-        _deskCaption.Visible = Run.DeskItems.Length >= 2;
         var play = _session.Phase == RunPhase.InRound ? PendingPlay() : null;
         long current = play is null ? 0 : ScoreWith(play, Run.DeskItems);
 
@@ -56,36 +55,48 @@ public partial class Main
             if (slot >= Run.DeskItems.Length)
             {
                 var empty = UiKit.MakePanel(UiKit.Panel, padding: 10, border: UiKit.PanelBorder, borderWidth: 1);
-                empty.CustomMinimumSize = new Vector2(0, 104);
+                empty.CustomMinimumSize = new Vector2(0, DeskCardHeight);
                 empty.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-                empty.AddChild(UiKit.MakeLabel("empty desk slot", 13, UiKit.TextMuted, HorizontalAlignment.Center));
+                var emptyBox = UiKit.VBox(4);
+                empty.AddChild(emptyBox);
+                emptyBox.AddChild(SlotLine(slot, null));
+                var emptyText = UiKit.MakeLabel("empty desk slot", 13, UiKit.TextMuted, HorizontalAlignment.Center);
+                emptyText.SizeFlagsVertical = SizeFlags.ExpandFill;
+                emptyText.VerticalAlignment = VerticalAlignment.Center;
+                emptyBox.AddChild(emptyText);
                 _deskRow.AddChild(empty);
                 continue;
             }
 
             var item = Run.DeskItems[slot];
             var card = UiKit.MakePanel(UiKit.PanelRaised, padding: 10, border: RarityColor(item.Rarity), borderWidth: 2);
-            card.CustomMinimumSize = new Vector2(0, 104);
+            card.CustomMinimumSize = new Vector2(0, DeskCardHeight);
             card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            card.TooltipText = $"{item.Name} ({item.Rarity})\n{item.Description}";
             _deskCards[item.Id] = card;
             var box = UiKit.VBox(4);
             card.AddChild(box);
-            box.AddChild(UiKit.MakeLabel(item.Name, 16, UiKit.Text));
+            box.AddChild(SlotLine(slot, item.Kind));
+            var name = UiKit.MakeLabel(item.Name, 15, UiKit.Text);
+            name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            box.AddChild(name);
             var description = UiKit.MakeLabel(item.Description, 12, UiKit.TextMuted, wrap: true);
+            description.MaxLinesVisible = 3;
+            description.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
             description.SizeFlagsVertical = SizeFlags.ExpandFill;
             box.AddChild(description);
 
             var actions = UiKit.HBox(4);
             int index = slot;
-            var left = UiKit.MakeButton("◀", UiKit.Panel, 12);
+            var left = UiKit.Compact(UiKit.MakeButton("◀", UiKit.Panel, 12));
             left.Disabled = !canEdit || index == 0;
             left.Pressed += () => MoveDeskItem(index, index - 1);
-            var right = UiKit.MakeButton("▶", UiKit.Panel, 12);
+            var right = UiKit.Compact(UiKit.MakeButton("▶", UiKit.Panel, 12));
             right.Disabled = !canEdit || index == Run.DeskItems.Length - 1;
             right.Pressed += () => MoveDeskItem(index, index + 1);
             SetMoveHint(left, index, index - 1, "left", play, current);
             SetMoveHint(right, index, index + 1, "right", play, current);
-            var sell = UiKit.MakeButton($"Sell ${_session.Config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money);
+            var sell = UiKit.Compact(UiKit.MakeButton($"Sell ${_session.Config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money));
             sell.Disabled = !canEdit;
             sell.Pressed += () => SellDeskItem(index);
             actions.AddChild(left);
@@ -101,29 +112,71 @@ public partial class Main
             _deskRow.AddChild(BuildStationerySlot(slot, canEdit));
     }
 
+    /// <summary>
+    /// Every desk and Stationery card has this height, full or empty, whatever its text says (descriptions are capped
+    /// and the full text is in the card's tooltip), so the bar never changes height as items come and go.
+    /// </summary>
+    private static int DeskCardHeight => UiKit.FontSize(166);
+
+    /// <summary>A desk card's top line: its firing position, and what it does to the score (its kind tag).</summary>
+    private static Control SlotLine(int slot, DeskItemKind? kind)
+    {
+        var line = UiKit.HBox(4);
+        var number = UiKit.MakeLabel($"{slot + 1}", 11, UiKit.TextMuted);
+        number.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        number.Name = "SlotNumber";
+        line.AddChild(number);
+        if (kind is { } k)
+        {
+            var tag = UiKit.MakeLabel(DeskItemKinds.Tag(k), 11, KindColor(k), HorizontalAlignment.Right);
+            tag.Name = "KindTag";
+            tag.TooltipText = DeskItemKinds.Explain(k);
+            tag.MouseFilter = MouseFilterEnum.Pass;
+            line.AddChild(tag);
+        }
+        return line;
+    }
+
+    private static Color KindColor(DeskItemKind kind) => kind switch
+    {
+        DeskItemKind.Chips => UiKit.Chips.Lightened(0.25f),
+        DeskItemKind.Mult => UiKit.Mult.Lightened(0.25f),
+        DeskItemKind.TimesMult => UiKit.Mult.Lightened(0.45f),
+        DeskItemKind.TimesChipsAndMult => UiKit.Money,
+        DeskItemKind.Money => UiKit.Money,
+        _ => UiKit.TextMuted,
+    };
+
     /// <summary>A Stationery slot: one-shot items, used during a round or sold.</summary>
     private Control BuildStationerySlot(int slot, bool canEdit)
     {
         var card = UiKit.MakePanel(slot < Run.Stationery.Length ? UiKit.PanelRaised : UiKit.Panel, padding: 10,
             border: slot < Run.Stationery.Length ? StationeryColor : UiKit.PanelBorder, borderWidth: slot < Run.Stationery.Length ? 2 : 1);
-        card.CustomMinimumSize = new Vector2(150, 104);
+        card.CustomMinimumSize = new Vector2(150, DeskCardHeight);
         if (slot >= Run.Stationery.Length)
         {
-            card.AddChild(UiKit.MakeLabel("empty stationery", 13, UiKit.TextMuted, HorizontalAlignment.Center));
+            var emptyText = UiKit.MakeLabel("empty stationery", 13, UiKit.TextMuted, HorizontalAlignment.Center);
+            emptyText.VerticalAlignment = VerticalAlignment.Center;
+            card.AddChild(emptyText);
             return card;
         }
 
         var item = Run.Stationery[slot];
+        card.TooltipText = $"{item.Name}\n{item.Description}";
         var box = UiKit.VBox(4);
         card.AddChild(box);
-        box.AddChild(UiKit.MakeLabel(item.Name, 16, UiKit.Text));
+        var name = UiKit.MakeLabel(item.Name, 15, UiKit.Text);
+        name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        box.AddChild(name);
         var description = UiKit.MakeLabel(item.Description, 12, UiKit.TextMuted, wrap: true);
+        description.MaxLinesVisible = 4;
+        description.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         description.SizeFlagsVertical = SizeFlags.ExpandFill;
         box.AddChild(description);
 
         var actions = UiKit.HBox(4);
         int index = slot;
-        var use = UiKit.MakeButton(_targetingSlot == slot ? "Cancel" : "Use", UiKit.Panel, 12, StationeryColor);
+        var use = UiKit.Compact(UiKit.MakeButton(_targetingSlot == slot ? "Cancel" : "Use", UiKit.Panel, 12, StationeryColor));
         use.Disabled = _animating || _session.Phase != RunPhase.InRound;
         use.TooltipText = item.Target switch
         {
@@ -134,7 +187,7 @@ public partial class Main
             _ => "",
         };
         use.Pressed += () => UseStationery(index);
-        var sell = UiKit.MakeButton($"Sell ${_session.Config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money);
+        var sell = UiKit.Compact(UiKit.MakeButton($"Sell ${_session.Config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money));
         sell.Disabled = !canEdit;
         sell.Pressed += () => SellStationery(index);
         actions.AddChild(use);

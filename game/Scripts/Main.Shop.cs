@@ -97,8 +97,8 @@ public partial class Main
         return panel;
     }
 
-    // Offers sit in a 3-column grid of fixed-height cards: two rows for the usual six offers.
-    private const int ShopColumns = 3;
+    // Offers sit in a 4-column grid of fixed-height cards: two rows for the usual seven offers.
+    private const int ShopColumns = 4;
     private const int ShopCardHeight = 176;
 
     private Control BuildOfferCard(int index, ShopOffer? offer)
