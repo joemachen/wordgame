@@ -41,23 +41,27 @@ public partial class Main
         var nextKind = config.KindOf(next);
         string nextBoss = nextKind.IsBoss ? $"  —  BOSS: {RunRules.BossFor(config, Run, config.WeekOf(next)).Name}" : "";
 
-        _shopContent.AddChild(UiKit.MakeLabel("THE SHOP", 30, UiKit.Text));
-        _shopContent.AddChild(UiKit.MakeLabel(
-            $"Next: Week {config.WeekOf(next) + 1} {nextKind.Name}, deadline {RunRules.TargetFor(config, Run, next):N0}{nextBoss}", 17,
-            nextKind.IsBoss ? UiKit.Bad : UiKit.TextMuted, wrap: true));
-
-        var actions = UiKit.HBox(12);
+        // One header row (title, what's next, reroll, leave) so the whole shop fits 1440×900 without scrolling.
+        var header = UiKit.HBox(16);
+        var title = UiKit.MakeLabel("THE SHOP", 26, UiKit.Text);
+        title.VerticalAlignment = VerticalAlignment.Center;
+        header.AddChild(title);
+        var nextLabel = UiKit.MakeLabel(
+            $"Next: Week {config.WeekOf(next) + 1} {nextKind.Name}, deadline {RunRules.TargetFor(config, Run, next):N0}{nextBoss}", 16,
+            nextKind.IsBoss ? UiKit.Bad : UiKit.TextMuted, wrap: true);
+        nextLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        nextLabel.VerticalAlignment = VerticalAlignment.Center;
+        header.AddChild(nextLabel);
         var reroll = UiKit.MakeButton($"Reroll  ${shop.RerollCost}", UiKit.PanelRaised, 18, UiKit.Money);
         reroll.Disabled = Run.Money < shop.RerollCost;
         reroll.Pressed += () => ApplyShop(ShopRules.Reroll(_session));
         var leave = UiKit.MakeButton("Next round  ▶", UiKit.Good.Darkened(0.25f), 20);
         leave.Pressed += LeaveShop;
-        actions.AddChild(reroll);
-        actions.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        actions.AddChild(leave);
-        _shopContent.AddChild(actions);
+        header.AddChild(reroll);
+        header.AddChild(leave);
+        _shopContent.AddChild(header);
 
-        var offers = new HFlowContainer();
+        var offers = new GridContainer { Columns = ShopColumns };
         offers.AddThemeConstantOverride("h_separation", 12);
         offers.AddThemeConstantOverride("v_separation", 12);
         for (int i = 0; i < shop.Offers.Length; i++)
@@ -73,7 +77,7 @@ public partial class Main
 
     private Control BuildPaycheck(Payout payout)
     {
-        var panel = UiKit.MakePanel(UiKit.Panel, padding: 14, border: UiKit.Money, borderWidth: 1);
+        var panel = UiKit.MakePanel(UiKit.Panel, padding: 10, border: UiKit.Money, borderWidth: 1);
         var box = UiKit.VBox(4);
         panel.AddChild(box);
         var top = UiKit.HBox(12);
@@ -93,6 +97,10 @@ public partial class Main
         return panel;
     }
 
+    // Offers sit in a 3-column grid of fixed-height cards: two rows for the usual six offers.
+    private const int ShopColumns = 3;
+    private const int ShopCardHeight = 176;
+
     private Control BuildOfferCard(int index, ShopOffer? offer)
     {
         var accent = offer switch
@@ -103,9 +111,10 @@ public partial class Main
             null => UiKit.PanelBorder,
             _ => UiKit.Money,
         };
-        var card = UiKit.MakePanel(UiKit.PanelRaised, padding: 14, border: accent, borderWidth: 2);
-        card.CustomMinimumSize = new Vector2(250, 170);
-        var box = UiKit.VBox(8);
+        var card = UiKit.MakePanel(UiKit.PanelRaised, padding: 12, border: accent, borderWidth: 2);
+        card.CustomMinimumSize = new Vector2(0, ShopCardHeight);
+        card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        var box = UiKit.VBox(6);
         card.AddChild(box);
 
         if (offer is null)
@@ -128,13 +137,18 @@ public partial class Main
             _ => ("", offer.Description, ""),
         };
 
-        box.AddChild(UiKit.MakeLabel(kind, 12, accent));
-        box.AddChild(UiKit.MakeLabel(title, 20, UiKit.Text, wrap: true));
-        var description = UiKit.MakeLabel(body, 14, UiKit.TextMuted, wrap: true);
+        box.AddChild(UiKit.MakeLabel(kind, 11, accent));
+        var name = UiKit.MakeLabel(title, 18, UiKit.Text);
+        name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        box.AddChild(name);
+        var description = UiKit.MakeLabel(body, 13, UiKit.TextMuted, wrap: true);
+        description.MaxLinesVisible = 3;
         description.SizeFlagsVertical = SizeFlags.ExpandFill;
         box.AddChild(description);
+        card.TooltipText = $"{title}\n{body}"; // the full text, in case the card trims it
 
-        var buy = UiKit.MakeButton($"Buy  ${offer.Price}", UiKit.Good.Darkened(0.3f), 18, UiKit.Money);
+        var buy = UiKit.MakeButton($"Buy  ${offer.Price}", UiKit.Good.Darkened(0.3f), 16, UiKit.Money);
+        buy.CustomMinimumSize = new Vector2(0, 34);
         buy.Disabled = Run.Money < offer.Price;
         buy.Pressed += () => BuyOffer(index, offer);
         box.AddChild(buy);
@@ -309,6 +323,9 @@ public partial class Main
         var again = UiKit.MakeButton("New run", UiKit.Good.Darkened(0.25f), 22);
         again.Pressed += ChooseNewRun;
         buttons.AddChild(again);
+        var menu = UiKit.MakeButton("Main menu", UiKit.PanelRaised, 22);
+        menu.Pressed += () => ShowTitle();
+        buttons.AddChild(menu);
         if (victory)
         {
             var endless = UiKit.MakeButton("Keep going (endless)", UiKit.PanelRaised, 22);

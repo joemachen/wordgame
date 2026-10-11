@@ -99,7 +99,10 @@ public partial class Main
         RefreshSettings();
     }
 
-    /// <summary>Saves a new text size and rebuilds the UI with it (only reachable from the title, so no play is lost).</summary>
+    /// <summary>
+    /// Saves a new text size and rebuilds the UI with it, landing on the title with Settings open (from the pause screen
+    /// too; the run is kept, only tiles placed but not submitted are taken back — Esc on the title continues).
+    /// </summary>
     private void ChangeTextScale(float scale)
     {
         _settings.Update(s => s with { TextScale = scale });

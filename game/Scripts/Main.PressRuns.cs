@@ -142,12 +142,19 @@ public partial class Main
                 RefreshPressRuns();
             };
 
+        // The button draws the card and takes the click; the text sits over it in the same PanelContainer, which sizes
+        // to its tallest child — so the card grows with wrapped text instead of letting it spill out.
+        var holder = new PanelContainer { CustomMinimumSize = card.CustomMinimumSize, MouseFilter = MouseFilterEnum.Ignore };
+        holder.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+        holder.AddChild(card);
+        var margin = new MarginContainer { MouseFilter = MouseFilterEnum.Ignore };
+        margin.AddThemeConstantOverride("margin_left", 12);
+        margin.AddThemeConstantOverride("margin_top", 8);
+        margin.AddThemeConstantOverride("margin_right", 12);
+        margin.AddThemeConstantOverride("margin_bottom", 10);
+        holder.AddChild(margin);
         var lines = UiKit.VBox(2);
-        lines.SetAnchorsPreset(LayoutPreset.FullRect);
-        lines.OffsetLeft = 12;
-        lines.OffsetTop = 8;
-        lines.OffsetRight = -12;
-        card.AddChild(lines);
+        margin.AddChild(lines);
         lines.AddChild(UiKit.MakeLabel(deck.Name, 17, open ? color.Lightened(0.2f) : UiKit.TextMuted));
         if (open)
         {
@@ -162,7 +169,7 @@ public partial class Main
         }
         foreach (var child in lines.FindChildren("*", "Control", owned: false).OfType<Control>().Append(lines))
             child.MouseFilter = MouseFilterEnum.Ignore;
-        return card;
+        return holder;
     }
 
     /// <summary>A dictionary choice for a deck that takes one; the selected one gets the deck's color.</summary>

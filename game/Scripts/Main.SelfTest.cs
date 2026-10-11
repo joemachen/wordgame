@@ -412,6 +412,11 @@ public partial class Main
         var nextRound = _shopContent.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text.StartsWith("Next round"));
         Check("guides bookmark stays clear of the shop's Next round button", _guidesHandle.IsVisibleInTree()
             && !_guidesHandle.GetGlobalRect().Intersects(nextRound.GetGlobalRect()));
+        Check("the shop fits without scrolling", _shopContent.GetCombinedMinimumSize().Y <= _shopArea.Size.Y);
+        await PressKey(global::Godot.Key.Escape);
+        bool shopPaused = _pauseOverlay.Visible;
+        await PressKey(global::Godot.Key.Escape);
+        Check("esc in the shop opens and closes the pause screen", shopPaused && !_pauseOverlay.Visible);
 
         // 15. Save & resume through a real file: a fresh run, then resuming, restores the run and hand order exactly
         //     without recording stats twice; a corrupt save is set aside with a notice.
@@ -461,6 +466,24 @@ public partial class Main
         Check("with only Proofreader unlocked, new run still opens the picker", pickerOpened && !_pressRunOverlay.Visible
             && Run.PressRun == 1 && !Run.Seeded);
 
+        // 16b. In a round, Esc with tiles selected recalls them; with nothing placed it pauses. Settings opens over the
+        //      pause screen and Esc returns to it; Main menu shows the title, and Esc on the title continues the run.
+        await Click(Centre(HandButton(0)));
+        await PressKey(global::Godot.Key.Escape);
+        bool recalledFirst = _selected.Count == 0 && !_pauseOverlay.Visible;
+        await PressKey(global::Godot.Key.Escape);
+        bool paused = _pauseOverlay.Visible;
+        await Click(Centre(_pauseSettings));
+        bool settingsOverPause = _settingsOverlay.Visible && _pauseOverlay.Visible;
+        await PressKey(global::Godot.Key.Escape);
+        bool backToPause = !_settingsOverlay.Visible && _pauseOverlay.Visible;
+        await Click(Centre(_pauseMainMenu));
+        bool onTitle = _titleOverlay.Visible && !_pauseOverlay.Visible;
+        await PressKey(global::Godot.Key.Escape);
+        Check("esc recalls selected tiles before pausing", recalledFirst);
+        Check("esc pauses; settings and main menu work from the pause screen", paused && settingsOverPause && backToPause && onTitle
+            && !_titleOverlay.Visible && _session.Phase == Crossword.Core.Run.RunPhase.InRound);
+
         // 17. Press Runs: winning a run unlocks the next one (shown on the victory screen); New run then asks which to
         //     play (locked ones greyed); Censored Press crosses out and refuses its letter; Final Print Run adds a rule
         //     to the boss.
@@ -471,6 +494,12 @@ public partial class Main
             && _endScreenUnlock is { } unlockLine && unlockLine.Text.StartsWith("Unlocked Press Run 2"));
         Check("a win unlocks the next deck", _endScreenDeckUnlock is { } deckLine
             && deckLine.Text.StartsWith($"Unlocked {Decks.Get(Decks.CrosswordDraftId).Name}"));
+        var endMenu = _shopContent.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "Main menu");
+        await Click(Centre(endMenu));
+        bool endToTitle = _titleOverlay.Visible;
+        await PressKey(global::Godot.Key.Escape);
+        Check("the end screen's main menu button opens the title", endToTitle && !_titleOverlay.Visible
+            && _session.Phase == Crossword.Core.Run.RunPhase.Victory);
         var endNewRun = _shopContent.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "New run");
         await Click(Centre(endNewRun));
         Button PressRow(int level) => _pressRunBox.FindChild($"PressRun{level}", owned: false) as Button ?? throw new InvalidOperationException($"No PressRun{level}");
@@ -479,6 +508,13 @@ public partial class Main
             && PressRow(3).Disabled && PressRow(8).Disabled);
         Check("the picker shows the unlocked decks", !DeckCard(Decks.StandardId).Disabled && !DeckCard(Decks.CrosswordDraftId).Disabled
             && DeckCard(Decks.RedactorId).Disabled && DeckCard(Decks.CopyEditorId).Disabled);
+        bool DecksFit() => Decks.All.All(d =>
+        {
+            var button = DeckCard(d.Id);
+            var bounds = button.GetGlobalRect().Grow(0.5f);
+            return button.GetParent().FindChildren("*", nameof(Label), owned: false).OfType<Label>().All(l => bounds.Encloses(l.GetGlobalRect()));
+        });
+        Check("deck descriptions fit inside their cards", DecksFit());
         await Click(Centre(PressRow(2)));
         Check("picking a press run starts it", !_pressRunOverlay.Visible && Run.PressRun == 2 && _seedLabel.Text.Contains("First Edition"));
         ChooseNewRun();
@@ -549,6 +585,7 @@ public partial class Main
         await Click(Centre(DeckCard(Decks.LexicographerId)));
         var dictionaryButton = _pressRunBox.FindChild($"Dictionary_{Dictionaries.TechShorthandId}", owned: false) as Button;
         Check("the lexicographer's deck offers its dictionary", dictionaryButton is { Disabled: false });
+        Check("every unlocked deck's description fits inside its card", DecksFit());
         await Click(Centre(PressRow(1)));
         emptySlots = _deskRow.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Count(l => l.Text == "empty desk slot");
         Check("picking it starts a run with the dictionary", Run.DeckId == Decks.LexicographerId

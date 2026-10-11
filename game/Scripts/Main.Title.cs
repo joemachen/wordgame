@@ -74,6 +74,7 @@ public partial class Main
     private void ShowTitle(string? notice = null)
     {
         _statsOverlay.Visible = false;
+        _pauseOverlay.Visible = false;
         _styleGuidesOverlay.Visible = false;
         _titleNotice.Text = notice ?? "";
         RefreshTitle();

@@ -433,6 +433,7 @@ public partial class Main
     private void Recall()
     {
         _pending.Clear();
+        _selected.Clear();
         Refresh();
     }
 
@@ -726,14 +727,25 @@ public partial class Main
         if (_profilesOverlay.Visible || _settingsOverlay.Visible)
         {
             if (key.Keycode == Key.Escape)
-                _profilesOverlay.Visible = _settingsOverlay.Visible = false;
+                _profilesOverlay.Visible = _settingsOverlay.Visible = false; // back to the pause screen or title underneath
             GetViewport().SetInputAsHandled();
             return;
         }
-        // Title menu: Enter continues; nothing else reacts.
+        // Pause screen: Esc resumes; nothing else reacts.
+        if (_pauseOverlay.Visible)
+        {
+            if (key.Keycode == Key.Escape)
+                HidePause();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        // Title menu: Enter (or Esc) continues the run; nothing else reacts.
         if (_titleOverlay.Visible)
         {
-            HandleTitleKey(key);
+            if (key.Keycode == Key.Escape && HasRunToContinue)
+                ContinueRun();
+            else
+                HandleTitleKey(key);
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -745,8 +757,26 @@ public partial class Main
             GetViewport().SetInputAsHandled();
             return;
         }
-        if (_styleGuidesOpen || _session.Phase != RunPhase.InRound || _animating)
+        if (_styleGuidesOpen || _animating)
             return;
+
+        // Shop and end screens: Esc backs out of the tile picker, otherwise pauses.
+        if (_session.Phase != RunPhase.InRound)
+        {
+            if (key.Keycode == Key.Escape)
+            {
+                if (_pickerOffer is not null)
+                {
+                    _pickerOffer = null;
+                    _pickerSelection.Clear();
+                    Refresh();
+                }
+                else
+                    ShowPause();
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
 
         switch (key.Keycode)
         {
@@ -758,8 +788,11 @@ public partial class Main
                 SetMessage($"{(armed < Run.Stationery.Length ? Run.Stationery[armed].Name : "Stationery")} put away.", UiKit.TextMuted);
                 Refresh();
                 break;
-            case Key.Escape:
+            case Key.Escape when _pending.Count > 0 || _selected.Count > 0:
                 Recall();
+                break;
+            case Key.Escape:
+                ShowPause();
                 break;
             case Key.Space:
                 ShuffleHand();

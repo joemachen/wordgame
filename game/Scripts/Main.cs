@@ -278,9 +278,15 @@ public partial class Main : Control
         _roundArea.SetAnchorsPreset(LayoutPreset.FullRect);
         content.AddChild(_roundArea);
 
-        _shopArea = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        // The shop is laid out to fit 1440×900 (BuildShop); the scroll container is only a safety net for large text,
+        // so it never shows a bar.
+        _shopArea = new ScrollContainer
+        {
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.ShowNever,
+        };
         _shopArea.SetAnchorsPreset(LayoutPreset.FullRect);
-        _shopContent = UiKit.VBox(16);
+        _shopContent = UiKit.VBox(12);
         _shopContent.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _shopArea.AddChild(_shopContent);
         content.AddChild(_shopArea);
@@ -299,6 +305,8 @@ public partial class Main : Control
         AddChild(_guidesHandle);
         _titleOverlay.VisibilityChanged += () => _guidesHandle.Visible = !_titleOverlay.Visible && _session is not null;
         _guidesHandle.Visible = false;
+        _pauseOverlay = BuildPauseOverlay(); // below the popups, so Settings opens on top of it
+        AddChild(_pauseOverlay);
         _statsOverlay = BuildStatsOverlay();
         AddChild(_statsOverlay);
         _wildOverlay = BuildWildOverlay();
