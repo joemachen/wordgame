@@ -112,10 +112,13 @@ Stationery at a fixed estimated gain per item and `StationeryBot` uses it in sim
 |---|---|
 | **Answer Key** ✅ | Reveals the best play for your current hand. The free Hint only shows a decent play (never the best), so solving the board for you costs money. |
 | **White-Out** ✅ | Remove one tile from the board for the rest of the round. Holding it (or Scissors) keeps a stuck round alive. |
-| **Highlighter** | One tile's letter value ×3 on your next play |
+| **Highlighter** ✅ | One tile's letter value ×3 on your next play ($3, 2026-10-10) |
 | **Fountain Pen** ✅ | The selected hand tile becomes wild (any letter, 0 chips) for the round |
 | **Scissors** ✅ | Swap up to 2 hand tiles for new draws without spending a discard |
-| **Correction Tape** | Undo your last submission this round; its tiles return to your hand and you get the submission back |
+| **Correction Tape** ✅ | Undo your last submission this round; its tiles return to your hand and you get the submission back ($5, 2026-10-10: only the play just made, before any other action) |
+| **Gold Star** ✅ | Click an empty square: it becomes a 2W square for the rest of the round ($4, 2026-10-10, playtest ask) |
+| **Clipping** ✅ | Click a word on the board: its letter chips are scored again on your next play ($4, 2026-10-10, playtest ask) |
+| **Poetic License** ✅ | One of your next plays may contain a word that isn't in the dictionary, scored in full ($5, 2026-10-10, playtest ask) |
 | **Red Ink Bottle** ✅ | +3 Mult on every play for the rest of the round (stacks) |
 | **Margin Clip** ✅ | +1 submission this round. **$6** (the rest are $3): at $3 it alone added +13 pts of win rate. |
 
@@ -260,7 +263,7 @@ tests and a `runsim` balance check.
 | **0** ✅ | Retune week targets → 340/1200/3600/9750/16000 + Strict Grammarian deadline ×0.75 (ScoreFraction model), then ×1.3 after balanced draws, then ×1.15 → 510/1790/5380/14580/23920 after the richer economy (overkill every 25%, interest per $4); reference skill 0.75 wins ~37% | — |
 | **1** ✅ | Naming pass (boss and Style Guide renames) + tiered boss pools in `BossFor` (tiers by measured difficulty) | — |
 | **2** ✅ | 5 new Desk Items (Etymology Tome, Rubber Stamp, Printing Press Roller, Tile Rack, Coffee Stain) + Redundant Copy and The Puzzle Master. Later: Magnifying Glass, Brass Paperclip (deferred, see §3) | 1 |
-| **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 6 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen) + bot support. Later: Highlighter, Correction Tape | — |
+| **3** ✅ | Stationery consumable system (state, shop, actions, UI, targeting) + 11 items (Answer Key, Margin Clip, Scissors, White-Out, Red Ink Bottle, Fountain Pen; 2026-10-10: Highlighter, Gold Star, Clipping, Poetic License, Correction Tape) + bot support | — |
 | **4** ✅ | In-run save/resume ✅ → profile & unlock tracking (§9) ✅ with the Press Run stakes (§5), pulled forward from phase 5 so unlocks had something to unlock | — |
 | **5** 🟡 | Starting decks (✅ Crossword Draft, Redactor, Copy Editor's, Lexicographer's, with per-deck Press Run unlocks; Tabloid waits for a licensable Slang list), dictionary overlays (✅ engine + The Tech Shorthand + The Atlas Unlocked + The Olde English Folio (a bonus theme); Slang waits for a source; denylist ✅, every overlay passes through it) (Press Run stakes ✅ in phase 4) | 4 |
 | **Release hygiene** | Slur denylist ✅ (ENABLE + definitions; overlays must use it); "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |

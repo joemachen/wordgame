@@ -9,9 +9,11 @@ namespace Crossword.Core.DeskItems;
 // twelve items across every rarity, filling gaps the first 23 left — short words, doubled letters, board edges,
 // single-word plays, late submissions, the grid as a whole, every word's letters, letter variety over a run, and
 // the first Chips multiplier and submission-granting item.
+// Tuned 2026-10-10 after a per-item sweep (handoff §4d): the Commons were valued below Red Pen by the shop bot and the
+// batch cost 6.5 pts of pool dilution, so the weak ones were raised until the full pool measured within noise.
 
 /// <summary>The small ads: short words pay.</summary>
-public sealed record Classifieds(long ChipsPerWord = 8, int MaxLength = 3) : IDeskItem
+public sealed record Classifieds(long ChipsPerWord = 15, int MaxLength = 3) : IDeskItem
 {
     public string Id => "classifieds";
     public string Name => "Classifieds";
@@ -28,7 +30,7 @@ public sealed record Classifieds(long ChipsPerWord = 8, int MaxLength = 3) : IDe
 }
 
 /// <summary>Rewards the doubled letters that make hands feel bad.</summary>
-public sealed record Typesetter(long ChipsPerPair = 12) : IDeskItem
+public sealed record Typesetter(long ChipsPerPair = 25) : IDeskItem
 {
     public string Id => "typesetter";
     public string Name => "Typesetter";
@@ -45,7 +47,7 @@ public sealed record Typesetter(long ChipsPerPair = 12) : IDeskItem
 }
 
 /// <summary>Pulls play out to the margins: a tile on the board's edge pays Mult.</summary>
-public sealed record Byline(decimal Mult = 3) : IDeskItem
+public sealed record Byline(decimal Mult = 4) : IDeskItem
 {
     public string Id => "byline";
     public string Name => "Byline";
@@ -60,7 +62,7 @@ public sealed record Byline(decimal Mult = 3) : IDeskItem
 }
 
 /// <summary>Counterpart to Inkwell and Editor-in-Chief: a clean single-word play.</summary>
-public sealed record OpEd(decimal Mult = 5) : IDeskItem
+public sealed record OpEd(decimal Mult = 6) : IDeskItem
 {
     public string Id => "op-ed";
     public string Name => "Op-Ed";
@@ -72,7 +74,7 @@ public sealed record OpEd(decimal Mult = 5) : IDeskItem
 }
 
 /// <summary>Mirror of Rubber Stamp: every submission already made this round adds Mult.</summary>
-public sealed record LateEdition(decimal MultPerSubmission = 2) : IDeskItem
+public sealed record LateEdition(decimal MultPerSubmission = 3) : IDeskItem
 {
     public string Id => "late-edition";
     public string Name => "Late Edition";
@@ -107,7 +109,7 @@ public sealed record Morgue(long ChipsPerBoardWord = 4) : IDeskItem
 }
 
 /// <summary>The Rare chips item: every letter of every word formed.</summary>
-public sealed record Headline(long ChipsPerLetter = 6) : IDeskItem
+public sealed record Headline(long ChipsPerLetter = 8) : IDeskItem
 {
     public string Id => "headline";
     public string Name => "Headline";
@@ -164,7 +166,7 @@ public sealed record FrontPage : IDeskItem
 }
 
 /// <summary>Rewards crossing what is already on the board: each old tile a formed word runs through adds Mult.</summary>
-public sealed record CrosswordEditor(decimal MultPerReusedTile = 1) : IDeskItem
+public sealed record CrosswordEditor(decimal MultPerReusedTile = 2) : IDeskItem
 {
     public string Id => "crossword-editor";
     public string Name => "Crossword Editor";

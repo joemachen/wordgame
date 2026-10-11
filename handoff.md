@@ -5,12 +5,19 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-10 · HEAD `b4a03bb` (code) · 521 unit tests passing · UI self-test 88/88 passing · CI green_
+_Last updated: 2026-10-11 · HEAD `c93e86d` + item tuning (code) · 558 unit tests passing · UI self-test 95/95 passing · CI green_
 
 ## 0. ▶ Queued for the next session — the user will say "go"
 
-The user approved everything from 2026-10-10 (title menu, profiles, Settings; **fullscreen tested by hand and
-approved**). The dev-only Best button (B) is built (see §3); the economy re-examination (A) is next:
+**▶ Waiting on the user: a difficulty decision** (see §4d). The 2026-10-10 playtest batch is built — enhancement text,
+Style Guides drawer, scoring receipt, Epic/Legendary rarities, twelve Desk Items, five rule-breaking Stationery (§3) —
+and the reference player (ScoreFraction 0.75) now wins **~30%** instead of ~39%. The new Desk Items measure neutral
+after tuning; most of the drop is the Stationery pool growing from 6 to 11 items, which makes Margin Clip (the only
+Stationery the bot values) offered about half as often. Options for the user: (a) retune `WeekTargets` down to bring
+0.75 back to ~37–39%, (b) keep the harder game, (c) offer two Stationery per shop instead of one. Recommendation: (c),
+then re-measure — it restores the old Margin Clip frequency without touching difficulty directly, and gives the new
+items a real chance to be seen. Earlier §0 items, both done:
+
 
 ### A. ~~Re-examine the economy~~ ✅ 2026-10-10 — **paycheck floor $5 + "Earn more" line** (user's pick)
 The user said money feels very hard to make in playtests. Measured (below), then the user chose option (a): every won
@@ -78,7 +85,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Board & rules | 7×7 persistent grid per round, premium squares (seeded, symmetric), black squares, placement validation, cross words, deadlock detection. |
 | Scoring | Pooled Chips × Mult per play: tier (longest word) → word chips (DL/TL/DW/TW, new tiles only) → tile enhancements → intersections (+3 Mult each) → Desk Items (slot order). |
 | Run | 5 Weeks × (Daily, Saturday Stumper, Sunday Edition boss). Week targets 510/1790/5380/14580/23920; The Strict Grammarian's deadline ×0.75. **Balanced draws** (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) from a 100-tile deck: 98 lettered (41 vowels) + 2 **wild tiles**. Bosses tiered by week (Early / Mid / Final, `RunConfig.BossTiers`; Mid adds Redundant Copy, Final adds The Puzzle Master); endless weeks draw from all bosses. Paycheck economy: base + $1/unused submission + overkill ($1 per 25% over, cap $3) + interest ($1 per $4 held, cap $5), **at least $5 per won round** (floor, 2026-10-10); the paycheck screen says how to earn more. Endless mode. |
-| Content | 23 Desk Items (Common/Uncommon/Rare, incl. scaling items; Phase 2 added **Etymology Tome**, **Rubber Stamp**, **Printing Press Roller**, **Tile Rack**, **Coffee Stain** — the last two via the round-start hook `IDeskItem.ModifyRound`), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 7 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, **Redundant Copy**, The Strict Grammarian, **The Puzzle Master** = two Early/Mid bosses at once), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each except Margin Clip $6, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round), **Fountain Pen** (a hand tile turns wild this round). **Wild tiles**: any letter (picked when placed), 0 letter chips; 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5). Holding Scissors/White-Out/Fountain Pen keeps a stuck round alive. Lifetime **player stats** in a saved profile (words by length, newest words, runs/wins, best play, intersections, close calls, bosses beaten, full-spread rounds). |
+| Content | 35 Desk Items in five rarities (Common $4 / Uncommon $6 / Rare $8 / **Epic $10 / Legendary $12**, rolled 55/28/10/5/2; Phase 2 added **Etymology Tome**, **Rubber Stamp**, **Printing Press Roller**, **Tile Rack**, **Coffee Stain** — the last two via the round-start hook `IDeskItem.ModifyRound`; the 2026-10-10 **newsroom batch** added Classifieds, Typesetter, Byline, Op-Ed, Late Edition, The Morgue, Headline, Letters to the Editor, **Front Page** and **Crossword Editor** (Epic), **Extra! Extra!** (+1 submission every round) and **Second Printing** (×2 Chips and ×2 Mult) (Legendary)), 3 tile enhancements, 6 named Style Guides (Pulp Paperbacks → The Lexicographer's Omnibus), 7 bosses (Ink Spill, Tight Margins, Vowel Drought, Tight Deadline, **Redundant Copy**, The Strict Grammarian, **The Puzzle Master** = two Early/Mid bosses at once), shop deck edits (add/enhance/strike), **Stationery** (2 one-shot slots, $3 each except Margin Clip $6, targets: none / hand tiles / board cell): **Answer Key** (best play), **Margin Clip** (+1 submission), **Scissors** (redraw up to 2 hand tiles, no discard spent), **White-Out** (remove a board tile), **Red Ink Bottle** (+3 Mult per play this round), **Fountain Pen** (a hand tile turns wild this round), and the 2026-10-10 **rule-breakers**: **Highlighter** ($3, a hand tile's letter value ×3 next play), **Gold Star** ($4, a 2W square on an empty cell for the round — new target `EmptyCell`), **Clipping** ($4, click a board word: its letter chips score again next play — new target `BoardWord`), **Poetic License** ($5, one non-dictionary word scores in full), **Correction Tape** ($5, take back the play just made). **Wild tiles**: any letter (picked when placed), 0 letter chips; 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5). Holding Scissors/White-Out/Fountain Pen keeps a stuck round alive. Lifetime **player stats** in a saved profile (words by length, newest words, runs/wins, best play, intersections, close calls, bosses beaten, full-spread rounds). |
 | Hint | Free Hint shows a *decent* play only (`Hints.Decent`: 90th-percentile play or ≤60% of the best score, whichever is lower; message says "a hint, not the best play"). Best play = Answer Key. Game `--dev` adds a **Best (dev)** button next to Hint that places the best play (Hint stays decent). |
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`, plus Stationery (`use <slot> [LETTERS|cell]`, `sellst`, `give`) and `save`/`load` (game save format). The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring with a **scoring receipt** (register tape right of the board, `Receipt.cs`: one line per step with the running chips × mult, TOTAL counts up; lingers until a tile is touched; the sidebar log is gone), Desk Items bar (reorder/sell; ◀ ▶ tooltips preview the pending play's score after the move, green/red tint) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides **drawer** sliding in from the right edge (Tab, the GUIDES bookmark on the edge, or the sidebar button: every tier's guide, level, chips × mult, next upgrade, owned + current-play highlights; the game stays visible behind it), shop + tile picker, paycheck, win/lose screens. **Title menu** on launch (Continue — Enter — / New run / Profile / Stats / Settings / Quit; sidebar Menu button reopens it), **profiles** (list, switch, create; each keeps its stats, unlocks and run; last one remembered), **Settings** (reduced motion, fullscreen, text size 90–120%; `user://settings.cfg`), New-run picker with a **seed box**. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). Enhanced tiles and enhancement shop cards say what Bold / Italic / Gilded do (tooltips + card text from `ScoringConfig.Describe`, 2026-10-10). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
@@ -107,6 +114,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 - **Focus: a working game first.** Steam/launch work (Steamworks, store page, demo, Next Fest) is off the roadmap for now. Simulator throughput target: ~10k runs in minutes (100k+ not needed).
 - **Licensing:** no commercially-restricted deps (e.g. FluentAssertions v8). Word lists: public domain only unless licensed.
 - **Definitions come from Open English WordNet** (user's choice; CC BY 4.0 → attribution in `THIRD_PARTY_NOTICES.md`, must also appear in in-game credits before release). Wiktionary was rejected for now (CC BY-SA share-alike). Unknown words show "valid word — no definition on file". Definitions appear in the play preview only (user's choice; not in the scoring log or board tooltips).
+- **Content batch: five rarities, twelve Desk Items, five Stationery** (2026-10-10, user's playtest ask: "more varied and fun desk items, a few more rarities, legendaries or epics, same with consumables… let's break the rules and get WACKY"; user chose Stationery one-shots for the rule-breakers over Desk Items, and Epic + Legendary tiers). Claude's calls: prices $10 / $12 and weights 55/28/10/5/2 (sum 100, one roll); Clipping is **exempt from Redundant Copy** (the player paid for the reprint) and picks the **longer** word through the clicked tile (ties → Across); a Highlighter ends when its tile is placed or leaves the hand; Correction Tape only undoes the play just made (`RoundState.Undo`, cleared by every other transition incl. selling Stationery) and **lifetime stats are not rolled back**; words played under a Poetic License are **not** recorded in the profile's word stats; the deadlock check brute-forces licensed single-tile plays so a licence never loses a winnable round; Second Printing multiplies Chips as well as Mult (first item to do so); Extra! Extra! is bot-invisible so `ShopBotConfig.Default` gives it a fixed gain of 0.2. New save fields (`RoundConfig.Clipping/Highlight/IllegalWordsAllowed`, `RoundState.Undo`) all default, so old saves load; both fixtures regenerated with the new `RegenerateFixtures` test.
 - **The scoring breakdown is a receipt, shown only on submit** (2026-10-10, user's playtest ask: "the calculation part is hidden now but it's so fun to see how it all adds up — ring it up like a cash register"; user chose a paper tape beside the board over a bigger sidebar panel or an overlay on the board). `Receipt.cs` prints in step with the existing ring-up tween (`ReceiptLineSeconds` 0.12 ≤ the slowest ring-up step so lines never pile up), each line unrolls and fades in, the TOTAL counts up with the score; the sidebar log was removed and the live preview keeps chips × mult + "WORD → N points" only. Claude's calls: the receipt is a sibling column of the board/hand/buttons stack (so the hand stays centred under the board), it stays in the layout transparent when idle (no board shift), a won round's shop replaces it (the ring-up still plays over the board first), long lines wrap rather than trim, and a system monospace font stands in until the visual overhaul's open-license one. Dev flag `--ringup`.
 - **Style Guides are a right-edge drawer** (2026-10-10, user's playtest ask: the popup was "really hidden"): an always-visible GUIDES bookmark on the right edge, Tab or the sidebar button slides a 420 px panel over the board without dimming the game. Replaces the 2026-10-05 Run Info-style popup (then chosen over a sidebar table or desk-bar badges). Claude's calls: the bookmark is non-focusable (a focused Button turns Tab into Godot focus navigation and the key never reaches `_UnhandledInput`), it sits 90 px below centre to stay clear of the shop's Next round button, and `--guides` opens the drawer instantly for screenshots.
 - **Stationery batch (user's choice, 2026-10-05):** Margin Clip, Scissors, White-Out, Red Ink Bottle, $3 each except
@@ -333,7 +341,43 @@ item and the bot buys it at a fixed gain; baseline without Stationery 37.5% on s
 **History:** 150/400/900/1900/3800 → 225/800/2400/6500/16000 (tuned against the percentile 0.9 bot: 39% wins, but a
 human-like player won 81–87% of rounds in 1–2 submissions and runs died at a 40%+ Grammarian finale) → current.
 
+## 4d. Content batch (2026-10-10)
+
+Five rarities (55/28/10/5/2), 35 Desk Items, 11 Stationery. 200 paired runs per arm (seeds 1–200), evaluating bot,
+ScoreFraction model. Scratch harnesses `itemsweep` (each new item alone on top of the old 23, `ShopConfig.DeskItemIds`)
+and `stsweep` (one Stationery always offered and bought at a fixed gain vs none).
+
+**Whole runs** (`runsim 200 <skill> frac`):
+
+| Skill | before the batch | after the Desk Items (untuned) | final (tuned items + new Stationery) |
+|---|---|---|---|
+| 0.6 | 18% | 11% | 12% |
+| 0.75 (reference) | 40% | 30% | 30% |
+| 0.9 | 58% | 42% | 41% |
+
+**Each new Desk Item alone** (0.75, vs the old 23 at 36.0%; first versions): Classifieds −6, Typesetter −7, Byline −4.5,
+Headline −3, Late Edition −1.5, Op-Ed −1, Extra! Extra! −2 (bought in 0% of runs even at gain 0.3), Crossword Editor 0,
+Front Page +0.5, The Morgue +1, Letters to the Editor +1.5 (on 22% of final desks), Second Printing +3.5 (16%); all 35
+−6.5. The negative ones are pool dilution: the bot rarely buys them, and every offer they take is one a stronger item
+didn't get. **Tuned** (Classifieds 8→15 chips, Typesetter 12→25, Byline +3→+4, Op-Ed +5→+6, Late Edition +2→+3 per
+submission, Headline 6→8 per letter, Crossword Editor +1→+2 per tile): all 35 vs old 23 = **30.0 vs 30.5%**, within noise.
+
+**Stationery** (0.75, vs no Stationery at 24.5%; measured on the untuned Desk Items): Highlighter −8 (4.5–5 uses/run),
+Clipping −7 (0.7 uses/run), Gold Star −8 (the bot never uses it), Margin Clip +6 / +9 at gain 0.05 / 0.1; the full pool
+with the default bot (buys only Margin Clip) +1.5. Like Answer Key, Red Ink and Scissors before them, the new items cost
+the bot more as money and a slot than they return, so `ShopBotConfig` keeps their buying gains at 0; Poetic License and
+Correction Tape are bot-invisible. Their value is for humans to judge in playtests.
+
+**Why the reference dropped ~10 pts:** the old-23 arm itself went 36.0 → 30.5 between the two item sweeps, and the only
+change that touches it is the Stationery pool growing from 6 to 11 — Margin Clip, the one Stationery the bot buys and the
+strongest in the game, is now offered in ~1 shop in 11 instead of ~1 in 6. The rest is the rarity re-weighting and noise
+(±3.5). Decision for the user in §0.
+
 ## 5. Open concerns / known gaps
+
+0. **Difficulty after the content batch** (§4d): reference 30% (was ~39%). The user decides (§0). The new Stationery
+   is bought by humans, not the bot, so a human may win more than the bot does; check in playtests. Watch Poetic License
+   (a free non-word may be strong on hard hands) and Second Printing (the strongest new item for the bot, +3.5 alone).
 
 1. **Overall difficulty** (see §4b): the reference player wins ~39%, a weaker one ~14%, a strong one ~55% — after
    balanced draws, wild tiles, the richer economy and targets ×1.3 × 1.15. Check in playtests; the Press Runs (§4a)
@@ -403,7 +447,7 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
-0. **Queued by the user (§0): economy re-examination** (the dev-only Best button is done ✅ 2026-10-10).
+0. **The difficulty decision in §0 / §4d** (the economy re-examination, the dev-only Best button and the 2026-10-10 playtest batch are done ✅). Then playtest the new content: do the rule-breakers feel fun, is Poetic License too strong, is the receipt readable at speed.
 1. ~~Cheap parallel tracks~~ ✅ 2026-10-10 (CI, seed box, profile picker, CLI save/load + Stationery) plus a title
    menu and Settings v1. Leftovers: copyable seed, profile delete/rename, volume (with audio).
 2. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
