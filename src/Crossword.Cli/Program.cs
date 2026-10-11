@@ -331,7 +331,7 @@ public static class Program
         {
             Console.WriteLine();
             Console.WriteLine($"*** {_session.Kind.Name} cleared with {Round.Score}/{Round.Config.TargetScore}! ***");
-            Console.WriteLine(ConsoleRenderer.Paycheck(payout, Run.Money));
+            Console.WriteLine(ConsoleRenderer.Paycheck(payout, Run.Money, _session.Config.Economy));
         }
         PrintPhase();
     }

@@ -19,7 +19,19 @@ public sealed record EconomyConfig(
     decimal OverkillStep = 0.25m,
     int OverkillCap = 3,
     int InterestPer = 4,
-    int InterestCap = 5);
+    int InterestCap = 5)
+{
+    /// <summary>Paid per discard left when the round is won (off by default; an economy lever under study).</summary>
+    public int PerUnusedDiscard { get; init; }
+
+    /// <summary>
+    /// A won round's paycheck is topped up to at least this much (<see cref="Payout.FloorTopUp"/>).
+    /// $5 since 2026-10-10 (user's choice, "money feels hard to make"): measured +4.5 pts of win rate for a weak
+    /// player (ScoreFraction 0.6) and +0.5 at the reference 0.75, so it helps weak players without a target retune;
+    /// base pay +$1 (+4 / +7) and a $6 floor (+4 / +5.5) would have needed one. 0 turns it off.
+    /// </summary>
+    public int MinPaycheck { get; init; } = 5;
+}
 
 /// <summary>
 /// Shape of a run: <see cref="WeekTargets"/>.Length weeks × <see cref="Days"/> rounds. After the final week the

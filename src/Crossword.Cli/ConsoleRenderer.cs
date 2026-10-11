@@ -118,17 +118,22 @@ public static class ConsoleRenderer
         return sb.ToString();
     }
 
-    public static string Paycheck(Payout payout, int moneyAfter)
+    public static string Paycheck(Payout payout, int moneyAfter, EconomyConfig economy)
     {
         var sb = new StringBuilder("=== Paycheck ===\n");
         sb.AppendLine($"  Column fee            ${payout.Base}");
         if (payout.UnusedSubmissions > 0)
             sb.AppendLine($"  Unused submissions    ${payout.UnusedSubmissions}");
+        if (payout.UnusedDiscards > 0)
+            sb.AppendLine($"  Unused discards       ${payout.UnusedDiscards}");
         if (payout.Overkill > 0)
             sb.AppendLine($"  Overkill bonus        ${payout.Overkill}");
         if (payout.Interest > 0)
             sb.AppendLine($"  Interest              ${payout.Interest}");
-        sb.Append($"  Total ${payout.Total}  →  you have ${moneyAfter}");
+        if (payout.FloorTopUp > 0)
+            sb.AppendLine($"  Minimum paycheck      ${payout.FloorTopUp}");
+        sb.AppendLine($"  Total ${payout.Total}  →  you have ${moneyAfter}");
+        sb.Append($"  {Economy.HowToEarnMore(economy)}");
         return sb.ToString();
     }
 

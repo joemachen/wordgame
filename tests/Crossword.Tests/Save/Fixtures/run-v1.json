@@ -1451,7 +1451,9 @@
     "base": 4,
     "unusedSubmissions": 3,
     "overkill": 3,
-    "interest": 0
+    "interest": 0,
+    "unusedDiscards": 0,
+    "floorTopUp": 0
   },
   "handOrder": []
 }

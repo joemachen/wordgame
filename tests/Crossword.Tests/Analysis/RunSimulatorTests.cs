@@ -82,4 +82,23 @@ public class RunSimulatorTests
         Assert.All(run.Rounds.Where(r => r.Won), r => Assert.NotNull(r.Payout));
         Assert.All(run.Rounds.Select(r => r.Shop).OfType<ShopSpend>(), s => Assert.True(s.DeckEdits >= 0));
     }
+
+    [Fact]
+    public void PlayRun_RecordsWhatEachShopOffered()
+    {
+        var run = RunSimulator.PlayRun(21, ShortRun, LexiconLoader.Enable, skill: 0.9);
+        var shops = run.Rounds.Select(r => r.Shop).OfType<ShopSpend>().ToList();
+
+        Assert.NotEmpty(shops);
+        Assert.All(shops, s =>
+        {
+            Assert.NotNull(s.CheapestOffer);
+            Assert.NotNull(s.CheapestDeskItem); // every shop offers Desk Items
+            Assert.True(s.CheapestOffer <= s.CheapestDeskItem);
+            Assert.Equal(s.MoneyBefore >= s.CheapestDeskItem, s.CouldAffordDeskItem);
+            Assert.Equal(s.MoneyBefore >= s.CheapestOffer, s.CouldAffordAnything);
+            if (s.DeskItems > 0)
+                Assert.True(s.CouldAffordDeskItem);
+        });
+    }
 }

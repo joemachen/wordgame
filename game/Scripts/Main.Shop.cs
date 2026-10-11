@@ -84,9 +84,12 @@ public partial class Main
         box.AddChild(top);
         string parts = $"Column fee ${payout.Base}";
         if (payout.UnusedSubmissions > 0) parts += $"   ·   Unused submissions ${payout.UnusedSubmissions}";
+        if (payout.UnusedDiscards > 0) parts += $"   ·   Unused discards ${payout.UnusedDiscards}";
         if (payout.Overkill > 0) parts += $"   ·   Overkill ${payout.Overkill}";
         if (payout.Interest > 0) parts += $"   ·   Interest ${payout.Interest}";
+        if (payout.FloorTopUp > 0) parts += $"   ·   Minimum paycheck +${payout.FloorTopUp}";
         box.AddChild(UiKit.MakeLabel(parts, 15, UiKit.TextMuted, wrap: true));
+        box.AddChild(UiKit.MakeLabel(Economy.HowToEarnMore(_session.Config.Economy), 13, UiKit.TextMuted, wrap: true));
         return panel;
     }
 

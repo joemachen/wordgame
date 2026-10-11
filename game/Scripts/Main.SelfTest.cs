@@ -296,6 +296,22 @@ public partial class Main
         await PressKey(global::Godot.Key.Escape);
         Check("esc closes stats", !_statsOverlay.Visible);
 
+        // 14b. Winning the round shows the paycheck: at least $5, the floor top-up itemised when it applies, and a
+        //      line saying how to earn more.
+        _session = _session with { Round = Round with { Score = Round.Config.TargetScore - 1, SubmissionsLeft = 1 } };
+        Refresh();
+        PlacePlay(RankedPlays()[0], null);
+        await PressKey(global::Godot.Key.Enter);
+        for (int i = 0; i < 100 && _animating; i++)
+            await Seconds(0.1);
+        await Frames(3);
+        var paycheck = _session.LastPayout;
+        string shopText = string.Join("\n", _shopContent.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
+        Check("winning shows a paycheck of at least $5 with the earn-more line",
+            _session.Phase == Crossword.Core.Run.RunPhase.Shop && paycheck is not null && paycheck.Total >= 5
+            && shopText.Contains("Earn more:") && shopText.Contains("every paycheck is at least $5")
+            && shopText.Contains("Minimum paycheck") == paycheck.FloorTopUp > 0);
+
         // 15. Save & resume through a real file: a fresh run, then resuming, restores the run and hand order exactly
         //     without recording stats twice; a corrupt save is set aside with a notice.
         string savePath = ProjectSettings.GlobalizePath("user://saves/__selftest.json");

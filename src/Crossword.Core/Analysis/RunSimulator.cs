@@ -24,6 +24,18 @@ public sealed record SimulatedRunRound(int RoundIndex, string Kind, string? Boss
 /// </summary>
 public sealed record ShopSpend(int MoneyBefore, int MoneyAfter, int DeskItems, int StyleGuides, int Stationery, int Rerolls, int Sold)
 {
+    /// <summary>Price of the cheapest Desk Item on offer when the shop opened (null if none was offered).</summary>
+    public int? CheapestDeskItem { get; init; }
+
+    /// <summary>Price of the cheapest offer of any kind when the shop opened.</summary>
+    public int? CheapestOffer { get; init; }
+
+    /// <summary>Whether the money held on entering could buy at least one of the Desk Items offered.</summary>
+    public bool CouldAffordDeskItem => CheapestDeskItem is { } price && MoneyBefore >= price;
+
+    /// <summary>Whether the money held on entering could buy anything at all.</summary>
+    public bool CouldAffordAnything => CheapestOffer is { } price && MoneyBefore >= price;
+
     public int Net => MoneyBefore - MoneyAfter;
 
     public int DeckEdits => Net + Sold - DeskItems - StyleGuides - Stationery - Rerolls;
@@ -175,7 +187,12 @@ public static class RunSimulator
         int rerolls = 0;
         for (int cost = before.Shop!.RerollCost; cost < after.Shop!.RerollCost; cost += shop.RerollStep)
             rerolls += cost;
-        return new ShopSpend(before.Run.Money, after.Run.Money, desk, guides, stationery, rerolls, sold);
+        var offers = before.Shop.Offers.Where(o => o is not null).Select(o => o!).ToList();
+        return new ShopSpend(before.Run.Money, after.Run.Money, desk, guides, stationery, rerolls, sold)
+        {
+            CheapestDeskItem = offers.OfType<DeskItemOffer>().Select(o => (int?)o.Price).Min(),
+            CheapestOffer = offers.Select(o => (int?)o.Price).Min(),
+        };
     }
 
     /// <summary>Records which Stationery item a transition used up (the one no longer held).</summary>
