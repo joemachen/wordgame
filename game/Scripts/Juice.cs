@@ -38,6 +38,9 @@ public static class Juice
     public const int ConfettiAmount = 90;
     public const string StampText = "STOP THE PRESSES!";
 
+    // The Style Guides drawer slides in and out over this long (instant with reduced motion).
+    public const double DrawerSeconds = 0.22;
+
     // NEW tags on freshly drawn tiles: shown this long (unless the hand is touched first), then faded out.
     public const double NewTagSeconds = 3.0;
     public const double NewTagFadeSeconds = 0.5;

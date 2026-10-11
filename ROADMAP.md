@@ -222,7 +222,7 @@ modes cheap to build on the core.
 | Progress & hand UX | Week pips + this week's three puzzles + puzzles until the boss; A→Z/Z→A hand sort; NEW tag on drawn tiles; drag pending tiles; Desk Item order preview on ◀ ▶. | ✅ |
 | Shop card color-coding | Distinct colors per category: Desk Items / deck edits / Style Guides / Stationery. | 🟡 |
 | Score breakdown tooltips | Hover a pending play to see its Chips × Mult math step by step (live preview ✅ already shows the totals). | 🟡 |
-| Deck View & Style Guide levels modals | Popups that keep the board uncluttered: full deck with enhancements; tier levels with chips/mult. | 🟡 |
+| Deck View & Style Guide levels | Style Guide levels ✅ as a right-edge drawer (GUIDES bookmark / Tab, 2026-10-10). Deck View (full deck with enhancements) 🟡. | 🟡 |
 
 ---
 

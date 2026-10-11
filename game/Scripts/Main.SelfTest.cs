@@ -205,18 +205,27 @@ public partial class Main
         _bestButton.Visible = _devMode;
         await Click(Centre(_hintButton));
 
-        // 7. Tab opens the Style Guides popup with every tier's guide and the hinted play's tier highlighted;
-        //    Esc closes it without recalling the pending play.
+        // 7. Tab opens the Style Guides drawer with every tier's guide and the hinted play's tier highlighted;
+        //    Esc closes it without recalling the pending play; the GUIDES bookmark on the right edge opens and closes it too.
         int pendingBefore = _pending.Count;
         await PressKey(global::Godot.Key.Tab);
         var tiers = RoundScoring.Tiers;
         string popup = string.Join("\n", _styleGuidesBox.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
-        Check("tab opens style guides", _styleGuidesOverlay.Visible
+        Check("tab opens style guides", _styleGuidesOpen && _styleGuidesOverlay.Visible
             && tiers.Select((t, i) => Crossword.Core.Run.StyleGuideNames.For(t.MinLength, t.Label(i == tiers.Length - 1))).All(popup.Contains));
         Check("style guides highlight this play's tier",
             _highlightedTier == RoundScoring.TierFor(words.Max(w => w.Length)).MinLength);
         await PressKey(global::Godot.Key.Escape);
-        Check("esc closes style guides, keeps the play", !_styleGuidesOverlay.Visible && _pending.Count == pendingBefore);
+        Check("esc closes style guides, keeps the play", !_styleGuidesOpen && _pending.Count == pendingBefore);
+        bool handleShown = _guidesHandle.IsVisibleInTree();
+        await Click(Centre(_guidesHandle));
+        await Seconds(Juice.DrawerSeconds + 0.1);
+        bool openedByHandle = _styleGuidesOpen && _styleGuidesOverlay.Visible
+            && _styleGuidesPanel.GlobalPosition.X < _styleGuidesOverlay.Size.X - GuidesDrawerWidth + 1;
+        await Click(Centre(_guidesHandle));
+        await Seconds(Juice.DrawerSeconds + 0.1);
+        Check("the guides bookmark opens and closes the drawer", handleShown && openedByHandle && !_styleGuidesOpen
+            && !_styleGuidesOverlay.Visible && _pending.Count == pendingBefore);
 
         // 7b. With ×Mult before +Mult, the +Mult item's ◀ arrow previews a higher score for the pending play (green).
         _session = _session with
@@ -332,6 +341,9 @@ public partial class Main
             _session.Phase == Crossword.Core.Run.RunPhase.Shop && paycheck is not null && paycheck.Total >= 5
             && shopText.Contains("Earn more:") && shopText.Contains("every paycheck is at least $5")
             && shopText.Contains("Minimum paycheck") == paycheck.FloorTopUp > 0);
+        var nextRound = _shopContent.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text.StartsWith("Next round"));
+        Check("guides bookmark stays clear of the shop's Next round button", _guidesHandle.IsVisibleInTree()
+            && !_guidesHandle.GetGlobalRect().Intersects(nextRound.GetGlobalRect()));
 
         // 15. Save & resume through a real file: a fresh run, then resuming, restores the run and hand order exactly
         //     without recording stats twice; a corrupt save is set aside with a notice.
@@ -577,6 +589,12 @@ public partial class Main
         await Frames(3);
         Check("reduced motion stops the bounces", Juice.ReducedMotion && _settings.Settings.ReducedMotion && _scoreLabel.Scale == Vector2.One
             && ((Button)_settingsBox.FindChild("Setting_ReducedMotion", owned: false)!).Text == "On");
+        OpenStyleGuides();
+        await Frames(1);
+        bool drawerInstant = _styleGuidesOpen && Mathf.IsEqualApprox(_styleGuidesPanel.Position.X, _styleGuidesOverlay.Size.X - GuidesDrawerWidth);
+        CloseStyleGuides();
+        await Frames(1);
+        Check("reduced motion opens and closes the guides drawer instantly", drawerInstant && !_styleGuidesOpen && !_styleGuidesOverlay.Visible);
         await Click(Centre((Control)_settingsBox.FindChild("TextScale_120", owned: false)!));
         await Frames(2);
         bool scaled = _settings.Settings.TextScale == 1.2f && _titlePlayingAs.GetThemeFontSize("font_size") == UiKit.FontSize(16)

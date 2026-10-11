@@ -147,6 +147,8 @@ public partial class Main : Control
 
         if (args.ContainsKey("hint") && _session?.Phase == RunPhase.InRound)
             ShowHint(best: true);
+        if (args.ContainsKey("guides") && _session is not null)
+            OpenStyleGuides(instant: true);
 
         if (args.TryGetValue("screenshot", out var path))
             _ = ScreenshotAndQuit(path);
@@ -279,6 +281,10 @@ public partial class Main : Control
 
         _styleGuidesOverlay = BuildStyleGuidesOverlay();
         AddChild(_styleGuidesOverlay);
+        _guidesHandle = BuildGuidesHandle(); // above the drawer, below the modal popups (which cover it)
+        AddChild(_guidesHandle);
+        _titleOverlay.VisibilityChanged += () => _guidesHandle.Visible = !_titleOverlay.Visible && _session is not null;
+        _guidesHandle.Visible = false;
         _statsOverlay = BuildStatsOverlay();
         AddChild(_statsOverlay);
         _wildOverlay = BuildWildOverlay();
@@ -412,8 +418,9 @@ public partial class Main : Control
             RefreshShopArea();
         }
 
-        if (_styleGuidesOverlay.Visible)
+        if (_styleGuidesOpen)
             RefreshStyleGuides();
+        _guidesHandle.Visible = !_titleOverlay.Visible;
     }
 
     private void RefreshSidebar()

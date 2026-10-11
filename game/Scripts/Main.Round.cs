@@ -706,14 +706,14 @@ public partial class Main
             return;
         }
 
-        // Style Guides popup: Tab toggles it anywhere; while it's open, Esc closes it and nothing else reacts.
-        if (key.Keycode == Key.Tab || (_styleGuidesOverlay.Visible && key.Keycode == Key.Escape))
+        // Style Guides drawer: Tab toggles it anywhere; while it's open, Esc closes it and nothing else reacts.
+        if (key.Keycode == Key.Tab || (_styleGuidesOpen && key.Keycode == Key.Escape))
         {
             ToggleStyleGuides();
             GetViewport().SetInputAsHandled();
             return;
         }
-        if (_styleGuidesOverlay.Visible || _session.Phase != RunPhase.InRound || _animating)
+        if (_styleGuidesOpen || _session.Phase != RunPhase.InRound || _animating)
             return;
 
         switch (key.Keycode)
