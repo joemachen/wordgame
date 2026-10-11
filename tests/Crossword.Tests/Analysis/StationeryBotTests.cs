@@ -29,6 +29,41 @@ public class StationeryBotTests
             session.Round.Config.EffectiveScoring(session.Scoring), session.Round.Config.MinWordLength);
 
     [Fact]
+    public void Highlighter_MarksTheMostValuableLetterTheChosenPlayPlaces_WhenWorthIt()
+    {
+        var cheap = Round(target: 100_000, submissionsLeft: 4, new Highlighter(3));
+        var cheapRanked = Ranked(cheap);
+        var (unchanged, _) = StationeryBot.BeforePlay(cheap, cheapRanked, cheapRanked[0], Words);
+        Assert.Null(unchanged.Round.Config.Highlight); // C A T S O R E: nothing worth 4
+        Assert.Single(unchanged.Run.Stationery);
+
+        // With T worth 8, a play placing the T (tile 2) is worth highlighting.
+        var rich = cheap with { Config = Config with { Scoring = ScoringConfig.Default with { LetterValues = ScoringConfig.Default.LetterValues.SetItem('T', 8) } } };
+        var ranked = Ranked(rich);
+        var choice = ranked.First(r => r.Play.Placed.Length == 1 && r.Play.Placed[0].Tile.Letter.Char == 'T');
+        var (after, play) = StationeryBot.BeforePlay(rich, ranked, choice, Words);
+
+        Assert.Equal(new TileHighlight(2, 3), after.Round.Config.Highlight);
+        Assert.Empty(after.Run.Stationery);
+        Assert.Null(play);
+    }
+
+    [Fact]
+    public void Clipping_IsUsedOnTheLastSubmission_WhenShort_OnTheLongestBoardWord()
+    {
+        var early = Round(target: 100_000, submissionsLeft: 4, new Clipping());
+        var earlyRanked = Ranked(early);
+        Assert.Null(StationeryBot.BeforePlay(early, earlyRanked, earlyRanked[^1], Words).Session.Round.Config.Clipping);
+
+        var last = Round(target: 100_000, submissionsLeft: 1, new Clipping());
+        var ranked = Ranked(last);
+        var (after, _) = StationeryBot.BeforePlay(last, ranked, ranked[^1], Words);
+
+        Assert.Equal(new ClippedWord(new Position(0, 0), Direction.Across, "CAT"), after.Round.Config.Clipping);
+        Assert.Empty(after.Run.Stationery);
+    }
+
+    [Fact]
     public void LastSubmission_ShortOfTheTarget_UsesTheMarginClip()
     {
         var session = Round(target: 100_000, submissionsLeft: 1, new MarginClip());

@@ -6,6 +6,7 @@ using Crossword.Core.Lexicon;
 using Crossword.Core.Rules;
 using Crossword.Core.Run;
 using Crossword.Core.Scoring;
+using Crossword.Core.Stationery;
 using Godot;
 using GridPos = Crossword.Core.Domain.Position;
 
@@ -112,7 +113,7 @@ public partial class Main
         var board = Round.Board;
         if (board.TileAt(pos) is { } placed)
         {
-            bool target = _whiteOutSlot is not null;
+            bool target = ArmedTarget is StationeryTarget.BoardTile or StationeryTarget.BoardWord;
             var tile = UiKit.MakeTile(placed, scoring.ValueOf(placed), CellSize, target ? StationeryColor.Lightened(0.55f) : UiKit.Newsprint,
                 raised: target);
             tile.Disabled = !target;
@@ -128,8 +129,8 @@ public partial class Main
             }
             if (target)
             {
-                tile.TooltipText = "Click to white out";
-                tile.Pressed += () => WhiteOutCell(pos);
+                tile.TooltipText = ArmedTarget == StationeryTarget.BoardWord ? "Click to reprint this word" : "Click to white out";
+                tile.Pressed += () => TargetCell(pos);
             }
             else
                 tile.TooltipText = WithEnhancementTip("", placed);
@@ -138,7 +139,7 @@ public partial class Main
 
         if (_pending.TryGetValue(pos, out var pending))
         {
-            int value = scoring.ValueOf(pending);
+            int value = ShownValue(pending, scoring);
             var tile = UiKit.MakeTile(pending, value, CellSize, UiKit.Pending, raised: true);
             tile.TooltipText = WithEnhancementTip("Click to take back · drag to another square or back to your hand", pending);
             tile.Pressed += () => ReturnPending(pos);
@@ -165,6 +166,16 @@ public partial class Main
         cell.AddThemeFontSizeOverride("font_size", UiKit.FontSize(18));
         cell.AddThemeColorOverride("font_color", new Color(1, 1, 1, 0.85f));
         cell.AddThemeColorOverride("font_hover_color", Colors.White);
+        if (ArmedTarget == StationeryTarget.EmptyCell)
+        {
+            // Gold Star: every empty square is a target.
+            cell.AddThemeStyleboxOverride("normal", UiKit.Box(color, 4, StationeryColor, 2));
+            cell.AddThemeStyleboxOverride("hover", UiKit.Box(color.Lightened(0.25f), 4, UiKit.Selected, 3));
+            cell.AddThemeStyleboxOverride("pressed", UiKit.Box(color.Darkened(0.1f), 4));
+            cell.TooltipText = "Click to put the star here";
+            cell.Pressed += () => TargetCell(pos);
+            return cell;
+        }
         cell.AddThemeStyleboxOverride("normal", UiKit.Box(color, 4));
         cell.AddThemeStyleboxOverride("hover", UiKit.Box(color.Lightened(0.25f), 4, UiKit.Selected, 2));
         cell.AddThemeStyleboxOverride("pressed", UiKit.Box(color.Darkened(0.1f), 4));
@@ -172,6 +183,10 @@ public partial class Main
         cell.TileDropped = id => PlaceTile(pos, id);
         return cell;
     }
+
+    /// <summary>A tile's letter value as the player will see it score: a Highlighter multiplies it for the next play.</summary>
+    private int ShownValue(Tile tile, ScoringConfig scoring) =>
+        Round.Config.Highlight is { } highlight && highlight.TileId == tile.Id ? scoring.ValueOf(tile) * highlight.Factor : scoring.ValueOf(tile);
 
     private void RefreshHand()
     {
@@ -187,9 +202,14 @@ public partial class Main
                 continue;
 
             bool selected = _selected.Contains(tile);
-            int value = scoring.ValueOf(tile);
+            int value = ShownValue(tile, scoring);
             var button = UiKit.MakeTile(tile, value, HandTileSize, selected ? UiKit.Selected : UiKit.Newsprint, raised: selected, blankWild: true);
             button.TooltipText = WithEnhancementTip("Click to select · drag to reorder or onto the board", tile);
+            if (Round.Config.Highlight is { } highlight && highlight.TileId == tile.Id)
+            {
+                UiKit.MarkHighlighted(button, highlight.Factor);
+                button.TooltipText = $"Highlighted: letter value ×{highlight.Factor} on your next play\n{button.TooltipText}";
+            }
             if (!tile.IsWild && tile.Letter.Char == Round.Config.CensoredLetter)
             {
                 UiKit.MarkCensored(button);
@@ -432,7 +452,7 @@ public partial class Main
         }
 
         var validation = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength,
-            Round.Config.CensoredLetter);
+            Round.Config.CensoredLetter, Round.Config.IllegalWordsAllowed);
         if (!validation.IsOk)
         {
             _chipsLabel.Text = "–";
@@ -444,7 +464,8 @@ public partial class Main
         var score = ScoringEngine.Score(validation.Value, Run.DeskItems, RoundScoring, RoundRules.Environment(Round, Run.Money));
         _chipsLabel.Text = score.Chips.ToString("N0");
         _multLabel.Text = score.Mult.ToString("0.##");
-        SetMessage($"{string.Join(" + ", validation.Value.Words.Select(w => w.Text))}  →  {score.Total:N0} points", UiKit.Good);
+        bool licensed = validation.Value.Words.Any(w => !_lexicon.Contains(w.Text));
+        SetMessage($"{string.Join(" + ", validation.Value.Words.Select(w => w.Text))}  →  {score.Total:N0} points{(licensed ? "  ·  poetic licence" : "")}", UiKit.Good);
         _definitionsLabel.Text = DefinitionsText(validation.Value.Words.Select(w => w.Text));
         _previewTier = RoundScoring.TierFor(validation.Value.Words.Max(w => w.Text.Length)).MinLength;
     }
@@ -465,7 +486,7 @@ public partial class Main
         string head = $"[b][color=#{UiKit.Text.ToHtml(false)}]{word}[/color][/b]  ";
         string body = (Dictionaries.Define(word, Run.Dictionaries) ?? Define(word)) is { } definition
             ? definition.Summary.Replace("[", "[lb]")
-            : "[i]valid word — no definition on file[/i]";
+            : _lexicon.Contains(word) ? "[i]valid word — no definition on file[/i]" : "[i]not in the dictionary — Poetic License[/i]";
         string tag = RoundScoring.Theme is { } theme && theme.Words.Contains(word)
             ? $"  [color=#{ThemeColor.ToHtml(false)}]+{theme.MultPerWord} mult · {theme.Name}[/color]"
             : "";
@@ -536,7 +557,7 @@ public partial class Main
         long scoreBefore = Round.Score;
         _session = result.Value.Session;
         MarkNewTiles(before);
-        _profile.Update(s => Crossword.Core.Profile.StatsRules.RecordPlay(s, result.Value.Score.Play, result.Value.Score.Total));
+        _profile.Update(s => Crossword.Core.Profile.StatsRules.RecordPlay(s, result.Value.Score.Play, result.Value.Score.Total, _lexicon.Contains));
         _pending.Clear();
         _selected.Clear();
         _animating = true;
@@ -732,9 +753,9 @@ public partial class Main
             case Key.Enter or Key.KpEnter:
                 Submit();
                 break;
-            case Key.Escape when _whiteOutSlot is not null:
-                _whiteOutSlot = null;
-                SetMessage("White-Out put away.", UiKit.TextMuted);
+            case Key.Escape when _targetingSlot is int armed:
+                _targetingSlot = null;
+                SetMessage($"{(armed < Run.Stationery.Length ? Run.Stationery[armed].Name : "Stationery")} put away.", UiKit.TextMuted);
                 Refresh();
                 break;
             case Key.Escape:

@@ -128,4 +128,14 @@ public class PlayCommandParserTests
         Assert.False(PlayCommandParser.ParseStationeryUse(new WhiteOut(), hand, ["4D"]).IsOk);
         Assert.False(PlayCommandParser.ParseStationeryUse(new WhiteOut(), hand, []).IsOk);
     }
+
+    [Fact]
+    public void ParseStationeryUse_EmptyCellAndBoardWordItemsReadACell()
+    {
+        var hand = HandOf("CAT");
+        Assert.Equal(new Position(1, 2), PlayCommandParser.ParseStationeryUse(new GoldStar(), hand, ["c2"]).Value.Cell);
+        Assert.Equal(new Position(0, 0), PlayCommandParser.ParseStationeryUse(new Clipping(), hand, ["A1"]).Value.Cell);
+        Assert.False(PlayCommandParser.ParseStationeryUse(new GoldStar(), hand, []).IsOk);
+        Assert.Null(PlayCommandParser.ParseStationeryUse(new PoeticLicense(), hand, []).Value.Cell);
+    }
 }

@@ -37,7 +37,9 @@ public sealed record ScoringConfig(
     int GildedMoney = 1,
     decimal BonusMult = 0,
     bool RepeatWordsScoreZero = false,
-    WordTheme? Theme = null)
+    WordTheme? Theme = null,
+    ClippedWord? Clipping = null,
+    TileHighlight? Highlight = null)
 {
     public static ScoringConfig Default { get; } = new(
         Tiers:

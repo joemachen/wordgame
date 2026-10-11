@@ -52,7 +52,9 @@ public sealed record ShopBotConfig(
     /// while Answer Key (−3), Red Ink Bottle (−2.5) and Scissors (−8, cutting Q/Z/X/J) cost the bot more than they
     /// returned. White-Out is only used to escape a stuck hand, which almost never happens.
     /// </summary>
-    public static ShopBotConfig Default { get; } = new(StationeryGain: new Dictionary<string, double> { ["margin-clip"] = 0.05 });
+    public static ShopBotConfig Default { get; } = new(
+        StationeryGain: new Dictionary<string, double> { ["margin-clip"] = 0.05 },
+        DeskItemGain: new Dictionary<string, double> { ["extra-extra"] = 0.2 }); // +1 submission/round is invisible to re-scoring
 
     /// <summary>Fixed estimated gain of buying a Stationery item (by id); 0 = never buy it.</summary>
     public double GainOf(Stationery.IStationery item) => StationeryGain?.GetValueOrDefault(item.Id) ?? 0;

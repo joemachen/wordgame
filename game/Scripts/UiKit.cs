@@ -208,6 +208,22 @@ public static class UiKit
 
     public static readonly Color Fresh = new("7ee0b5");
 
+    /// <summary>Marks a hand tile a Highlighter is on: a yellow outline and a small ×N tag.</summary>
+    public static void MarkHighlighted(TileButton button, int factor)
+    {
+        var outline = new Panel { Name = "HighlightOutline", MouseFilter = Control.MouseFilterEnum.Ignore };
+        outline.AddThemeStyleboxOverride("panel", Box(Colors.Transparent, 6, Money, 3, 0));
+        outline.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        button.AddChild(outline);
+        var tag = MakeLabel($"×{factor}", 11, Money.Darkened(0.35f), HorizontalAlignment.Right);
+        tag.Name = "HighlightTag";
+        tag.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        tag.OffsetRight = -5;
+        tag.OffsetTop = 2;
+        tag.MouseFilter = Control.MouseFilterEnum.Ignore;
+        button.AddChild(tag);
+    }
+
     /// <summary>Marks a freshly drawn hand tile: an accent outline and a small NEW tag.</summary>
     public static void MarkNew(TileButton button)
     {

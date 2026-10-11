@@ -134,7 +134,7 @@ public static class PlayCommandParser
                 return ids.IsOk
                     ? Result<StationeryArgs, string>.Ok(new StationeryArgs(ids.Value, null))
                     : Result<StationeryArgs, string>.Fail(ids.Error.Replace(" to discard", ""));
-            case StationeryTarget.BoardTile:
+            case StationeryTarget.BoardTile or StationeryTarget.EmptyCell or StationeryTarget.BoardWord:
                 if (args.Count != 1)
                     return Result<StationeryArgs, string>.Fail($"Usage: use <slot> <cell>   {item.Name} needs a board cell, e.g. 'use 1 D4'");
                 var cell = ParseCell(args[0]);

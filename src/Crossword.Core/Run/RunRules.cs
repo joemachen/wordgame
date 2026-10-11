@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Crossword.Core.Analysis;
+using Crossword.Core.Clues;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
 using Crossword.Core.Random;
@@ -105,9 +106,11 @@ public static class RunRules
             return Result<SessionOutcome, RoundError>.Fail(result.Error);
 
         var (round, score) = result.Value;
+        // A Correction Tape can take this play back while the round goes on (a finished round has nothing to undo).
+        var undo = round.Status == RoundStatus.InProgress ? new UndoPoint(session.Round with { Undo = null }, session.Run.DeskItems, session.Run.Money) : null;
         var next = session with
         {
-            Round = round,
+            Round = round with { Undo = undo },
             Run = session.Run with
             {
                 Money = session.Run.Money + score.Money,
@@ -188,12 +191,45 @@ public static class RunRules
                     ? Done(used with { Round = removed.Value })
                     : Result<StationeryUse, string>.Fail(removed.Error.Message);
 
+            case Highlighter marker:
+                if (tileIds is not { Count: 1 } || round.Hand.Tiles.FirstOrDefault(t => t.Id == tileIds.First()) is not { } marked)
+                    return Result<StationeryUse, string>.Fail("Select one hand tile to highlight.");
+                if (marked.IsWild)
+                    return Result<StationeryUse, string>.Fail("A wild tile has no letter value to highlight.");
+                return Done(used with { Round = round with { Config = round.Config with { Highlight = new TileHighlight(marked.Id, marker.Factor) } } });
+
+            case GoldStar star:
+                if (cell is not { } starred)
+                    return Result<StationeryUse, string>.Fail("Choose an empty square for the Gold Star.");
+                var premium = RoundRules.PlacePremium(round, starred, star.Premium, lexicon, canEscape: true);
+                return premium.IsOk
+                    ? Done(used with { Round = premium.Value })
+                    : Result<StationeryUse, string>.Fail(premium.Error.Message);
+
+            case Clipping:
+                if (cell is not { } clipped)
+                    return Result<StationeryUse, string>.Fail("Click a tile of the word to clip.");
+                var through = BoardWords.Through(round.Board, clipped);
+                if (through.IsEmpty)
+                    return Result<StationeryUse, string>.Fail("There's no word through that square.");
+                var chosen = through.OrderByDescending(w => w.Text.Length).ThenBy(w => w.Direction == Direction.Across ? 0 : 1).First();
+                return Done(used with { Round = round with { Config = round.Config with { Clipping = new ClippedWord(chosen.Start, chosen.Direction, chosen.Text) } } });
+
+            case PoeticLicense:
+                return Done(used with { Round = round with { Config = round.Config with { IllegalWordsAllowed = round.Config.IllegalWordsAllowed + 1 } } });
+
+            case CorrectionTape:
+                if (round.Undo is not { } point)
+                    return Result<StationeryUse, string>.Fail("Nothing to take back — it only undoes your last play, right after it.");
+                return Done(used with { Round = point.Round, Run = used.Run with { DeskItems = point.DeskItems, Money = point.Money } });
+
             default:
                 return Result<StationeryUse, string>.Fail($"{item.Name} can't be used.");
         }
 
+        // Any transition other than a play clears the undo point: only the play just made can be taken back.
         Result<StationeryUse, string> Done(GameSession next) =>
-            Result<StationeryUse, string>.Ok(new StationeryUse(Settle(CheckDeadlock(next, lexicon)), null));
+            Result<StationeryUse, string>.Ok(new StationeryUse(Settle(CheckDeadlock(next with { Round = next.Round with { Undo = null } }, lexicon)), null));
     }
 
     /// <summary>
@@ -201,7 +237,9 @@ public static class RunRules
     /// that could have redrawn a stuck hand), then settles it.
     /// </summary>
     public static GameSession Recheck(GameSession session, IWordGraph lexicon) =>
-        session.Phase == RunPhase.InRound ? Settle(CheckDeadlock(session, lexicon)) : session;
+        session.Phase == RunPhase.InRound
+            ? Settle(CheckDeadlock(session with { Round = session.Round with { Undo = null } }, lexicon)) // selling changed the run
+            : session;
 
     /// <summary>Leaves the shop and starts the next round.</summary>
     public static Result<GameSession, string> LeaveShop(GameSession session, IWordGraph lexicon)

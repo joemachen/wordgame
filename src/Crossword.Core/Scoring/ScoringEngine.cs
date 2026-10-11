@@ -26,6 +26,7 @@ public static class ScoringEngine
         public const string Enhancement = "enhancement";
         public const string Bonus = "bonus";
         public const string Theme = "theme";
+        public const string Clipping = "clipping";
     }
 
     public static ScoreContext Score(PlayAnalysis play, IReadOnlyList<IDeskItem> deskItemsInSlotOrder, ScoringConfig config,
@@ -33,6 +34,8 @@ public static class ScoringEngine
     {
         var context = ApplyTier(play, config) with { Env = environment ?? ScoreEnvironment.Empty };
         context = play.Words.Aggregate(context, (ctx, word) => ApplyWord(ctx, word, config));
+        if (config.Clipping is { } clipping)
+            context = ApplyClipping(context, clipping, config);
         context = play.Words.Aggregate(context, (ctx, word) => ApplyEnhancements(ctx, word, config));
         context = ApplyIntersections(context, config);
         if (config.Theme is { } theme)
@@ -70,9 +73,30 @@ public static class ScoringEngine
                 Premium.TripleWord => 3,
                 _ => 1,
             };
-            letters += config.ValueOf(cell.Tile) * letterMultiplier;
+            int value = config.ValueOf(cell.Tile);
+            if (config.Highlight is { } highlight && cell.IsNew && cell.Tile.Id == highlight.TileId)
+                value *= highlight.Factor;
+            letters += value * letterMultiplier;
         }
         return (letters * wordMultiplier, wordMultiplier);
+    }
+
+    /// <summary>
+    /// Step 2b (Clipping): the chosen board word, as it stands after the play, has its letter chips counted again — no
+    /// premiums (its tiles aren't new) and regardless of Redundant Copy (the player paid for the reprint). A word cut
+    /// short by a White-Out prints nothing.
+    /// </summary>
+    private static ScoreContext ApplyClipping(ScoreContext context, ClippedWord clipping, ScoringConfig config)
+    {
+        var board = context.Play.BoardAfter;
+        var cells = System.Collections.Immutable.ImmutableArray.CreateBuilder<WordCell>();
+        for (var p = clipping.Start; board.TileAt(p) is { } tile; p = p.Step(clipping.Direction))
+            cells.Add(new WordCell(p, tile, IsNew: false));
+        if (cells.Count < 2)
+            return context;
+        var word = new FormedWord(clipping.Direction, cells.ToImmutable());
+        var (chips, _) = WordChips(word, board, config);
+        return chips > 0 ? context.AddChips(chips).Record(Sources.Clipping, $"Clipping: {word.Text} again, +{chips} chips") : context;
     }
 
     private static ScoreContext ApplyWord(ScoreContext context, FormedWord word, ScoringConfig config)
@@ -83,6 +107,8 @@ public static class ScoringEngine
 
         var (chips, wordMultiplier) = WordChips(word, context.Play.BoardAfter, config);
         string suffix = wordMultiplier > 1 ? $" (×{wordMultiplier} word)" : string.Empty;
+        if (config.Highlight is { } highlight && word.Cells.FirstOrDefault(c => c.IsNew && c.Tile.Id == highlight.TileId) is { } marked)
+            suffix += $" (highlighted {marked.Tile} ×{highlight.Factor})";
         return (context with { WordChips = context.WordChips.Add(chips) }).AddChips(chips)
             .Record(Sources.Word, $"{word.Text}: +{chips} chips{suffix}");
     }

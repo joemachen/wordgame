@@ -52,6 +52,16 @@ public sealed record Board(int Size, ImmutableArray<Tile?> Cells, ImmutableArray
         return this with { Cells = cells.MoveToImmutable() };
     }
 
+    /// <summary>Puts a premium on an empty, unblocked square (Gold Star); it pays when a tile is placed there.</summary>
+    public Board WithPremium(Position position, Premium premium)
+    {
+        if (!InBounds(position))
+            throw new ArgumentOutOfRangeException(nameof(position), position, "Position is off the board.");
+        if (IsBlocked(position) || IsOccupied(position))
+            throw new InvalidOperationException($"Cell {position} must be empty.");
+        return this with { Premiums = Premiums.SetItem(Index(position), premium) };
+    }
+
     /// <summary>Empties an occupied cell (its premium becomes usable again).</summary>
     public Board Remove(Position position)
     {

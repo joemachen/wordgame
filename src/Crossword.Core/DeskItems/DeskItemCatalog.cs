@@ -31,6 +31,18 @@ public static class DeskItemCatalog
         new PrintingPressRoller(),
         new TileRack(),
         new CoffeeStain(),
+        new Classifieds(),
+        new Typesetter(),
+        new Byline(),
+        new OpEd(),
+        new LateEdition(),
+        new Morgue(),
+        new Headline(),
+        new LettersToTheEditor(),
+        new FrontPage(),
+        new CrosswordEditor(),
+        new ExtraExtra(),
+        new SecondPrinting(),
     ];
 
     public static IDeskItem? Find(string id) =>

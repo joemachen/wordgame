@@ -621,12 +621,12 @@
         "factor": 1.4
       },
       {
-        "id": "inkwell",
-        "chipsPerExtraWord": 10
+        "id": "thesaurus",
+        "chipsPerLetter": 4
       },
       {
-        "id": "grid-lock",
-        "chipsPerIntersection": 15
+        "id": "margin-notes",
+        "multPerDiscard": 2
       }
     ],
     "roundIndex": 1,
@@ -672,7 +672,10 @@
         "minConsonants": 2,
         "maxCopiesPerVowel": 2
       },
-      "censoredLetter": null
+      "censoredLetter": null,
+      "clipping": null,
+      "highlight": null,
+      "illegalWordsAllowed": 0
     },
     "board": {
       "size": 7,
@@ -1385,21 +1388,23 @@
     "rng": {
       "state": 14281421380742822323
     },
-    "score": 1461,
+    "score": 3794,
     "submissionsLeft": 3,
     "discardsLeft": 3,
     "deadlocked": false,
     "submissionsMade": 1,
     "wordsFormed": [
       "OPENER"
-    ]
+    ],
+    "undo": null
   },
   "shop": {
     "offers": [
       {
         "type": "desk-item",
         "item": {
-          "id": "rubber-stamp",
+          "id": "broadsheet",
+          "minLength": 5,
           "factor": 2
         },
         "price": 6
@@ -1407,8 +1412,7 @@
       {
         "type": "desk-item",
         "item": {
-          "id": "broadsheet",
-          "minLength": 5,
+          "id": "deadline-rush",
           "factor": 2
         },
         "price": 6
@@ -1437,9 +1441,10 @@
       {
         "type": "stationery",
         "item": {
-          "id": "answer-key"
+          "id": "gold-star",
+          "premium": "DoubleWord"
         },
-        "price": 3
+        "price": 4
       }
     ],
     "rerollCost": 5,

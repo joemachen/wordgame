@@ -182,7 +182,7 @@ public partial class Main
         // 6. Hint places a play; the preview defines every word it forms.
         await Click(Centre(_hintButton));
         var words = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength,
-            Round.Config.CensoredLetter)
+            Round.Config.CensoredLetter, Round.Config.IllegalWordsAllowed)
             .Value.Words.Select(w => w.Text).ToList();
         string defined = _definitionsLabel.GetParsedText();
         Check("preview defines each word", words.Count > 0 && words.All(w => defined.Contains(w)));
@@ -290,12 +290,59 @@ public partial class Main
             Round = Round with { Board = Round.Board.Place([new(spot, new Crossword.Core.Domain.Tile(9000, Crossword.Core.Domain.Letter.From('A')))]) },
         };
         await GiveAndUse(new Crossword.Core.Stationery.WhiteOut());
-        Check("white-out arms board targeting", _whiteOutSlot == 0 && BoardCell(spot) is BaseButton { Disabled: false });
+        Check("white-out arms board targeting", _targetingSlot == 0 && BoardCell(spot) is BaseButton { Disabled: false });
         await PressKey(global::Godot.Key.Escape);
-        Check("esc cancels white-out", _whiteOutSlot is null && Round.Board.IsOccupied(spot) && Run.Stationery.Length == 1);
+        Check("esc cancels white-out", _targetingSlot is null && Round.Board.IsOccupied(spot) && Run.Stationery.Length == 1);
         await Click(Centre(UseButton()));
         await Click(Centre(BoardCell(spot)));
-        Check("white-out removes the clicked tile", !Round.Board.IsOccupied(spot) && Run.Stationery.IsEmpty && _whiteOutSlot is null);
+        Check("white-out removes the clicked tile", !Round.Board.IsOccupied(spot) && Run.Stationery.IsEmpty && _targetingSlot is null);
+
+        // 12b. Gold Star: Use arms empty-square targeting, Esc cancels, clicking an empty square makes it a 2W square.
+        var starSpot = Enumerable.Range(0, Round.Board.Size * Round.Board.Size).Select(i => new GridPos(i / Round.Board.Size, i % Round.Board.Size))
+            .First(p => !Round.Board.IsOccupied(p) && !Round.Board.IsBlocked(p) && Round.Board.PremiumAt(p) == Crossword.Core.Domain.Premium.None);
+        await GiveAndUse(new Crossword.Core.Stationery.GoldStar());
+        Check("gold star arms empty-square targeting", _targetingSlot == 0 && BoardCell(starSpot) is BaseButton { Disabled: false });
+        await PressKey(global::Godot.Key.Escape);
+        Check("esc cancels gold star", _targetingSlot is null && Run.Stationery.Length == 1);
+        await Click(Centre(UseButton()));
+        await Click(Centre(BoardCell(starSpot)));
+        Check("gold star puts a 2W on the clicked square", Round.Board.PremiumAt(starSpot) == Crossword.Core.Domain.Premium.DoubleWord
+            && Run.Stationery.IsEmpty && _targetingSlot is null);
+
+        // 12c. Clipping: with CAT on the board, Use then a click on any of its tiles marks it for reprinting.
+        _session = _session with
+        {
+            Round = Round with
+            {
+                Board = Round.Board.Place("CAT".Select((c, i) => new Crossword.Core.Domain.PlacedTile(new GridPos(0, i),
+                    new Crossword.Core.Domain.Tile(9100 + i, Crossword.Core.Domain.Letter.From(c)))).ToList()),
+            },
+        };
+        await GiveAndUse(new Crossword.Core.Stationery.Clipping());
+        await Click(Centre(BoardCell(new GridPos(0, 1))));
+        Check("clipping marks the clicked board word", Round.Config.Clipping?.Text == "CAT" && Run.Stationery.IsEmpty
+            && _messageLabel.Text.Contains("CAT") && _resourcesLabel.Text.Contains("Clipping: CAT"));
+
+        // 12d. Highlighter: the selected (non-wild) hand tile gets a ×3 tag and its shown value triples.
+        _selected.Clear();
+        Refresh();
+        await Frames(1);
+        var markedButton = _handRow.GetChildren().OfType<TileButton>().First(b => !Round.Hand.Tiles.First(t => t.Id == b.TileId).IsWild);
+        int markedId = markedButton.TileId;
+        await Click(Centre(markedButton));
+        await GiveAndUse(new Crossword.Core.Stationery.Highlighter(3));
+        var markedAfter = _handRow.GetChildren().OfType<TileButton>().First(b => b.TileId == markedId);
+        Check("highlighter marks the selected hand tile", Round.Config.Highlight == new Crossword.Core.Domain.TileHighlight(markedId, 3)
+            && markedAfter.FindChild("HighlightTag", owned: false) is not null && _resourcesLabel.Text.Contains("Highlighter ×3"));
+
+        // 12e. Poetic License: a tile under the C forms a non-word, which previews a score instead of an error.
+        await GiveAndUse(new Crossword.Core.Stationery.PoeticLicense());
+        var nonWordTile = _handRow.GetChildren().OfType<TileButton>().First(b => !Round.Hand.Tiles.First(t => t.Id == b.TileId).IsWild);
+        await Click(Centre(nonWordTile));
+        await Click(Centre(BoardCell(new GridPos(1, 0))));
+        Check("poetic license lets a non-word preview a score", Round.Config.IllegalWordsAllowed == 1 && _pending.Count == 1
+            && _chipsLabel.Text != "–" && _messageLabel.Text.Contains("poetic licence") && _definitionsLabel.GetParsedText().Contains("Poetic License"));
+        await PressKey(global::Godot.Key.Escape);
 
         // 13. Submitting rings the score up: the Desk Item that fired pops, the finish plays, then input unlocks.
         //     The lowest-ranked play keeps the round going (a win would swap the board for the shop before 13a).
@@ -337,6 +384,15 @@ public partial class Main
             && playedWords.All(w => _profile.Profile.Stats.Words.ContainsKey(w) && statsText.Contains(w)));
         await PressKey(global::Godot.Key.Escape);
         Check("esc closes stats", !_statsOverlay.Visible);
+
+        // 14a. Correction Tape takes the last play back: score, submissions, board and hand are restored (stats stay).
+        long scoreAfterPlay = Round.Score;
+        int subsAfterPlay = Round.SubmissionsLeft;
+        int tilesAfterPlay = Round.Board.Cells.Count(c => c is not null);
+        await GiveAndUse(new Crossword.Core.Stationery.CorrectionTape());
+        Check("correction tape takes the play back", Round.Score < scoreAfterPlay && Round.SubmissionsLeft == subsAfterPlay + 1
+            && Round.Board.Cells.Count(c => c is not null) < tilesAfterPlay && Run.Stationery.IsEmpty && !_receipt.IsShowing
+            && _profile.Profile.Stats.PlaysRecorded == 1);
 
         // 14b. Winning the round shows the paycheck: at least $5, the floor top-up itemised when it applies, and a
         //      line saying how to earn more.

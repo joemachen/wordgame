@@ -19,8 +19,15 @@ public partial class Main
     /// <summary>How many times scoring playback has popped a Desk Item card (self-test hook).</summary>
     private int _deskPops;
 
-    /// <summary>Slot of the White-Out waiting for a board tile to be clicked; null when not targeting.</summary>
-    private int? _whiteOutSlot;
+    /// <summary>Slot of the Stationery waiting for a board square to be clicked (White-Out, Clipping, Gold Star); null when not targeting.</summary>
+    private int? _targetingSlot;
+
+    /// <summary>What the armed Stationery wants clicked, or null when nothing is armed.</summary>
+    private StationeryTarget? ArmedTarget =>
+        _targetingSlot is int slot && slot < Run.Stationery.Length ? Run.Stationery[slot].Target : null;
+
+    private static bool TargetsBoard(StationeryTarget target) =>
+        target is StationeryTarget.BoardTile or StationeryTarget.BoardWord or StationeryTarget.EmptyCell;
 
     private static Color RarityColor(DeskItemRarity rarity) => rarity switch
     {
@@ -36,9 +43,9 @@ public partial class Main
     {
         UiKit.ClearChildren(_deskRow);
         _deskCards.Clear();
-        if (_whiteOutSlot is int targeting
-            && (_session.Phase != RunPhase.InRound || targeting >= Run.Stationery.Length || Run.Stationery[targeting] is not WhiteOut))
-            _whiteOutSlot = null;
+        if (_targetingSlot is int targeting
+            && (_session.Phase != RunPhase.InRound || targeting >= Run.Stationery.Length || !TargetsBoard(Run.Stationery[targeting].Target)))
+            _targetingSlot = null;
         bool canEdit = _session.Phase is RunPhase.InRound or RunPhase.Shop && !_animating;
         _deskCaption.Visible = Run.DeskItems.Length >= 2;
         var play = _session.Phase == RunPhase.InRound ? PendingPlay() : null;
@@ -116,12 +123,14 @@ public partial class Main
 
         var actions = UiKit.HBox(4);
         int index = slot;
-        var use = UiKit.MakeButton(_whiteOutSlot == slot ? "Cancel" : "Use", UiKit.Panel, 12, StationeryColor);
+        var use = UiKit.MakeButton(_targetingSlot == slot ? "Cancel" : "Use", UiKit.Panel, 12, StationeryColor);
         use.Disabled = _animating || _session.Phase != RunPhase.InRound;
         use.TooltipText = item.Target switch
         {
             StationeryTarget.HandTiles => "Select hand tiles first, then Use",
             StationeryTarget.BoardTile => "Use, then click a board tile",
+            StationeryTarget.BoardWord => "Use, then click a tile of the word",
+            StationeryTarget.EmptyCell => "Use, then click an empty square",
             _ => "",
         };
         use.Pressed += () => UseStationery(index);
@@ -140,21 +149,26 @@ public partial class Main
         var item = Run.Stationery[slot];
         switch (item)
         {
-            case { Target: StationeryTarget.BoardTile }:
-                if (_whiteOutSlot == slot)
+            case { Target: StationeryTarget.BoardTile or StationeryTarget.BoardWord or StationeryTarget.EmptyCell }:
+                if (_targetingSlot == slot)
                 {
-                    _whiteOutSlot = null;
+                    _targetingSlot = null;
                     SetMessage($"{item.Name} put away.", UiKit.TextMuted);
                 }
-                else if (Round.Board.IsEmpty)
+                else if (item.Target != StationeryTarget.EmptyCell && Round.Board.IsEmpty)
                 {
                     SetMessage("There are no tiles on the board yet.", UiKit.Bad);
                     return;
                 }
                 else
                 {
-                    _whiteOutSlot = slot;
-                    SetMessage($"{item.Name}: click a board tile to remove it (Esc cancels).", StationeryColor);
+                    _targetingSlot = slot;
+                    SetMessage(item.Target switch
+                    {
+                        StationeryTarget.EmptyCell => $"{item.Name}: click an empty square (Esc cancels).",
+                        StationeryTarget.BoardWord => $"{item.Name}: click a tile of the word to reprint (Esc cancels).",
+                        _ => $"{item.Name}: click a board tile to remove it (Esc cancels).",
+                    }, StationeryColor);
                 }
                 Refresh();
                 return;
@@ -167,6 +181,10 @@ public partial class Main
                 SetMessage($"Select one hand tile, then use the {item.Name} to make it wild.", UiKit.TextMuted);
                 return;
 
+            case Highlighter when _selected.Count != 1:
+                SetMessage($"Select one hand tile, then use the {item.Name} to triple its letter value next play.", UiKit.TextMuted);
+                return;
+
             case { Target: StationeryTarget.HandTiles }:
                 ApplyStationery(slot, tileIds: _selected.Select(t => t.Id).ToArray());
                 return;
@@ -177,10 +195,10 @@ public partial class Main
         }
     }
 
-    /// <summary>Board-targeting click while a White-Out is armed.</summary>
-    private void WhiteOutCell(GridPos pos)
+    /// <summary>Board click while a board-targeting Stationery is armed.</summary>
+    private void TargetCell(GridPos pos)
     {
-        if (_whiteOutSlot is int slot && !_animating)
+        if (_targetingSlot is int slot && !_animating)
             ApplyStationery(slot, cell: pos);
     }
 
@@ -195,9 +213,11 @@ public partial class Main
             return;
         }
         _session = used.Value.Session;
-        _whiteOutSlot = null;
-        if (item is Scissors)
+        _targetingSlot = null;
+        if (item is Scissors or CorrectionTape)
             MarkNewTiles(before);
+        if (item is CorrectionTape)
+            ClearLog();
         if (used.Value.Play is { } play)
         {
             PlacePlay(play, $"{item.Name}: the best play for this hand");
@@ -214,6 +234,11 @@ public partial class Main
             Scissors => $"{item.Name}: {tileIds?.Count ?? 0} tile(s) cut and redrawn.",
             WhiteOut => $"{item.Name}: tile removed.",
             FountainPen => $"{item.Name}: that tile is wild this round — place it and pick its letter.",
+            Highlighter marker => $"{item.Name}: that tile's letter value counts ×{marker.Factor} on your next play.",
+            GoldStar => $"{item.Name}: that square pays when a tile lands on it this round.",
+            Clipping => $"{item.Name}: {Round.Config.Clipping?.Text} is scored again on your next play.",
+            PoeticLicense => $"{item.Name}: one of your next plays may contain a word that isn't in the dictionary.",
+            CorrectionTape => $"{item.Name}: your last play is back in your hand.",
             _ => $"{item.Name} used.",
         }, StationeryColor);
         AfterAction();
@@ -257,7 +282,7 @@ public partial class Main
     /// <summary>The pending placement as a validated play, or null when there is none or it is illegal.</summary>
     private PlayAnalysis? PendingPlay() =>
         _pending.Count > 0 && PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength,
-                Round.Config.CensoredLetter)
+                Round.Config.CensoredLetter, Round.Config.IllegalWordsAllowed)
             is { IsOk: true } valid
             ? valid.Value
             : null;

@@ -14,6 +14,12 @@ public enum StationeryTarget
 
     /// <summary>Acts on one occupied board cell.</summary>
     BoardTile,
+
+    /// <summary>Acts on one empty, unblocked board cell.</summary>
+    EmptyCell,
+
+    /// <summary>Acts on a word on the board, pointed at by any of its cells.</summary>
+    BoardWord,
 }
 
 /// <summary>
@@ -82,10 +88,67 @@ public sealed record RedInkBottle(int Mult = 3) : IStationery
     public StationeryTarget Target => StationeryTarget.None;
 }
 
+/// <summary>Marks one hand tile: its letter value counts <see cref="Factor"/> times on the next play it is part of.</summary>
+public sealed record Highlighter(int Factor = 3) : IStationery
+{
+    public string Id => "highlighter";
+    public string Name => "Highlighter";
+    public string Description => $"Select a hand tile, then use: its letter value counts ×{Factor} on your next play.";
+    public StationeryTarget Target => StationeryTarget.HandTiles;
+}
+
+/// <summary>Sticks a premium square onto an empty cell for the rest of the round.</summary>
+public sealed record GoldStar(Premium Premium = Premium.DoubleWord) : IStationery
+{
+    public string Id => "gold-star";
+    public string Name => "Gold Star";
+    public string Description => $"Use, then click an empty square: it becomes a {Label(Premium)} square for the rest of the round.";
+    public StationeryTarget Target => StationeryTarget.EmptyCell;
+
+    private static string Label(Premium premium) => premium switch
+    {
+        Premium.DoubleLetter => "2L",
+        Premium.TripleLetter => "3L",
+        Premium.DoubleWord => "2W",
+        Premium.TripleWord => "3W",
+        _ => "plain",
+    };
+}
+
+/// <summary>Reprints a word already on the board: its letter chips count again on the next play.</summary>
+public sealed record Clipping : IStationery
+{
+    public string Id => "clipping";
+    public string Name => "Clipping";
+    public string Description => "Use, then click a word on the board: its letter chips are scored again on your next play.";
+    public StationeryTarget Target => StationeryTarget.BoardWord;
+}
+
+/// <summary>Breaks the rules once: the next play may contain one word that isn't in the dictionary, scored in full.</summary>
+public sealed record PoeticLicense : IStationery
+{
+    public string Id => "poetic-license";
+    public string Name => "Poetic License";
+    public string Description => "Use during a round: one of your next plays may contain a word that isn't in the dictionary, scored in full.";
+    public StationeryTarget Target => StationeryTarget.None;
+}
+
+/// <summary>Takes back the play just made: its tiles return to the hand and the submission is refunded.</summary>
+public sealed record CorrectionTape : IStationery
+{
+    public string Id => "correction-tape";
+    public string Name => "Correction Tape";
+    public string Description => "Use right after a play: takes it back — the tiles return to your hand and you get the submission back.";
+    public StationeryTarget Target => StationeryTarget.None;
+}
+
 public static class StationeryCatalog
 {
     public static ImmutableArray<IStationery> All { get; } =
-        [new AnswerKey(), new MarginClip(), new Scissors(), new WhiteOut(), new RedInkBottle(), new FountainPen()];
+    [
+        new AnswerKey(), new MarginClip(), new Scissors(), new WhiteOut(), new RedInkBottle(), new FountainPen(),
+        new Highlighter(), new GoldStar(), new Clipping(), new PoeticLicense(), new CorrectionTape(),
+    ];
 
     public static IStationery? Find(string id) => All.FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
@@ -99,6 +162,8 @@ public static class StationeryCatalog
             Scissors => !round.Bag.IsEmpty,
             WhiteOut => !round.Board.IsEmpty,
             FountainPen => round.Hand.Tiles.Any(t => !t.IsWild),
+            PoeticLicense => round.Hand.Count > 0,
+            CorrectionTape => round.Undo is not null,
             _ => false,
         });
 }

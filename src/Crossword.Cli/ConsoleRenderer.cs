@@ -75,7 +75,10 @@ public static class ConsoleRenderer
     public static string Status(RoundState round) =>
         $"Score {round.Score}/{round.Config.TargetScore} | Submissions {round.SubmissionsLeft} | " +
         $"Discards {round.DiscardsLeft} | Bag {round.Bag.Count}" +
-        (round.Config.CensoredLetter is { } censored ? $" | Censored: {censored}" : "");
+        (round.Config.CensoredLetter is { } censored ? $" | Censored: {censored}" : "") +
+        (round.Config.Highlight is { } highlight ? $" | Highlighter x{highlight.Factor} on tile #{highlight.TileId}" : "") +
+        (round.Config.Clipping is { } clipping ? $" | Clipping: {clipping.Text}" : "") +
+        (round.Config.IllegalWordsAllowed > 0 ? $" | Poetic License x{round.Config.IllegalWordsAllowed}" : "");
 
     public static string Desk(RunState run, ShopConfig shop, int slots = RunState.MaxDeskSlots) =>
         run.DeskItems.IsEmpty

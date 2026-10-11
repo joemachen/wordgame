@@ -51,9 +51,17 @@ public sealed record ShopConfig(
 {
     /// <summary>
     /// Margin Clip costs $6: at the flat $3 it alone added +13 pts of win rate (ScoreFraction 0.75). Price is a weak lever
-    /// for it — $5–$7 measure alike — because an extra submission saves runs.
+    /// for it — $5–$7 measure alike — because an extra submission saves runs. The rule-breakers (2026-10-10) are priced
+    /// above the flat $3 by how much they bend: a Gold Star or Clipping $4, a Poetic License or Correction Tape $5.
     /// </summary>
-    public static ShopConfig Default { get; } = new(StationeryPrices: new Dictionary<string, int> { ["margin-clip"] = 6 });
+    public static ShopConfig Default { get; } = new(StationeryPrices: new Dictionary<string, int>
+    {
+        ["margin-clip"] = 6,
+        ["gold-star"] = 4,
+        ["clipping"] = 4,
+        ["poetic-license"] = 5,
+        ["correction-tape"] = 5,
+    });
 
     public int PriceOf(IDeskItem item) => item.Rarity switch
     {

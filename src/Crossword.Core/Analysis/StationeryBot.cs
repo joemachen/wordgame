@@ -16,12 +16,16 @@ namespace Crossword.Core.Analysis;
 /// <item>Scissors: to cut hard letters (Q, Z, X, J) the chosen play doesn't use, or to escape a stuck hand.</item>
 /// <item>Fountain Pen: to turn such a hard letter wild (checked before Scissors), or to escape a stuck hand.</item>
 /// <item>White-Out: only to escape a stuck hand (no legal play, no discards left).</item>
+/// <item>Highlighter: on the most valuable letter (worth at least <see cref="HighlightValue"/>) the chosen play places.</item>
+/// <item>Clipping: on the last submission when short of the target, on the longest word on the board.</item>
+/// <item>Gold Star, Poetic License, Correction Tape: never (their value needs foresight the bot doesn't have).</item>
 /// </list>
 /// </summary>
 public static class StationeryBot
 {
     private const string AwkwardLetters = "QZXJVK";
     private const string HardLetters = "QZXJ";
+    private const int HighlightValue = 4;
 
     /// <summary>
     /// Before submitting <paramref name="choice"/>: returns the session after using one item (or the same session), and
@@ -47,6 +51,22 @@ public static class StationeryBot
         bool bossOpener = session.Kind.IsBoss && round.SubmissionsLeft == round.Config.Submissions;
         if ((bossOpener || (fallsShort && lastSubmission)) && Use<RedInkBottle>(session, lexicon) is { } ink)
             return (ink.Session, null);
+
+        int highlighterSlot = SlotOf<Highlighter>(held);
+        if (highlighterSlot >= 0 && round.Config.Highlight is null)
+        {
+            var values = round.Config.EffectiveScoring(session.Scoring);
+            var pick = choice.Play.Placed.Select(p => p.Tile).Where(t => !t.IsWild).OrderByDescending(t => values.ValueOf(t)).FirstOrDefault();
+            if (pick is not null && values.ValueOf(pick) >= HighlightValue
+                && RunRules.UseStationery(session, highlighterSlot, lexicon, tileIds: [pick.Id]) is { IsOk: true } marked)
+                return (marked.Value.Session, null);
+        }
+
+        int clippingSlot = SlotOf<Clipping>(held);
+        if (clippingSlot >= 0 && fallsShort && lastSubmission && round.Config.Clipping is null
+            && Clues.BoardWords.Numbered(round.Board).OrderByDescending(w => w.Text.Length).FirstOrDefault() is { } longest
+            && RunRules.UseStationery(session, clippingSlot, lexicon, cell: longest.Start) is { IsOk: true } clipped)
+            return (clipped.Value.Session, null);
 
         var playing = choice.Play.Placed.Select(p => p.Tile.Id).ToHashSet();
         int penSlot = SlotOf<FountainPen>(held);

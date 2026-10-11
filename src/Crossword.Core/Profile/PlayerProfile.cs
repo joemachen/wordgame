@@ -69,18 +69,20 @@ public sealed record PlayerProfile(string Name, PlayerStats Stats)
 /// <summary>Pure transitions for <see cref="PlayerStats"/>.</summary>
 public static class StatsRules
 {
-    public static PlayerStats RecordPlay(PlayerStats stats, PlayAnalysis play, long score)
+    /// <param name="isWord">Filters the words that enter the lifetime word stats (a Poetic License play may contain a non-word); null = all.</param>
+    public static PlayerStats RecordPlay(PlayerStats stats, PlayAnalysis play, long score, Func<string, bool>? isWord = null)
     {
         long sequence = stats.PlaysRecorded + 1;
         var words = stats.Words.ToBuilder();
-        foreach (var word in play.Words)
+        var counted = play.Words.Where(w => isWord?.Invoke(w.Text) ?? true).ToList();
+        foreach (var word in counted)
         {
             words[word.Text] = words.TryGetValue(word.Text, out var use)
                 ? use with { Count = use.Count + 1, LastPlayed = sequence }
                 : new WordUse(1, sequence, sequence);
         }
 
-        string longest = play.LongestWord.Text;
+        string? longest = counted.MaxBy(w => w.Length)?.Text;
         bool best = score > stats.BestPlayScore;
         return stats with
         {
@@ -88,7 +90,7 @@ public static class StatsRules
             PlaysRecorded = sequence,
             BestPlayScore = best ? score : stats.BestPlayScore,
             BestPlayWords = best ? string.Join(" + ", play.Words.Select(w => w.Text)) : stats.BestPlayWords,
-            LongestWord = stats.LongestWord is null || longest.Length > stats.LongestWord.Length ? longest : stats.LongestWord,
+            LongestWord = longest is not null && (stats.LongestWord is null || longest.Length > stats.LongestWord.Length) ? longest : stats.LongestWord,
             TotalIntersections = stats.TotalIntersections + play.Intersections.Length,
         };
     }

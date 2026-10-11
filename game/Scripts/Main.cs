@@ -446,7 +446,10 @@ public partial class Main : Control
             _scoreLabel.Text = Round.Score.ToString("N0");
         _resourcesLabel.Text = $"Submissions {Round.SubmissionsLeft}   ·   Discards {Round.DiscardsLeft}   ·   Bag {Round.Bag.Count}"
             + (Round.Config.BonusMult > 0 ? $"   ·   Red ink +{Round.Config.BonusMult:0.##} mult" : "")
-            + (Round.Config.CensoredLetter is { } censored ? $"   ·   Censored: {censored}" : "");
+            + (Round.Config.CensoredLetter is { } censored ? $"   ·   Censored: {censored}" : "")
+            + (Round.Config.Highlight is { } highlight ? $"   ·   Highlighter ×{highlight.Factor} on {Round.Hand.Tiles.FirstOrDefault(t => t.Id == highlight.TileId)?.ToString() ?? "?"}" : "")
+            + (Round.Config.Clipping is { } clipping ? $"   ·   Clipping: {clipping.Text}" : "")
+            + (Round.Config.IllegalWordsAllowed > 0 ? $"   ·   Poetic License ×{Round.Config.IllegalWordsAllowed}" : "");
         _moneyLabel.Text = $"${Run.Money}";
         _seedLabel.Text = IsCustomRun ? $"{SeedText()}\n{PressRunText()}" : SeedText();
         var deckInfo = Decks.Get(Run.DeckId);

@@ -14,9 +14,10 @@ namespace Crossword.Core.Rules;
 /// </summary>
 public static class PlacementValidator
 {
+    /// <param name="allowedInvalidWords">Distinct non-dictionary words the play may contain (Poetic License).</param>
     public static Result<PlayAnalysis, PlacementError> Validate(
         Board board, Hand hand, IReadOnlyList<PlacedTile> placed, ILexicon lexicon, int minWordLength = 2,
-        char? censoredLetter = null)
+        char? censoredLetter = null, int allowedInvalidWords = 0)
     {
         if (StructuralError(board, hand, placed, censoredLetter) is { } error)
             return Result<PlayAnalysis, PlacementError>.Fail(error);
@@ -33,7 +34,7 @@ public static class PlacementValidator
             return Result<PlayAnalysis, PlacementError>.Fail(new PlacementError.WordsTooShort(tooShort, minWordLength));
 
         var invalid = words.Select(w => w.Text).Where(t => !lexicon.Contains(t)).Distinct().ToImmutableArray();
-        if (!invalid.IsEmpty)
+        if (invalid.Length > allowedInvalidWords)
             return Result<PlayAnalysis, PlacementError>.Fail(new PlacementError.InvalidWords(invalid));
 
         return Result<PlayAnalysis, PlacementError>.Ok(new PlayAnalysis(placed.ToImmutableArray(), words, boardAfter));

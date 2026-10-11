@@ -39,6 +39,20 @@ public static class BoardWords
         return words.ToImmutable();
     }
 
+    /// <summary>The words (across, then down) running through <paramref name="cell"/>; none when it is empty or alone.</summary>
+    public static ImmutableArray<NumberedWord> Through(Board board, Position cell) =>
+        Numbered(board).Where(w => Covers(board, w, cell)).ToImmutableArray();
+
+    private static bool Covers(Board board, NumberedWord word, Position cell)
+    {
+        for (var p = word.Start; board.TileAt(p) is not null; p = p.Step(word.Direction))
+        {
+            if (p == cell)
+                return true;
+        }
+        return false;
+    }
+
     private static bool Starts(Board board, Position cell, Direction direction) =>
         !board.IsOccupied(cell.Step(direction, -1)) && board.IsOccupied(cell.Step(direction));
 

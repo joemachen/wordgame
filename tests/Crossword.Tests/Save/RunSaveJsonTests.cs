@@ -57,6 +57,7 @@ public class RunSaveJsonTests
             new Archive(MinLength: 6, MultPerLongWord: 2, Mult: 7.5m),
             new Pulitzer(Factor: 2.5m, PerBoss: 0.25m),
             new PrintingPressRoller(MinWords: 2, Gain: 0.2m, Factor: 1.6m),
+            new LettersToTheEditor(MultPerLetter: 1m, Letters: "ACT"),
         ]).ToList();
 
         foreach (var item in items)
@@ -126,11 +127,31 @@ public class RunSaveJsonTests
             with { Blocked = [empty[1], empty[2]] };
         session = session with
         {
-            Round = round with { Board = board, Config = round.Config with { BonusMult = 3 } },
+            Round = round with
+            {
+                Board = board,
+                Config = round.Config with
+                {
+                    BonusMult = 3,
+                    Clipping = new ClippedWord(new Position(0, 0), Direction.Across, "CAT"),
+                    Highlight = new TileHighlight(1, 3),
+                    IllegalWordsAllowed = 2,
+                },
+            },
             LastPayout = new Payout(3, 2, 1, 4),
         };
+        Assert.NotNull(session.Round.Undo); // the play above can still be taken back
 
         var restored = RoundTrip(session, [5, 3, 1]);
+
+        Assert.Equal(session.Round.Config.Clipping, restored.Round.Config.Clipping);
+        Assert.Equal(session.Round.Config.Highlight, restored.Round.Config.Highlight);
+        Assert.Equal(2, restored.Round.Config.IllegalWordsAllowed);
+        Assert.NotNull(restored.Round.Undo);
+        Assert.Equal(session.Round.Undo!.Round.Score, restored.Round.Undo!.Round.Score);
+        Assert.Equal(session.Round.Undo.Round.Hand.Tiles.ToArray(), restored.Round.Undo.Round.Hand.Tiles.ToArray());
+        Assert.Equal(session.Round.Undo.DeskItems.ToArray(), restored.Round.Undo.DeskItems.ToArray());
+        Assert.Equal(session.Round.Undo.Money, restored.Round.Undo.Money);
 
         Assert.Equal(session.Run.Seed, restored.Run.Seed);
         Assert.Equal(session.Run.Rng, restored.Run.Rng);
@@ -348,7 +369,7 @@ public class RunSaveJsonTests
 
     /// <summary>Keys the pre-Press-Run fixture lacks (they didn't exist when it was written); each loads as its default.</summary>
     private static readonly string[] LegacyMissingKeys =
-        ["pressRun", "deckId", "dictionaries", "seeded", "censoredLetter", "unusedDiscards", "floorTopUp"];
+        ["pressRun", "deckId", "dictionaries", "seeded", "censoredLetter", "unusedDiscards", "floorTopUp", "clipping", "highlight", "illegalWordsAllowed", "undo"];
 
     /// <summary>
     /// Rewrites both committed fixtures from <see cref="FixtureSession"/> when the environment variable

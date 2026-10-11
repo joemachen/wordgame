@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Crossword.Core.Analysis;
+using Crossword.Core.DeskItems;
 using Crossword.Core.Domain;
 using Crossword.Core.Lexicon;
 using Crossword.Core.Random;
@@ -176,6 +177,206 @@ public class StationeryTests
         Assert.Equal(ranked[0].Score.Total, used.Play!.Score.Total);
         Assert.Equal(session.Round, used.Session.Round); // revealing the play changes nothing else
         Assert.True(RunRules.Submit(used.Session, used.Play.Play.Placed, LexiconLoader.Enable).IsOk);
+    }
+
+    // ---------------------------------------------------------------- the rule-breakers (2026-10-10)
+
+    [Fact]
+    public void GoldStar_PutsAPremiumOnAnEmptySquare_ThatPaysWhenATileLandsThere()
+    {
+        var session = KnownRound(stationery: new GoldStar(Premium.DoubleWord));
+        var placed = Spell(session.Round.Board, session.Round.Hand, 1, 1, Direction.Across, "TO");
+        var plain = RunRules.Submit(session, placed, Words).Value.Score;
+
+        var starred = RunRules.UseStationery(session, 0, Words, cell: new Position(1, 2)).Value.Session;
+        var scored = RunRules.Submit(starred, placed, Words).Value.Score;
+
+        Assert.Equal(Premium.DoubleWord, starred.Round.Board.PremiumAt(new Position(1, 2)));
+        Assert.Empty(starred.Run.Stationery);
+        Assert.Equal(plain.WordChips[0] * 2, scored.WordChips[0]); // TO, the main word, runs over the star
+    }
+
+    [Fact]
+    public void GoldStar_NeedsAnEmptyUnblockedSquare_OrItIsKept()
+    {
+        var session = KnownRound(stationery: new GoldStar());
+        var blocked = session with { Round = session.Round with { Board = session.Round.Board with { Blocked = [new Position(4, 4)] } } };
+
+        Assert.False(RunRules.UseStationery(session, 0, Words).IsOk);
+        Assert.False(RunRules.UseStationery(session, 0, Words, cell: new Position(0, 0)).IsOk); // occupied
+        Assert.False(RunRules.UseStationery(blocked, 0, Words, cell: new Position(4, 4)).IsOk);
+        Assert.False(RunRules.UseStationery(session, 0, Words, cell: new Position(9, 9)).IsOk);
+        Assert.Single(session.Run.Stationery);
+    }
+
+    [Fact]
+    public void Clipping_ScoresTheChosenBoardWordAgainOnTheNextPlay_ThenEnds()
+    {
+        var session = KnownRound(stationery: new Clipping());
+        var placed = Spell(session.Round.Board, session.Round.Hand, 1, 1, Direction.Across, "TO");
+        var plain = RunRules.Submit(session, placed, Words).Value.Score;
+
+        var clipped = RunRules.UseStationery(session, 0, Words, cell: new Position(0, 1)).Value.Session;
+        var scored = RunRules.Submit(clipped, placed, Words).Value;
+
+        Assert.Equal(new ClippedWord(new Position(0, 0), Direction.Across, "CAT"), clipped.Round.Config.Clipping);
+        Assert.Equal(plain.Chips + 5, scored.Score.Chips); // C3 + A1 + T1, no premiums
+        Assert.Contains(scored.Score.Log, e => e.SourceId == ScoringEngine.Sources.Clipping && e.Description.Contains("CAT again, +5 chips"));
+        Assert.Null(scored.Session.Round.Config.Clipping);
+    }
+
+    [Fact]
+    public void Clipping_PicksTheLongerWordThroughTheCell_AndNeedsAWord()
+    {
+        // CAT across the top with TO under AT: the A at (0,1) is in CAT (3) and AT (2).
+        var session = KnownRound(stationery: new Clipping());
+        session = RunRules.Submit(session, Spell(session.Round.Board, session.Round.Hand, 1, 1, Direction.Across, "TO"), Words).Value.Session;
+
+        var clipped = RunRules.UseStationery(session, 0, Words, cell: new Position(0, 1)).Value.Session;
+
+        Assert.Equal("CAT", clipped.Round.Config.Clipping!.Text);
+        Assert.False(RunRules.UseStationery(session, 0, Words, cell: new Position(4, 4)).IsOk); // nothing there
+        Assert.False(RunRules.UseStationery(session, 0, Words).IsOk);
+    }
+
+    [Fact]
+    public void Clipping_PrintsNothingWhenTheWordWasCut_AndIgnoresRedundantCopy()
+    {
+        var session = KnownRound(stationery: [new Clipping(), new WhiteOut()]);
+        var clipped = RunRules.UseStationery(session, 0, Words, cell: new Position(0, 1)).Value.Session;
+        var cut = RunRules.UseStationery(clipped, 0, Words, cell: new Position(0, 0)).Value.Session; // the C is gone
+        var afterCut = RunRules.Submit(cut, Spell(cut.Round.Board, cut.Round.Hand, 1, 1, Direction.Across, "TO"), Words).Value.Score;
+        Assert.DoesNotContain(afterCut.Log, e => e.SourceId == ScoringEngine.Sources.Clipping);
+
+        var redundant = clipped with
+        {
+            Round = clipped.Round with
+            {
+                Config = new RedundantCopy().Apply(clipped.Round.Config),
+                WordsFormed = ["CAT"],
+            },
+        };
+        var reprinted = RunRules.Submit(redundant, Spell(redundant.Round.Board, redundant.Round.Hand, 1, 1, Direction.Across, "TO"), Words).Value.Score;
+        Assert.Contains(reprinted.Log, e => e.SourceId == ScoringEngine.Sources.Clipping && e.Description.Contains("+5 chips"));
+    }
+
+    [Fact]
+    public void PoeticLicense_LetsOneNonWordThrough_OncePerLicence()
+    {
+        var session = KnownRound(stationery: new PoeticLicense());
+        var cr = Spell(session.Round.Board, session.Round.Hand, 1, 0, Direction.Across, "R"); // CR down: not a word
+        Assert.False(RunRules.Submit(session, cr, Words).IsOk);
+
+        var licensed = RunRules.UseStationery(session, 0, Words).Value.Session;
+        Assert.Equal(1, licensed.Round.Config.IllegalWordsAllowed);
+        var scored = RunRules.Submit(licensed, cr, Words).Value;
+
+        Assert.Contains(scored.Score.Play.Words, w => w.Text == "CR");
+        Assert.True(scored.Score.Total > 0);
+        Assert.Equal(0, scored.Session.Round.Config.IllegalWordsAllowed);
+        Assert.False(RunRules.Submit(scored.Session, Spell(scored.Session.Round.Board, scored.Session.Round.Hand, 2, 0, Direction.Across, "S"), Words).IsOk);
+    }
+
+    [Fact]
+    public void PoeticLicense_CoversOneDistinctNonWord_NotTwo()
+    {
+        var session = KnownRound(stationery: new PoeticLicense());
+        var licensed = RunRules.UseStationery(session, 0, Words).Value.Session;
+        var rs = Spell(licensed.Round.Board, licensed.Round.Hand, 1, 0, Direction.Across, "RS"); // RS and CR are both non-words
+
+        Assert.False(RunRules.Submit(licensed, rs, Words).IsOk);
+    }
+
+    [Fact]
+    public void PoeticLicense_KeepsAStuckHandAlive_AndCountsAsALegalPlay()
+    {
+        var session = DiscardHand(AboutToDeadlock(stationery: new PoeticLicense()));
+        Assert.Equal(RoundStatus.InProgress, session.Round.Status); // the licence could still be used
+
+        var licensed = RunRules.UseStationery(session, 0, Words).Value.Session;
+
+        Assert.Equal(RoundStatus.InProgress, licensed.Round.Status);
+        Assert.True(RoundRules.HasLegalPlay(licensed.Round, Words)); // a Q next to CAT forms a licensed non-word
+        Assert.True(StationeryCatalog.CanEscape([new PoeticLicense()], session.Round));
+    }
+
+    [Fact]
+    public void Highlighter_TriplesOneTilesLetterValueOnTheNextPlay_ThenEnds()
+    {
+        var session = KnownRound(stationery: new Highlighter(Factor: 3));
+        var cats = Spell(session.Round.Board, session.Round.Hand, 0, 0, Direction.Across, "CATS"); // places the S (id 3)
+        var plain = RunRules.Submit(session, cats, Words).Value.Score;
+
+        var marked = RunRules.UseStationery(session, 0, Words, tileIds: [3]).Value.Session;
+        var scored = RunRules.Submit(marked, cats, Words).Value;
+
+        Assert.Equal(new TileHighlight(3, 3), marked.Round.Config.Highlight);
+        Assert.Equal(plain.WordChips[0] + 2, scored.Score.WordChips[0]); // S is worth 3 instead of 1
+        Assert.Contains(scored.Score.Log, e => e.Description.Contains("highlighted S ×3"));
+        Assert.Null(scored.Session.Round.Config.Highlight);
+    }
+
+    [Fact]
+    public void Highlighter_EndsWhenTheTileLeavesTheHand_AndRefusesWilds()
+    {
+        var session = KnownRound(stationery: new Highlighter());
+        var marked = RunRules.UseStationery(session, 0, Words, tileIds: [3]).Value.Session;
+        var discarded = RunRules.Discard(marked, [3], Words).Value;
+        Assert.Null(discarded.Round.Config.Highlight);
+
+        var wild = session with { Round = session.Round with { Hand = new Hand(session.Round.Hand.Tiles.Replace(session.Round.Hand.Tiles[3], Tile.Wild(3))) } };
+        Assert.False(RunRules.UseStationery(wild, 0, Words, tileIds: [3]).IsOk);
+        Assert.False(RunRules.UseStationery(session, 0, Words, tileIds: [3, 4]).IsOk);
+        Assert.Single(session.Run.Stationery);
+    }
+
+    [Fact]
+    public void CorrectionTape_TakesBackThePlayJustMade_RoundDeskItemsAndMoney()
+    {
+        var session = KnownRound(stationery: new CorrectionTape());
+        session = session with { Run = session.Run with { Money = 5, DeskItems = [new WordCount(ChipsPerTile: 2, Chips: 0)] } };
+        var played = RunRules.Submit(session, Spell(session.Round.Board, session.Round.Hand, 1, 1, Direction.Across, "TO"), Words).Value.Session;
+        Assert.Equal(3, played.Round.SubmissionsLeft);
+        Assert.Equal(4L, ((WordCount)played.Run.DeskItems[0]).Chips);
+        Assert.NotNull(played.Round.Undo);
+
+        var undone = RunRules.UseStationery(played, 0, Words).Value.Session;
+
+        Assert.Equal(0, undone.Round.Score);
+        Assert.Equal(4, undone.Round.SubmissionsLeft);
+        Assert.Equal(session.Round.Hand.Tiles.Select(t => t.Id).Order(), undone.Round.Hand.Tiles.Select(t => t.Id).Order());
+        Assert.Equal(session.Round.Board.Cells.ToArray(), undone.Round.Board.Cells.ToArray());
+        Assert.Equal(session.Round.Bag.Tiles.ToArray(), undone.Round.Bag.Tiles.ToArray());
+        Assert.Equal(0L, ((WordCount)undone.Run.DeskItems[0]).Chips);
+        Assert.Equal(5, undone.Run.Money);
+        Assert.Empty(undone.Run.Stationery);
+        Assert.Null(undone.Round.Undo);
+    }
+
+    [Fact]
+    public void CorrectionTape_OnlyWorksRightAfterAPlay()
+    {
+        var fresh = KnownRound(stationery: new CorrectionTape());
+        Assert.False(RunRules.UseStationery(fresh, 0, Words).IsOk);
+        Assert.False(StationeryCatalog.CanEscape([new CorrectionTape()], fresh.Round));
+
+        var played = RunRules.Submit(fresh, Spell(fresh.Round.Board, fresh.Round.Hand, 1, 1, Direction.Across, "TO"), Words).Value.Session;
+        Assert.True(StationeryCatalog.CanEscape([new CorrectionTape()], played.Round));
+        var discarded = RunRules.Discard(played, [played.Round.Hand.Tiles[0].Id], Words).Value;
+        Assert.Null(discarded.Round.Undo);
+        Assert.False(RunRules.UseStationery(discarded, 0, Words).IsOk);
+        Assert.Single(discarded.Run.Stationery);
+    }
+
+    [Fact]
+    public void Catalog_ListsTheNewItems_WithTheirTargets()
+    {
+        Assert.Equal(11, StationeryCatalog.All.Length);
+        Assert.Equal(StationeryTarget.EmptyCell, StationeryCatalog.Find("gold-star")!.Target);
+        Assert.Equal(StationeryTarget.BoardWord, StationeryCatalog.Find("clipping")!.Target);
+        Assert.Equal(StationeryTarget.HandTiles, StationeryCatalog.Find("highlighter")!.Target);
+        Assert.Equal(StationeryTarget.None, StationeryCatalog.Find("poetic-license")!.Target);
+        Assert.Equal(StationeryTarget.None, StationeryCatalog.Find("correction-tape")!.Target);
     }
 
     [Fact]

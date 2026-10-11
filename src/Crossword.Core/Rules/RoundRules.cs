@@ -38,6 +38,11 @@ public abstract record RoundError
         public override string Message => "There's no tile there.";
     }
 
+    public sealed record CellNotEmpty(Position Position) : RoundError
+    {
+        public override string Message => "Choose an empty, unblocked square.";
+    }
+
     public sealed record InvalidPlacement(PlacementError Error) : RoundError
     {
         public override string Message => Error.Message;
@@ -95,7 +100,7 @@ public static class RoundRules
             return Result<SubmitOutcome, RoundError>.Fail(new RoundError.RoundOver(state.Status));
 
         var validation = PlacementValidator.Validate(state.Board, state.Hand, placed, lexicon, state.Config.MinWordLength,
-            state.Config.CensoredLetter);
+            state.Config.CensoredLetter, state.Config.IllegalWordsAllowed);
         if (!validation.IsOk)
             return Result<SubmitOutcome, RoundError>.Fail(new RoundError.InvalidPlacement(validation.Error));
 
@@ -103,6 +108,8 @@ public static class RoundRules
         var score = ScoringEngine.Score(play, deskItems, state.Config.EffectiveScoring(scoring), Environment(state, moneyHeld));
         var next = state with
         {
+            Config = AfterPlay(state.Config, play, placed, lexicon),
+            Undo = null,
             Board = play.BoardAfter,
             Hand = state.Hand.Remove(placed.Select(p => p.Tile.Id)),
             Score = state.Score + score.Total,
@@ -112,6 +119,17 @@ public static class RoundRules
         };
 
         return Result<SubmitOutcome, RoundError>.Ok(new SubmitOutcome(CheckDeadlock(DrawRules.DrawToHandSize(next), lexicon, canEscape), score));
+    }
+
+    /// <summary>One-play Stationery effects end with the play that used them.</summary>
+    private static RoundConfig AfterPlay(RoundConfig config, PlayAnalysis play, IReadOnlyList<PlacedTile> placed, IWordGraph lexicon)
+    {
+        var next = config with { Clipping = null };
+        if (next.Highlight is { } highlight && placed.Any(p => p.Tile.Id == highlight.TileId))
+            next = next with { Highlight = null };
+        if (next.IllegalWordsAllowed > 0 && play.Words.Any(w => !lexicon.Contains(w.Text)))
+            next = next with { IllegalWordsAllowed = next.IllegalWordsAllowed - 1 };
+        return next;
     }
 
     /// <summary>Removes the selected tiles from play for this round and refills the hand. Costs one discard.</summary>
@@ -142,7 +160,19 @@ public static class RoundRules
             return Result<RoundState, RoundError>.Fail(new RoundError.RoundOver(state.Status));
         if (!state.Board.IsOccupied(position))
             return Result<RoundState, RoundError>.Fail(new RoundError.NoTileThere(position));
-        return Result<RoundState, RoundError>.Ok(CheckDeadlock(state with { Board = state.Board.Remove(position) }, lexicon, canEscape));
+        return Result<RoundState, RoundError>.Ok(CheckDeadlock(state with { Board = state.Board.Remove(position), Undo = null }, lexicon, canEscape));
+    }
+
+    /// <summary>Puts a premium on an empty square for the rest of the round (Gold Star); it pays when a tile lands there.</summary>
+    public static Result<RoundState, RoundError> PlacePremium(RoundState state, Position position, Premium premium, IWordGraph lexicon,
+        bool canEscape = false)
+    {
+        if (state.Status != RoundStatus.InProgress)
+            return Result<RoundState, RoundError>.Fail(new RoundError.RoundOver(state.Status));
+        if (!state.Board.InBounds(position) || state.Board.IsBlocked(position) || state.Board.IsOccupied(position))
+            return Result<RoundState, RoundError>.Fail(new RoundError.CellNotEmpty(position));
+        var next = state with { Board = state.Board.WithPremium(position, premium), Undo = null };
+        return Result<RoundState, RoundError>.Ok(CheckDeadlock(next, lexicon, canEscape));
     }
 
     /// <summary>What Desk Items can see about the round when the next play is scored.</summary>
@@ -153,9 +183,36 @@ public static class RoundRules
             WordsFormed = state.WordsFormed,
         };
 
-    /// <summary>True if the current hand has at least one legal play on the current board.</summary>
+    /// <summary>True if the current hand has at least one legal play on the current board (a Poetic License counts).</summary>
     public static bool HasLegalPlay(RoundState state, IWordGraph lexicon) =>
-        MoveGenerator.HasLegalPlay(state.Board, state.Hand, lexicon, state.Config.MinWordLength, state.Config.CensoredLetter);
+        MoveGenerator.HasLegalPlay(state.Board, state.Hand, lexicon, state.Config.MinWordLength, state.Config.CensoredLetter)
+        || (state.Config.IllegalWordsAllowed > 0 && HasLicensedPlay(state, lexicon));
+
+    /// <summary>
+    /// The move generator walks the dictionary, so it never sees the non-word plays a Poetic License allows: try every
+    /// hand tile on every empty square (a wild as E) through the validator with the allowance.
+    /// </summary>
+    private static bool HasLicensedPlay(RoundState state, IWordGraph lexicon)
+    {
+        var board = state.Board;
+        var tiles = state.Hand.Tiles.Select(t => t.IsWild ? t.As(Letter.From('E')) : t).DistinctBy(t => (t.Letter.Char, t.IsWild)).ToList();
+        for (int row = 0; row < board.Size; row++)
+        {
+            for (int col = 0; col < board.Size; col++)
+            {
+                var cell = new Position(row, col);
+                if (board.IsOccupied(cell) || board.IsBlocked(cell))
+                    continue;
+                foreach (var tile in tiles)
+                {
+                    if (PlacementValidator.Validate(board, state.Hand, [new PlacedTile(cell, tile)], lexicon, state.Config.MinWordLength,
+                            state.Config.CensoredLetter, state.Config.IllegalWordsAllowed).IsOk)
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
 
     /// <summary>
     /// Marks the round deadlocked when no legal play exists and no discards remain, unless <paramref name="canEscape"/>
@@ -174,7 +231,9 @@ public static class RoundRules
         if (tileIds.FirstOrDefault(id => !state.Hand.Contains(id), -1) is var missing and >= 0)
             return Result<RoundState, RoundError>.Fail(new RoundError.TileNotInHand(missing));
 
-        var next = state with { Hand = state.Hand.Remove(tileIds) };
+        var next = state with { Hand = state.Hand.Remove(tileIds), Undo = null };
+        if (next.Config.Highlight is { } highlight && tileIds.Contains(highlight.TileId))
+            next = next with { Config = next.Config with { Highlight = null } }; // the marked tile left the hand
         return Result<RoundState, RoundError>.Ok(CheckDeadlock(DrawRules.DrawToHandSize(next), lexicon, canEscape));
     }
 }
