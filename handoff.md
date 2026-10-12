@@ -5,13 +5,15 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-11 · HEAD `317ff3c` (code) · 568 unit tests passing · UI self-test 108/108 passing · CI green_
+_Last updated: 2026-10-12 · HEAD `dbd0721` (code) · 570 unit tests passing · UI self-test 108/108 passing · CI green_
 
 ## 0. ▶ Status and what's next
 
-**Nothing is queued.** Everything the user asked for through 2026-10-11 is built, tested and pushed (CI green). Next: the user playtests the new content (§6), and the Press Run ladder (§4a) should be re-measured on the new targets.
+**Playtested 2026-10-11: "all is good"** — the user played the 2026-10-11 batch (Esc/pause, auto-ordered desk, How to play, two Stationery per shop, targets ×0.88) and reported no issues. Then (user's pick) the **Press Run ladder was re-measured and retuned** (§4a): the $5 paycheck floor had
+made First Edition a no-op, so the user chose the "full fix" — strong player now 51.5 → 6.5% in steps of 4–11.
+**Nothing is queued**; pick the next item from §6.
 
-**Difficulty after the content batch — resolved 2026-10-11** (§4d): two Stationery per shop only recovered ~3 pts, so the user chose to **lower the week targets ×0.88** (450/1580/4730/12830/21050). Reference 0.75 back to 39%. Follow-up: the Press Run ladder (§4a) was measured on the old targets and has shifted up; re-measure it when convenient. Earlier §0 items, both done:
+**Difficulty after the content batch — resolved 2026-10-11** (§4d): two Stationery per shop only recovered ~3 pts, so the user chose to **lower the week targets ×0.88** (450/1580/4730/12830/21050). Reference 0.75 back to 39%. Earlier §0 items, both done:
 
 
 ### A. ~~Re-examine the economy~~ ✅ 2026-10-10 — **paycheck floor $5 + "Earn more" line** (user's pick)
@@ -85,7 +87,7 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
 | Tooling | Move generator, greedy `RoundSimulator`, whole-run `RunSimulator` (`runsim`, now with submissions-to-win per week/day and a `frac` ScoreFraction skill model) with **`EvaluatingShopBot`** (values purchases by re-scoring recent plays; buys Stationery at a fixed gain per item; `NaiveShopBot` kept for comparison) and **`StationeryBot`** (uses Stationery in simulated rounds, incl. Fountain Pen on dead Q/Z/X/J), CLI `hint`/`sim`, plus Stationery (`use <slot> [LETTERS|cell]`, `sellst`, `give`) and `save`/`load` (game save format). The bot *can* buy wild tiles/edits and the Fountain Pen (`ShopBotConfig.WildTileGain`/`WildEditGain`/`StationeryGain`) but defaults are 0 (measured no gain). `SimulatedRunRound` records each round's paycheck breakdown, in-round money and shop spending by category (`ShopSpend`). Clue engine in Core (`Clues/`: `BoardWords`, `MarginClues`, `NewsroomClues`). `tools/Crossword.DefinitionsBuilder` regenerates the embedded definitions from Open English WordNet (+ `supplement.txt`). |
 | UI (Godot) | Full playable loop: board, hand (click/type/drag, shuffle, drag-reorder with a ghost slot and tiles sliding apart), live score preview with word definitions, animated scoring with a **scoring receipt** (register tape right of the board, `Receipt.cs`: one line per step with the running chips × mult, TOTAL counts up; lingers until a tile is touched; the sidebar log is gone), Desk Items bar (kept in the best order automatically by `DeskOrder`; slot numbers and kind tags (+CHIPS, +MULT, ×MULT…); one fixed height full or empty; sell) + 2 Stationery slots (use/sell; Scissors use the selected hand tiles, White-Out arms a board-targeting mode, Red Ink shows in the round info), Style Guides **drawer** sliding in from the right edge (Tab, the GUIDES bookmark on the edge, or the sidebar button: every tier's guide, level, chips × mult, next upgrade, owned + current-play highlights; the game stays visible behind it), shop + tile picker, paycheck, win/lose screens. **How to play** (title + pause screen; Basics / Scoring / Desk Items / Stationery & shop tabs from the live config), **pause screen** on Esc, **Title menu** on launch (Continue — Enter — / New run / Profile / Stats / Settings / Quit; sidebar Menu button reopens it), **profiles** (list, switch, create; each keeps its stats, unlocks and run; last one remembered), **Settings** (reduced motion, fullscreen, text size 90–120%; `user://settings.cfg`), New-run picker with a **seed box**. Week progress in the sidebar (pips, this week's three puzzles, puzzles until the boss), A→Z/Z→A sort, NEW tag on drawn tiles (fades after 3 s or on first touch of the hand), drag pending tiles between squares or back to the hand. **Wild tiles** show as "?" in hand; placing one opens a letter picker (click or type). Enhanced tiles and enhancement shop cards say what Bold / Italic / Gilded do (tooltips + card text from `ScoringConfig.Describe`, 2026-10-10). ACROSS/DOWN **clue columns** are built but hidden (`Main.ShowClueColumns`). **Scoring ring-up** (`Juice.cs`): count-ups, punches, Desk Item card pops with floating deltas, escalation to shake + confetti, "STOP THE PRESSES!" stamp when one play clears the deadline. **Player profile + Stats popup** (`user://profiles/<name>.json`). First-pass visuals (no art or sound yet). |
 | Save & resume | The run is saved to `user://saves/<profile>.json` after every session change and on window close, and offered by the title menu's **Continue** on launch ("Resumed your run: Week N, …"). `Core/Save/RunSaveJson` stores the whole `GameSession` except `RunConfig` (+ the hand arrangement); a lost run deletes the save, a won run keeps it (endless choice); a corrupt or other-version save is moved to `.bak` with a notice. The title's New run needs a second click while a run is in progress. `--seed` replaces the save; QA flags and `--give`/`--week` never touch it. The CLI can `save`/`load` the same format. **Seeded runs** (seed box or `--seed`, `RunState.Seeded`) count in the stats but unlock nothing (`PlayerStats.SeededRunsWon`). |
-| Press Runs | 8 stacking difficulty levels (`Core/Run/PressRuns.cs`, numbers in `PressRunConfig`): Proofreader → First Edition (Dailies pay $1) → Late Edition (targets ×1.05/week) → Rush Job (−1 Sunday submission) → Ink Shortage (−1 discard) → Heavy Printing (rerolls +$1) → Censored Press (one of B C F G H M P W Y unplayable per round) → Final Print Run (the Sunday boss adds a second Early/Mid rule, `Reprint`). Level stored in `RunState.PressRun` and re-applied to the config on load. **Unlocks:** winning level N unlocks N+1 (`PlayerStats.HighestPressRunWon`; old profiles with wins start at 1). Game: New run opens a picker once level 2 is unlocked (locked rows greyed), victory screen announces unlocks, sidebar shows the level + censored letter, censored hand tiles struck through; `--press=N` dev flag. CLI: `runsim … press=N`, `new [seed] [press=N]`. |
+| Press Runs | 8 stacking difficulty levels (`Core/Run/PressRuns.cs`, numbers in `PressRunConfig`): Proofreader → First Edition (Dailies pay $1, no minimum paycheck) → Late Edition (targets ×1.03/week) → Rush Job (Sundays ≤ 3 submissions) → Ink Shortage (−1 discard) → Heavy Printing (Desk Items and rerolls +$1) → Censored Press (one of B C F G H M P W Y unplayable per round) → Final Print Run (from Week 2 the Sunday boss adds a second Early/Mid rule, `Reprint`). Level stored in `RunState.PressRun` and re-applied to the config on load. **Unlocks:** winning level N unlocks N+1 (`PlayerStats.HighestPressRunWon`; old profiles with wins start at 1). Game: New run opens a picker once level 2 is unlocked (locked rows greyed), victory screen announces unlocks, sidebar shows the level + censored letter, censored hand tiles struck through; `--press=N` dev flag. CLI: `runsim … press=N`, `new [seed] [press=N]`. |
 | Starting decks | `Core/Run/Decks.cs` (numbers in `DeckConfig`): **Standard**, **The Crossword Draft Deck** (+1 Mult per intersection, deadlines ×0.7; words need 3+ letters; no Strict Grammarian), **The Redactor Deck** (thin 30-tile deck incl. Q Z X J; −1 discard), **The Copy Editor's Deck** (starts with Red Pen, +1 discard; 4 Desk Item slots), **The Lexicographer's Deck** (pick an unlocked dictionary; deadlines ×0.85; 4 Desk Item slots). A deck is a `RunConfig` transform applied before the Press Run (`RunRules.ConfigFor`); the run stores `RunState.DeckId`. New knobs: `RunConfig.MinWordLength`, `DeskSlots`, `StartingDeskItems`, `ExcludedBosses`. **Unlocks:** one deck per run won (`StatsQueries.UnlockedDecks`); Press Run unlocks are **per deck** (`PlayerStats.HighestPressRunWon`: deck id → level; old profiles count theirs for Standard). Game: one New-run screen (decks left, the deck's Press Runs right), `--deck=id`; victory screen announces deck unlocks. CLI: `runsim … deck=id`, `new … deck=id`. Each deck wins within ~±7 pts of Standard (§4). **Dictionary unlocks:** the first comes with The Lexicographer's Deck (4 wins), then one more per win (`StatsQueries.UnlockedDictionaries`): The Atlas Unlocked at 5 wins, The Olde English Folio at 6. New-run picker shows a dictionary row for that deck; `--dict=id` dev flag; CLI `new`/`runsim … dict=id`. Tabloid waits for a licensable Slang list. |
 | QA | `run_local_qa.bat` (double-click): build → tests → opens game window. Launches the game **in dev mode** (the Best button; user's choice 2026-10-10); `--nodev` for the player's view, `--cli` for console. **GitHub Actions CI** (`.github/workflows/ci.yml`): restore, build (incl. the Godot project) and test in Release on every push/PR to `main`, ~50 s. |
 
@@ -192,6 +194,10 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   helps weak players (+4.5 at 0.6) without touching the reference (+0.5), so targets stay. The paycheck screen now
   says how to earn more. Rejected for now: unused discards paying $1 (+20 pts for the bot, which never discards
   voluntarily — untrustworthy without a human-like discard model, and it rewards not discarding).
+- **Press Run retune** (user's choice "full fix", 2026-10-11, over fixing only First Edition or leaving it): see §4a.
+  Claude's calls: Rush Job became a cap (Sundays ≤ 3 submissions) rather than −1, so it never stacks with Tight
+  Deadline; First Edition only lowers the floor (`Math.Min`), never raises one; the Reprint start week is a
+  `PressRunConfig` number (`ReprintFromWeek` = 1, i.e. Week 2), shown in the level's description.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps an unlimited best play for development — since 2026-10-10 as a separate **Best (dev)** button next to Hint (user's request), so a dev build still shows the player's decent Hint. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Starting decks (2026-10-06)
@@ -222,24 +228,40 @@ CLI `runsim 200 <skill> frac deck=<id>` (seeds 1–200, evaluating bot, ScoreFra
 - Scratch harness `decksweep` (arms = `Decks.Apply(base, id, new DeckConfig(...))` or a hand-edited config, played
   with the Standard deck id so `NewGame` doesn't re-apply the deck; `RunConfig.StartingDeskItems` is still honoured).
 
-## 4a. Press Run ladder (2026-10-06)
+## 4a. Press Run ladder (retuned 2026-10-11)
 
-**Stale since 2026-10-11:** measured on the old targets (before the content batch and targets ×0.88); re-measure.
-
-`presssim` scratch harness: 200 paired runs per level (seeds 1–200), evaluating bot, ScoreFraction model; Proofreader =
-the snapshot below.
+`presssim` scratch harness: 200 paired runs per level (seeds 1–200), evaluating bot, ScoreFraction model, Standard
+Deck. Modes: `ladder <runs> <skills…>` (the real `PressRunConfig`) and `variant <runs> <skill> <levels> key=value…`
+(`pay`, `growth`, `cap`, `discards`, `price`, `reroll`, `censor`, `extrafrom` override `PressRunConfig`; `floor=N` sets
+`MinPaycheck` from level 2; played as a pre-applied config at level 1). Prints win %, the step from the level below and
+losses by round kind / week / boss. 8 levels × 200 runs ≈ 13–16 min per skill on 20 cores.
 
 | Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|
-| Strong (0.9) win % | 55 | 44.5 | 36.5 | 23 | 18.5 | 15.5 | 13.5 | 7.5 |
-| Reference (0.75) win % | 39 | 23.5 | 17.5 | 6 | 5 | 4.5 | 2.5 | 1 |
+| **Strong (0.9) win % (current)** | 51.5 | 45.5 | 40.5 | 29.5 | 24.5 | 16 | 10.5 | 6.5 |
+| **Reference (0.75) win % (current)** | 39 | 31.5 | 26 | 14.5 | 10.5 | 5.5 | 3 | 3 |
+| 0.9 before the retune, new targets | 51.5 | 51.5 | 40.5 | 27 | 25 | 27.5 | 17.5 | 8 |
+| 0.75 before the retune, new targets | 39 | 38 | 30 | 16.5 | 12.5 | 13.5 | 7.5 | 2.5 |
+| 0.9 on 2026-10-06 (old targets) | 55 | 44.5 | 36.5 | 23 | 18.5 | 15.5 | 13.5 | 7.5 |
 
-- Each rule alone at 0.9 with the **first** numbers (150 runs, vs 55%): −1 submission every round −34, censoring one
-  of D/L/N/R/S/T −26, Final Print Run −16, targets ×1.1/week −14, no Daily pay −9, Desk Items/rerolls +$1 −9, −1
-  discard −6. Stacked they hit 0% from level 5 (0.75: 0% from level 4).
-- Softening, step by step (0.9 at levels 1–8): Sunday-only Rush Job + rarer consonants + ×1.05 → 55/42/33/18.5/15/
-  6.5/5.5/2; then Dailies $1 + reroll-only Heavy Printing → current. Rush Job is still the biggest step (−13.5).
-- Sunday Edition losses dominate from level 4 up (boss loss rate ~14% → ~31% at level 8).
+- **Why it was retuned (user's choice "full fix", 2026-10-11):** the $5 paycheck floor (2026-10-10) topped Dailies'
+  $1 back up, so **First Edition did nothing**; Heavy Printing (rerolls +$1 only) and Ink Shortage measured ~0;
+  Rush Job −13.5 (under it Tight Deadline left 2 submissions: its losses doubled); Final Print Run's losses were mostly
+  Weeks 1–2 (Ink Spill + Tight Margins = a 5×5 board with 6 blocked squares).
+- **Changes:** First Edition also sets `MinPaycheck` to 0 (`PressRunConfig.MinPaycheck`); Late Edition ×1.05 → ×1.03;
+  Rush Job = **at most 3 Sunday submissions** (`RunConfig.BossSubmissionsCap`, replaces `BossSubmissionsDelta`);
+  Heavy Printing adds **$1 to every Desk Item** incl. Epic/Legendary (the old `Apply` skipped those two); Final Print
+  Run from **Week 2** (`PressRunConfig.ReprintFromWeek` → `RunConfig.BossExtraFromWeek`).
+- Candidates measured at 0.9 (levels 2–8): floor 0 + price +1 → 45.5/36.5/23.5/21.5/10.5/6/2; + ×1.03 →
+  45.5/40.5/26.5/21.5/12/8/2; + cap 3 + Reprint from Week 2 → current. Rush Job is still the biggest step (−11);
+  at 0.75 the bottom flattens (levels 7 and 8 both 3%).
+
+- Each rule alone at 0.9 with the **first** numbers (2026-10-06, 150 runs, vs 55%): −1 submission every round −34,
+  censoring one of D/L/N/R/S/T −26, Final Print Run −16, targets ×1.1/week −14, no Daily pay −9, Desk Items/rerolls
+  +$1 −9, −1 discard −6. Stacked they hit 0% from level 5 (0.75: 0% from level 4).
+- 2026-10-06 softening, step by step (0.9 at levels 1–8): Sunday-only Rush Job + rarer consonants + ×1.05 →
+  55/42/33/18.5/15/6.5/5.5/2; then Dailies $1 + reroll-only Heavy Printing → 55/44.5/…/7.5.
+- Sunday Edition losses dominate from level 4 up.
 
 ## 4b. Balance snapshot (after Phase 2 content, 2026-10-05)
 
@@ -382,7 +404,7 @@ strongest in the game, is now offered in ~1 shop in 11 instead of ~1 in 6. The r
 
 0. **Difficulty after the content batch** (§4d): resolved 2026-10-11 by targets ×0.88 (reference back to 39%). The new
    Stationery is bought by humans, not the bot, so a human may win more than the bot does; check in playtests.
-   The **Press Run ladder (§4a) was measured on the old targets** and is now somewhat easier at every level — re-measure. Watch Poetic License
+   The Press Run ladder was re-measured and retuned on the new targets (§4a, 2026-10-11). Watch Poetic License
    (a free non-word may be strong on hard hands) and Second Printing (the strongest new item for the bot, +3.5 alone).
 
 1. **Overall difficulty** (see §4d): the reference player wins ~39%, a weaker one ~21%, a strong one ~52% (2026-10-11, targets ×0.88) — after
@@ -453,9 +475,9 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
-0. **Playtest the new content** (the economy work, the dev Best button, the 2026-10-10/11 playtest batches and the targets ×0.88 retune are done ✅): do the rule-breakers feel fun, is Poetic License too strong, is the receipt readable at speed.
-   Then **re-measure the Press Run ladder** (§4a, `presssim` pattern in §7) on the new targets and retune it if the
-   steps are no longer even.
+0. ~~Playtest the new content + re-measure the Press Run ladder~~ ✅ 2026-10-11 (playtest "all is good"; ladder
+   retuned, §4a). Playtest the new ladder when convenient: First Edition without the paycheck floor, Rush Job's
+   3-submission Sundays, Heavy Printing's pricier Desk Items, Final Print Run from Week 2.
 1. ~~Cheap parallel tracks~~ ✅ 2026-10-10 (CI, seed box, profile picker, CLI save/load + Stationery) plus a title
    menu and Settings v1. Leftovers: copyable seed, profile delete/rename, volume (with audio).
 2. **Visual overhaul** toward `art/art-direction.jpg` (ROADMAP §8): newsprint/mahogany theme centralized in `UiKit`,
@@ -517,6 +539,8 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
+dbd0721 Retune the Press Run ladder for the paycheck floor and new targets
+18304c5 Bring handoff up to date after the 2026-10-11 work
 317ff3c Lower the week targets x0.88 after the content batch
 4dd7685 Order Desk Items automatically and add a How to play screen
 8f086fa Steady desk bar with kind tags, two Stationery per shop, clearer Poetic License

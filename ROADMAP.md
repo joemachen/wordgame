@@ -171,16 +171,21 @@ the effects are our own. ✅ `Core/Run/PressRuns.cs` (numbers in `PressRunConfig
 
 | # | Press Run | Color | Adds | Strong player wins (0.9) | Reference (0.75) |
 |---|---|---|---|---|---|
-| 1 | **Proofreader** | White | Base game | 55% | 39% |
-| 2 | **First Edition** | Red | Dailies pay $1 base instead of $3 | 44.5% | 23.5% |
-| 3 | **Late Edition** | Green | Week targets ×1.05 compounding per week (Week 5 ×1.22) | 36.5% | 17.5% |
-| 4 | **Rush Job** *(was "Tight Deadline", which is already a boss name)* | Blue | −1 submission in the Sunday Edition | 23% | 6% |
-| 5 | **Ink Shortage** | Purple | −1 discard per round | 18.5% | 5% |
-| 6 | **Heavy Printing** | Yellow | Rerolls start $1 higher | 15.5% | 4.5% |
-| 7 | **Censored Press** | Orange | One of B C F G H M P W Y can't be placed each round (not even by a wild) | 13.5% | 2.5% |
-| 8 | **Final Print Run** | Gold | The Sunday boss adds a second Early/Mid editor's rule (`Reprint`) | 7.5% | 1% |
+| 1 | **Proofreader** | White | Base game | 51.5% | 39% |
+| 2 | **First Edition** | Red | Dailies pay $1 base instead of $3, and no minimum paycheck | 45.5% | 31.5% |
+| 3 | **Late Edition** | Green | Week targets ×1.03 compounding per week (Week 5 ×1.13) | 40.5% | 26% |
+| 4 | **Rush Job** *(was "Tight Deadline", which is already a boss name)* | Blue | The Sunday Edition has at most 3 submissions | 29.5% | 14.5% |
+| 5 | **Ink Shortage** | Purple | −1 discard per round | 24.5% | 10.5% |
+| 6 | **Heavy Printing** | Yellow | Desk Items cost $1 more; rerolls start $1 higher | 16% | 5.5% |
+| 7 | **Censored Press** | Orange | One of B C F G H M P W Y can't be placed each round (not even by a wild) | 10.5% | 3% |
+| 8 | **Final Print Run** | Gold | From Week 2, the Sunday boss adds a second Early/Mid editor's rule (`Reprint`) | 6.5% | 3% |
 
-Win rates: 200 paired runs per level, evaluating shop bot, ScoreFraction skill model (2026-10-06). The first
+Win rates: 200 paired runs per level, evaluating shop bot, ScoreFraction skill model (2026-10-11, after the content
+batch and the ×0.88 targets). Retuned that day (user's choice, "full fix") because the $5 paycheck floor had made
+First Edition a no-op, Heavy Printing (rerolls only) and Ink Shortage were nearly free, Rush Job left Tight Deadline
+2 submissions (−13.5) and two Early bosses at once ended most level-8 runs in Weeks 1–2. Before: 0.9 wins
+55 / 44.5 / 36.5 / 23 / 18.5 / 15.5 / 13.5 / 7.5% (2026-10-06), then 51.5 / 51.5 / 40.5 / 27 / 25 / 27.5 / 17.5 / 8%
+on the new targets. The first
 proposal (−1 submission every round, D/L/N/R/S/T censored, ×1.1 per week, no Daily pay, Desk Items +$1) left the
 strong player at 0% from level 5; alone, −1 submission cost 34 points, censoring a common consonant 26 and ×1.1
 targets 14. The user chose an even ladder (~55% → ~10%).
