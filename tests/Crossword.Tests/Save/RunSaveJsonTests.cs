@@ -286,8 +286,8 @@ public class RunSaveJsonTests
     [Fact]
     public void PressRun_SurvivesSaveAndLoad_AndItsRulesAreReapplied()
     {
-        // Final Print Run at a Sunday: a Reprint boss and a censored letter in the round.
-        var session = RunRules.NewGame(9, Config, LexiconLoader.Enable, run => run with { RoundIndex = 2 }, pressRun: 8);
+        // Final Print Run at Week 2's Sunday: a Reprint boss and a censored letter in the round.
+        var session = RunRules.NewGame(9, Config, LexiconLoader.Enable, run => run with { RoundIndex = 5 }, pressRun: 8);
         Assert.IsType<Reprint>(session.Round.Config.Boss);
         Assert.NotNull(session.Round.Config.CensoredLetter);
 

@@ -59,8 +59,8 @@ public sealed record RunConfig(
     /// <summary>Boss pools by week (see <see cref="BossPoolFor"/>). Ordered by ascending <see cref="BossTier.FirstWeek"/>.</summary>
     public ImmutableArray<BossTier> BossTiers { get; init; } = BossCatalog.DefaultTiers;
 
-    /// <summary>Added to boss rounds' submissions after the boss (Press Runs; at least 1 remains).</summary>
-    public int BossSubmissionsDelta { get; init; }
+    /// <summary>Boss rounds have at most this many submissions, after the boss (0 = no cap; Press Runs).</summary>
+    public int BossSubmissionsCap { get; init; }
 
     /// <summary>Added to every round's discards after the boss (Press Runs; never below 0).</summary>
     public int DiscardsDelta { get; init; }
@@ -73,6 +73,9 @@ public sealed record RunConfig(
 
     /// <summary>The week's boss adds one more Early/Mid boss's rule (<see cref="Reprint"/>; Press Runs).</summary>
     public bool BossExtraModifier { get; init; }
+
+    /// <summary>With <see cref="BossExtraModifier"/>, the first week (0-based) whose boss gets the extra rule.</summary>
+    public int BossExtraFromWeek { get; init; }
 
     /// <summary>Every round's minimum word length; a boss can raise it further (starting decks).</summary>
     public int MinWordLength { get; init; } = 2;
@@ -130,9 +133,9 @@ public sealed record RunConfig(
     }
 
     /// <summary>
-    /// Round rules for a round; <paramref name="boss"/> is applied only on boss rounds. The submission and discard
-    /// deltas apply after the boss, so they stack with it (Tight Deadline's 3 submissions minus 1 = 2); the minimum
-    /// word length is the higher of the run's and the boss's.
+    /// Round rules for a round; <paramref name="boss"/> is applied only on boss rounds. The boss submission cap and the
+    /// discard delta apply after the boss (a cap of 3 leaves Tight Deadline's 3 submissions alone; discards stack); the
+    /// minimum word length is the higher of the run's and the boss's.
     /// </summary>
     public RoundConfig RoundConfigFor(int roundIndex, BossModifier? boss = null, char? censoredLetter = null)
     {
@@ -142,7 +145,7 @@ public sealed record RunConfig(
             config = boss.Apply(config);
         if (config.MinWordLength < MinWordLength)
             config = config with { MinWordLength = MinWordLength };
-        int submissionsDelta = bossRound ? BossSubmissionsDelta : 0;
+        int submissionsDelta = bossRound && BossSubmissionsCap > 0 ? Math.Min(0, BossSubmissionsCap - config.Submissions) : 0;
         return submissionsDelta == 0 && DiscardsDelta == 0
             ? config
             : config with

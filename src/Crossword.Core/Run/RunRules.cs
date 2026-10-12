@@ -70,7 +70,7 @@ public static class RunRules
         var boss = pool[index] is PuzzleMaster { First: null } master
             ? master.Pick(BossCatalog.PuzzleMasterCandidates, rng)
             : pool[index];
-        if (!config.BossExtraModifier)
+        if (!config.BossExtraModifier || week < config.BossExtraFromWeek)
             return boss;
 
         var has = boss.Rules().Select(rule => rule.Id).ToHashSet();

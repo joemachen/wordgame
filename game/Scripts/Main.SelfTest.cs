@@ -635,7 +635,7 @@ public partial class Main
         Check("a censored tile can't be placed", _pending.Count == 1 && _messageLabel.Text.Contains("censored"));
         await PressKey(global::Godot.Key.Escape);
 
-        NewRun(42, run => run with { RoundIndex = 2 }, pressRun: 8);
+        NewRun(42, run => run with { RoundIndex = 5 }, pressRun: 8); // the Reprint starts in Week 2
         await Frames(2);
         string dayText = string.Join("\n", _dayStrip.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
         Check("final print run adds a rule to the boss", Round.Config.Boss is Crossword.Core.Run.Reprint reprint
