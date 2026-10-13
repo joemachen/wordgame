@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-13 · Office upgrades (phase 3) committed after `dc2fead` · 660 unit tests passing · UI self-test 115/115 passing · CI green at `dc2fead`_
+_Last updated: 2026-10-13 · HEAD `53c564f` (Office upgrades) · 660 unit tests passing · UI self-test 115/115 passing · CI green at `dc2fead`_
 
 ## 0. ▶ Status and what's next
 
@@ -659,7 +659,7 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
-(next)  Add Office upgrades: a fourth shop offer that breaks the run's caps
+53c564f Add Office upgrades: a fourth shop offer that breaks the run's caps
 dc2fead Record the finale decision: 80k base, the Circulation dial carries 1M+
 7b859a0 Record the targets commit in handoff history
 2f8daab Steepen the week targets and document the compounding engines
