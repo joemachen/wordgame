@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-13 · HEAD `2f8daab` (code) · 645 unit tests passing · UI self-test 112/112 passing · CI green_
+_Last updated: 2026-10-13 · HEAD `2f8daab` (code; finale decision recorded after) · 645 unit tests passing · UI self-test 112/112 passing · CI green_
 
 ## 0. ▶ Status and what's next
 
@@ -14,16 +14,16 @@ Disgaea-style, and every cap breakable; plan in `ROADMAP.md` §3b). Landed: satu
 (Phase 1), multiplicative tile enhancements (Underlined ×2 Mult, Embossed ×3 Chips), three Desk Item kinds and ten
 compounding Desk Items, bot re-scoring of enhancements, and a steeper target curve (Phase 2). Balance in §4e.
 
-**▶ Decision needed — the 1M finale.** The user chose a base-game Week 5 Sunday deadline of ~1,000,000 (today 33,680).
+**The 1M finale — resolved 2026-10-13 (user's choice: option (a)).** The base game keeps the 80k Week 5 Sunday; the Circulation dial (Phase 4) and endless carry the climb to 1M and the billions. **Next: Phase 3 cap breakers**, then Phase 4 with the dial. Background: the user had chosen a base-game Week 5 Sunday deadline of ~1,000,000 (today 33,680).
 Measured with the engines (200 paired runs, ScoreFraction 0.75, evaluating bot, §4e): at a 1M Sunday the bot wins
 **0%** with the first item numbers and the curve shape doesn't matter (losses pile into whichever week jumps ×5+); after
 doubling the engine items' factors it wins 56% on the old curve, 28% at a 128k Sunday, 14.5% at 240k, 8% at 480k.
 The bot's desks stay additive (Word Count 54%, Margin Notes 46%; the compounding items 15–27% each), so its score grows
 ~×3–4 per week, not the ×6 per week a 1M finale needs. **Shipped for now: 450/1600/5200/17000/50000** (Week 5 Sunday
 80,000, ×2.4 — the reference 0.75 at 35.5%, within noise of the 39% acceptance band; p90 won-round scores reach ~440k
-in Week 5, so engine builds already score in the hundreds of thousands per round). Options: (a) keep ~80k and let the
+in Week 5, so engine builds already score in the hundreds of thousands per round). Options offered: (a) keep ~80k and let the
 Circulation dial (Phase 4) and endless carry the climb to 1M and billions — Claude's recommendation, it keeps the
-"a linear build still wins the base game" principle; (b) push the finale to 1M anyway and accept ~5–8% base wins (or
+"a linear build still wins the base game" principle, and a ×12 dial on this curve *is* the 1M finale, chosen on purpose; (b) push the finale to 1M anyway and accept ~5–8% base wins (or
 buff the engines again — Underlined/Embossed and the ten items are already at 2× their first numbers); (c) first teach
 the bot to build engines (it values items by re-scoring recent best plays, where a ×1.3-per-tile item looks like a
 flat +Mult) and re-measure. Decks and the Press Run ladder are **not re-measured** on the new curve yet.
@@ -537,7 +537,7 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
--1. **Decide the finale (§0)**, then **Phase 3 cap breakers** (ROADMAP §3b: a fourth shop category rolled after
+-1. ~~Decide the finale~~ ✅ 2026-10-13 (80k stays; the dial carries 1M+), so **Phase 3 cap breakers** (ROADMAP §3b: a fourth shop category rolled after
    Stationery — +desk slot / +hand / +submission / +discard / +Stationery slot, 9×9 board, deck minimum down, duplicates
    licence, "Second edition" item levels, uncapped economy; new `ShopOffer` subclasses need `RunSaveJson` tags; depend on
    `Config.DeskSlots`, never the `MaxDeskSlots` const), **Phase 4** (Circulation dial → `RunConfig.TargetScale`, steeper

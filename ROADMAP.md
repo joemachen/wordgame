@@ -118,7 +118,7 @@ all cap breakers as a fourth shop category; build in phases.
 | Phase | Work | Status |
 |---|---|---|
 | 1 | Saturating score math (`ScoreMath`, cap 10^18), big-number words (`ScoreFormat`), precision-safe count-up, UI digit budgets, `RunConfig.TargetScale` | ✅ |
-| 2 | Underlined / Embossed tiles, three Desk Item kinds (×CHIPS, AGAIN, COPY), ten compounding Desk Items, bot re-scoring of enhancements, targets → 450/1600/5200/17000/50000 (Week 5 Sunday 80k; the 1M target measured 0–8% for the bot — open decision in `handoff.md` §0) | ✅ |
+| 2 | Underlined / Embossed tiles, three Desk Item kinds (×CHIPS, AGAIN, COPY), ten compounding Desk Items, bot re-scoring of enhancements, targets → 450/1600/5200/17000/50000 (Week 5 Sunday 80k; the 1M target measured 0–8% for the bot, so the base game keeps 80k and the dial carries 1M+ — user's choice 2026-10-13) | ✅ |
 | 3 | Cap breakers: 4th shop category ("Office upgrades": +desk slot to 7, +hand, +submission, +discard, +Stationery slot; 9×9 board with more premiums; deck minimum 30 → 20 → 15; a duplicates licence; "Second edition" item levels; interest/overkill caps lifted, money→Mult items) | 🟡 |
 | 4 | Circulation dial (`RunState.Circulation` → `RunConfig.TargetScale`, rewards as `Payout`/`ShopConfig` fields), steeper endless (×3–4/week), stacking endless bosses; re-measure decks and the Press Run ladder | 🟡 |
 | 5 | Ring-up tiers past "STOP THE PRESSES!" (×2, ×10, ×100 the deadline), long-log tempo | 🟡 |
@@ -310,7 +310,7 @@ tests and a `runsim` balance check.
 
 ## 12. Open questions
 
-- **The 1M finale (§3b):** with the compounding engines the reference bot wins 35.5% at a Week 5 Sunday of 80k and only 8% at 480k / 0% at 1M; a 1M base-game finale needs stronger engines, a smarter engine-building bot, or the Circulation dial to carry it. User's call.
+- ~~**The 1M finale (§3b)**~~ resolved 2026-10-13 (user's choice): the base game keeps the 80k Week 5 Sunday (the reference bot wins 35.5% there, 8% at 480k, 0% at 1M); the Circulation dial carries the climb to 1M and the billions (a ×12 print run on this curve is the 1M finale).
 - **Trademarks dictionary:** legal review before any work, or drop it.
 - **Slang dictionary source:** find a word list we can legally ship (or build our own), and plan how to keep slurs out of it.
 - **Vowel Drought:** keep the Vowel Tax effect, or rework it to fewer vowels in the bag?
