@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-13 · HEAD `(this commit)` (code) · 645 unit tests passing · UI self-test 112/112 passing · CI green_
+_Last updated: 2026-10-13 · HEAD `2f8daab` (code) · 645 unit tests passing · UI self-test 112/112 passing · CI green_
 
 ## 0. ▶ Status and what's next
 
@@ -608,7 +608,7 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
-(this commit) Steepen the week targets and document the compounding engines
+2f8daab Steepen the week targets and document the compounding engines
 203b126 Add multiplicative tile enhancements and ten compounding Desk Items
 c47a7fe Saturate score arithmetic and print big numbers as words
 66dea8c Add the docs commit to handoff history
