@@ -98,6 +98,47 @@ public class ShopRulesTests
     }
 
     [Fact]
+    public void BuyEnhance_CanReplaceAnotherEnhancement()
+    {
+        var session = InShop(10, new EnhanceOffer(TileEnhancement.Underlined, 5));
+        int tileId = session.Run.Deck[0].Id;
+        session = session with { Run = session.Run with { Deck = session.Run.Deck.SetItem(0, session.Run.Deck[0] with { Enhancement = TileEnhancement.Bold }) } };
+
+        var next = ShopRules.Buy(session, 0, [tileId]).Value;
+
+        Assert.Equal(TileEnhancement.Underlined, next.Run.Deck.Single(t => t.Id == tileId).Enhancement);
+        Assert.Equal(5, next.Run.Money);
+    }
+
+    [Fact]
+    public void Generate_RollsEnhancements_ByWeight_AndPricesThem()
+    {
+        var config = Config with
+        {
+            Shop = Shop with
+            {
+                BoldWeight = 0, ItalicWeight = 0, GildedWeight = 0, UnderlinedWeight = 1, EmbossedWeight = 0,
+                EnhancedTilePercent = 100, WildTilePercent = 0,
+                EnhancePrices = new Dictionary<TileEnhancement, int> { [TileEnhancement.Underlined] = 7 },
+                EnhancedTilePrices = new Dictionary<TileEnhancement, int> { [TileEnhancement.Underlined] = 9 },
+            },
+        };
+        var enhances = new List<EnhanceOffer>();
+        var tiles = new List<AddTileOffer>();
+        for (ulong seed = 1; seed <= 30; seed++)
+        {
+            var (shop, _) = ShopRules.Generate(RunState.New(seed), config, Rng.FromSeed(seed));
+            enhances.AddRange(shop.Offers.OfType<EnhanceOffer>());
+            tiles.AddRange(shop.Offers.OfType<AddTileOffer>().Where(o => !o.Wild));
+        }
+
+        Assert.NotEmpty(enhances);
+        Assert.NotEmpty(tiles);
+        Assert.All(enhances, o => Assert.Equal((TileEnhancement.Underlined, 7), (o.Enhancement, o.Price)));
+        Assert.All(tiles, o => Assert.Equal((TileEnhancement.Underlined, 9), (o.Enhancement, o.Price)));
+    }
+
+    [Fact]
     public void BuyEnhance_RequiresExactlyOneDeckTile()
     {
         var session = InShop(10, new EnhanceOffer(TileEnhancement.Italic, 3));

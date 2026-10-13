@@ -145,7 +145,9 @@ public partial class Main
         HowText($"Each new tile that sits in both an across word and a down word adds +{scoring.IntersectionMult:0.##} mult. "
             + "Building into the grid usually beats one long word on its own.");
         HowHeading("Enhanced tiles");
-        HowText(string.Join("\n", new[] { TileEnhancement.Bold, TileEnhancement.Italic, TileEnhancement.Gilded }.Select(scoring.Describe)));
+        HowText(string.Join("\n", Enum.GetValues<TileEnhancement>().Where(e => e != TileEnhancement.None).Select(scoring.Describe)));
+        HowText("Bold, Italic and Gilded add; Underlined and Embossed multiply, and fire after every addition — including "
+            + "intersections and Red Ink — so they multiply all of it.");
     }
 
     private void DeskItemsTab()
@@ -156,7 +158,8 @@ public partial class Main
         HowText("Example: a play worth 10 × 2. Red Pen (+2 mult) then Pulitzer (×1.5) gives 10 × (2 + 2) × 1.5 = 60. "
             + "Pulitzer first gives 10 × (2 × 1.5 + 2) = 50.");
         HowText("You don't have to arrange them: the game keeps your Desk Items in the best order — +Chips first, then +Mult, "
-            + "then ×Mult, then ×Chips ×Mult — every time one is bought or sold. The tag on each card says which kind it is.");
+            + "then retriggers, then ×Mult and ×Chips, then ×Chips ×Mult, then a Copy — every time one is bought or sold. "
+            + "The tag on each card says which kind it is.");
         foreach (var kind in Enum.GetValues<DeskItemKind>().OrderBy(DeskOrder.Rank))
         {
             var items = DeskItemCatalog.All.Where(item => item.Kind == kind).ToList();

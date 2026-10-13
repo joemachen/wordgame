@@ -161,7 +161,7 @@ public class NewsroomDeskItemsTests
         Assert.Equal(DeskItemRarity.Epic, DeskItemCatalog.Find("crossword-editor")!.Rarity);
         Assert.Equal(DeskItemRarity.Legendary, DeskItemCatalog.Find("extra-extra")!.Rarity);
         Assert.Equal(DeskItemRarity.Legendary, DeskItemCatalog.Find("second-printing")!.Rarity);
-        Assert.Equal(35, DeskItemCatalog.All.Length);
+        Assert.Equal(45, DeskItemCatalog.All.Length);
         Assert.Equal(DeskItemCatalog.All.Length, DeskItemCatalog.All.Select(i => i.Id).Distinct().Count());
     }
 

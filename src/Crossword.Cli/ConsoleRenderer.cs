@@ -51,6 +51,8 @@ public static class ConsoleRenderer
         TileEnhancement.Bold => '+',
         TileEnhancement.Italic => '/',
         TileEnhancement.Gilded => '$',
+        TileEnhancement.Underlined => '_',
+        TileEnhancement.Embossed => '^',
         _ => ' ',
     };
 

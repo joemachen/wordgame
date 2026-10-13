@@ -8,12 +8,14 @@ namespace Crossword.Tests.Scoring;
 [Trait("Category", "Scoring")]
 public class EnhancementDescriptionTests
 {
-    private static readonly ScoringConfig Config = ScoringConfig.Default with { BoldChips = 7, ItalicMult = 3, GildedMoney = 2 };
+    private static readonly ScoringConfig Config = ScoringConfig.Default with { BoldChips = 7, ItalicMult = 3, GildedMoney = 2, UnderlinedMult = 1.5m, EmbossedChips = 3 };
 
     [Theory]
     [InlineData(TileEnhancement.Bold, "Bold: +7 chips in every word it's in")]
     [InlineData(TileEnhancement.Italic, "Italic: +3 mult in every word it's in")]
     [InlineData(TileEnhancement.Gilded, "Gilded: +$2 in every word it's in")]
+    [InlineData(TileEnhancement.Underlined, "Underlined: ×1.5 mult in every word it's in")]
+    [InlineData(TileEnhancement.Embossed, "Embossed: ×3 chips in every word it's in")]
     [InlineData(TileEnhancement.None, "")]
     public void Describe_UsesTheConfigsNumbers(TileEnhancement enhancement, string expected) =>
         Assert.Equal(expected, Config.Describe(enhancement));

@@ -43,7 +43,8 @@ public sealed record ShopBotConfig(
     IReadOnlyDictionary<string, double>? StationeryGain = null,
     double WildTileGain = 0,
     double WildEditGain = 0,
-    IReadOnlyDictionary<string, double>? DeskItemGain = null)
+    IReadOnlyDictionary<string, double>? DeskItemGain = null,
+    IReadOnlyDictionary<TileEnhancement, double>? EnhancedTileGains = null)
 {
     /// <summary>
     /// Wild buying is off: measured at ScoreFraction 0.75 (200 paired runs), a wild tile or wild edit at gain 0.05/0.15
@@ -61,6 +62,13 @@ public sealed record ShopBotConfig(
 
     /// <summary>Fixed gain added to a Desk Item's measured value (by id), for effects outside scoring.</summary>
     public double GainOf(IDeskItem item) => DeskItemGain?.GetValueOrDefault(item.Id) ?? 0;
+
+    /// <summary>
+    /// Fixed estimated gain of an added tile with an enhancement (a new tile has no play history to re-score):
+    /// <see cref="EnhancedTileGains"/> by enhancement, else <see cref="EnhancedTileGain"/>.
+    /// </summary>
+    public double GainOf(TileEnhancement enhancement) =>
+        EnhancedTileGains is not null && EnhancedTileGains.TryGetValue(enhancement, out double gain) ? gain : EnhancedTileGain;
 }
 
 /// <summary>
@@ -102,8 +110,9 @@ public sealed record ShopHistory(ImmutableList<DecisionPoint> Decisions)
 /// <summary>
 /// Shop bot that values purchases empirically: for each option it re-scores the best play of every recent decision
 /// with the resulting Desk Items / Style Guide upgrades and compares against the current build. Scaling items are
-/// projected to the middle of the remaining run; money effects reduce an item's effective price. Deck edits use
-/// fixed estimated gains. Valuation uses the best play per decision (a strong player's view of the shop), so the
+/// projected to the middle of the remaining run; money effects reduce an item's effective price. Enhancing a tile is
+/// valued by re-scoring the history with the deck tile it placed most often enhanced (<see cref="PlayAnalysis.WithTile"/>);
+/// other deck edits use fixed estimated gains. Valuation uses the best play per decision (a strong player's view of the shop), so the
 /// round-play <c>skill</c> stays the only difference between simulated players.
 /// </summary>
 public static class EvaluatingShopBot
@@ -217,15 +226,29 @@ public static class EvaluatingShopBot
                             s => ShopRules.Buy(s, index, [wildTarget.Id]));
                     break;
 
-                case EnhanceOffer or StrikeOffer or AddTileOffer when run.Money >= offer.Price:
+                case EnhanceOffer enhance when run.Money >= offer.Price:
+                    {
+                        // Enhance the plain deck tile the bot has placed most often; its value is what the history's plays
+                        // would have scored with that tile enhanced (a tile it never plays measures no gain).
+                        var target = evaluator.MostPlacedPlainTile(run.Deck)
+                            ?? (NaiveShopBot.TilesFor(offer, session) is { Count: > 0 } ids ? run.Deck.First(t => t.Id == ids.First()) : null);
+                        if (target is null)
+                            break;
+                        var m = evaluator.Measure(run.DeskItems, run.TierUpgrades, target with { Enhancement = enhance.Enhancement });
+                        yield return new Candidate(index, evaluator.Gain(baseline, m) + config.EnhanceGain,
+                            offer.Price - evaluator.Earnings(baseline, m), offer.Price, s => ShopRules.Buy(s, index, [target.Id]));
+                    }
+                    break;
+
+                case StrikeOffer or AddTileOffer when run.Money >= offer.Price:
                     var tiles = NaiveShopBot.TilesFor(offer, session);
                     if (tiles is null)
                         break;
                     double gain = offer switch
                     {
-                        EnhanceOffer => config.EnhanceGain,
                         StrikeOffer => config.StrikeGain,
-                        _ => config.EnhancedTileGain,
+                        AddTileOffer add => config.GainOf(add.Enhancement),
+                        _ => 0,
                     };
                     yield return new Candidate(index, gain, offer.Price, offer.Price, s => ShopRules.Buy(s, index, tiles));
                     break;
@@ -274,10 +297,26 @@ public static class EvaluatingShopBot
             _bossesToProject = Enumerable.Range(roundIndex + 1, horizonRounds).Count(r => runConfig.KindOf(r).IsBoss);
         }
 
-        public Measurement Measure(IReadOnlyList<IDeskItem> items, ImmutableDictionary<int, int> upgrades)
+        /// <summary>
+        /// The plain, non-wild deck tile placed most often by the history's chosen plays (ties → lowest id), or null
+        /// when none of the deck's plain tiles were placed.
+        /// </summary>
+        public Tile? MostPlacedPlainTile(ImmutableArray<Tile> deck)
+        {
+            var counts = _history.Decisions.SelectMany(d => d.Chosen.Placed).GroupBy(p => p.Tile.Id).ToDictionary(g => g.Key, g => g.Count());
+            return deck.Where(t => t.Enhancement == TileEnhancement.None && !t.IsWild && counts.ContainsKey(t.Id))
+                .OrderByDescending(t => counts[t.Id]).ThenBy(t => t.Id)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Scores a loadout against the history; with <paramref name="enhanced"/>, every play is re-scored as if that
+        /// deck tile (by id) were the given tile (uncached: one candidate per shop).
+        /// </summary>
+        public Measurement Measure(IReadOnlyList<IDeskItem> items, ImmutableDictionary<int, int> upgrades, Tile? enhanced = null)
         {
             var projected = items.Select(Project).ToArray();
-            var bases = BaseContexts(upgrades);
+            var bases = BaseContexts(upgrades, enhanced);
             long score = 0;
             long money = 0;
             foreach (var plays in bases)
@@ -320,18 +359,20 @@ public static class EvaluatingShopBot
         }
 
         /// <summary>Per decision, each candidate play scored up to (not including) the Desk Items.</summary>
-        private ScoreContext[][] BaseContexts(ImmutableDictionary<int, int> upgrades)
+        private ScoreContext[][] BaseContexts(ImmutableDictionary<int, int> upgrades, Tile? enhanced = null)
         {
             string key = string.Join(",", upgrades.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}:{kv.Value}"));
-            if (_baseByUpgrades.TryGetValue(key, out var cached))
+            if (enhanced is null && _baseByUpgrades.TryGetValue(key, out var cached))
                 return cached;
             var scoring = _session.Config.Scoring.WithUpgrades(upgrades);
             var bases = _history.Decisions
                 .Select(d => d.Plays
-                    .Select(p => ScoringEngine.Score(p, ImmutableArray<IDeskItem>.Empty, d.Round.EffectiveScoring(scoring), d.Env))
+                    .Select(p => ScoringEngine.Score(enhanced is null ? p : p.WithTile(enhanced), ImmutableArray<IDeskItem>.Empty,
+                        d.Round.EffectiveScoring(scoring), d.Env))
                     .ToArray())
                 .ToArray();
-            _baseByUpgrades[key] = bases;
+            if (enhanced is null)
+                _baseByUpgrades[key] = bases;
             return bases;
         }
     }

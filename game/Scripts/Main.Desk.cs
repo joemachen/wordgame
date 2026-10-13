@@ -131,6 +131,9 @@ public partial class Main
         DeskItemKind.Mult => UiKit.Mult.Lightened(0.25f),
         DeskItemKind.TimesMult => UiKit.Mult.Lightened(0.45f),
         DeskItemKind.TimesChipsAndMult => UiKit.Money,
+        DeskItemKind.TimesChips => UiKit.Chips.Lightened(0.45f),
+        DeskItemKind.Retrigger => UiKit.Good,
+        DeskItemKind.Copy => UiKit.Money,
         DeskItemKind.Money => UiKit.Money,
         _ => UiKit.TextMuted,
     };

@@ -43,6 +43,16 @@ public static class DeskItemCatalog
         new CrosswordEditor(),
         new ExtraExtra(),
         new SecondPrinting(),
+        new ColumnInches(),
+        new HotType(),
+        new Interlock(),
+        new EveningEdition(),
+        new FeatureStory(),
+        new AdRevenue(),
+        new SubscriptionDrive(),
+        new Newsstand(),
+        new PullQuote(),
+        new CarbonCopy(),
     ];
 
     public static IDeskItem? Find(string id) =>

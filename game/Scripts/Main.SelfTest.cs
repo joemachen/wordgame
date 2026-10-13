@@ -180,6 +180,34 @@ public partial class Main
         Check("tiles and shop cards explain enhancements", boldBlurb.Contains("+10 chips")
             && boldButton.TooltipText.Contains(boldBlurb) && cardText.Contains(boldBlurb));
 
+        // 5b. A multiplicative enhancement: an Underlined hand tile is tagged U and its tooltip says ×1.5 mult.
+        int underlinedId = Round.Hand.Tiles.First(t => t.Id != boldId).Id;
+        _session = _session with
+        {
+            Round = Round with
+            {
+                Hand = new Crossword.Core.Domain.Hand(Round.Hand.Tiles.Select(t => t.Id == underlinedId
+                    ? t with { Enhancement = Crossword.Core.Domain.TileEnhancement.Underlined } : t).ToImmutableArray()),
+            },
+        };
+        Refresh();
+        await Frames(1);
+        var underlinedButton = _handRow.GetChildren().OfType<TileButton>().First(b => b.TileId == underlinedId);
+        string underlinedTag = string.Join("", underlinedButton.GetChildren().OfType<Label>().Select(l => l.Text).Where(t => t.Length == 1 && char.IsLetter(t[0])));
+        Check("an Underlined tile is tagged U and explains itself", underlinedTag.Contains('U')
+            && underlinedButton.TooltipText.Contains(RoundScoring.Describe(Crossword.Core.Domain.TileEnhancement.Underlined))
+            && RoundScoring.Describe(Crossword.Core.Domain.TileEnhancement.Underlined).Contains("mult"));
+        _session = _session with // plain again, so later steps' expected numbers hold
+        {
+            Round = Round with
+            {
+                Hand = new Crossword.Core.Domain.Hand(Round.Hand.Tiles.Select(t => t.Id == underlinedId
+                    ? t with { Enhancement = Crossword.Core.Domain.TileEnhancement.None } : t).ToImmutableArray()),
+            },
+        };
+        Refresh();
+        await Frames(1);
+
         // 6. Hint places a play; the preview defines every word it forms.
         await Click(Centre(_hintButton));
         var words = PlacementValidator.Validate(Round.Board, Round.Hand, PendingPlacement(), _lexicon, Round.Config.MinWordLength,
@@ -241,7 +269,7 @@ public partial class Main
         {
             Run = Run with
             {
-                DeskItems = [.. new[] { "pulitzer", "red-pen", "letters-to-the-editor", "second-printing", "crossword-editor" }
+                DeskItems = [.. new[] { "pulitzer", "red-pen", "letters-to-the-editor", "second-printing", "carbon-copy" }
                     .Select(id => Crossword.Core.DeskItems.DeskItemCatalog.Find(id)!)],
                 Stationery = [new Crossword.Core.Stationery.PoeticLicense(), new Crossword.Core.Stationery.Highlighter()],
             },
@@ -254,7 +282,7 @@ public partial class Main
             && _deskCaption.Visible && _submitButton.GetGlobalRect().End.Y <= GetViewportRect().Size.Y);
         Check("a full desk bar stays on screen", _deskRow.GetChildren().OfType<Control>().All(c => c.GetGlobalRect().End.X <= GetViewportRect().Size.X));
         Check("desk cards show their slot and what they do", TagOf("pulitzer") == "×MULT" && TagOf("red-pen") == "+MULT"
-            && TagOf("second-printing") == "×CHIPS ×MULT" && numbers.SequenceEqual(["1", "2", "3", "4", "5"]));
+            && TagOf("second-printing") == "×CHIPS ×MULT" && TagOf("carbon-copy") == "COPY" && numbers.SequenceEqual(["1", "2", "3", "4", "5"]));
         _session = _session with { Run = Run with { DeskItems = heldDesk, Stationery = heldStationery } };
         Refresh();
         await Frames(1);
@@ -438,6 +466,22 @@ public partial class Main
         Check($"a ring-up past the cap counts up to the cap ({hugeSeen})", hugeRingUp && !_animating);
         _receipt.Clear();
         _session = _session with { Round = realRound };
+        Refresh();
+
+        // 13d. A play with an Underlined tile prints its ×1.5 mult line on the receipt (scoring step 4d).
+        var underlinedTile = submitted.Play.Placed[0].Tile with { Enhancement = Crossword.Core.Domain.TileEnhancement.Underlined };
+        var underlinedScore = Crossword.Core.Scoring.ScoringEngine.Score(submitted.Play.WithTile(underlinedTile), Run.DeskItems, RoundScoring,
+            RoundRules.Environment(Round, Run.Money));
+        _animating = true;
+        AnimateScore(underlinedScore, 0);
+        for (int i = 0; i < 100 && !_receipt.HasTotal; i++)
+            await Seconds(0.1);
+        string receiptText = string.Join("\n", _receipt.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Select(l => l.Text));
+        for (int i = 0; i < 100 && _animating; i++)
+            await Seconds(0.1);
+        Check("an Underlined tile prints its ×mult line on the receipt", !_animating && receiptText.Contains("Underlined")
+            && receiptText.Contains($"×{RoundScoring.UnderlinedMult:0.##} mult") && underlinedScore.Mult > submitted.Score.Mult);
+        _receipt.Clear();
         Refresh();
 
         // 14. The play lands in the (in-memory) profile, and the Stats popup lists its words; Esc closes it.

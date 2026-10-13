@@ -17,6 +17,10 @@ public class DeskItemKindTests
     [InlineData("second-printing", DeskItemKind.TimesChipsAndMult)]
     [InlineData("syndication", DeskItemKind.Money)]
     [InlineData("tile-rack", DeskItemKind.Rules)]
+    [InlineData("column-inches", DeskItemKind.TimesMult)]
+    [InlineData("newsstand", DeskItemKind.TimesChips)]
+    [InlineData("pull-quote", DeskItemKind.Retrigger)]
+    [InlineData("carbon-copy", DeskItemKind.Copy)]
     public void Catalog_TagsItemsByWhatTheyDo(string id, DeskItemKind kind) => Assert.Equal(kind, DeskItemCatalog.Find(id)!.Kind);
 
     [Fact]
@@ -68,6 +72,19 @@ public class DeskItemKindTests
                             break;
                         case DeskItemKind.TimesMult: // scales the mult it is given
                             Assert.True(after.Chips == start.Chips && after.Mult / 2 == doubled.Mult / 4, item.Id);
+                            break;
+                        case DeskItemKind.TimesChips: // scales the chips it is given
+                            {
+                                long big = item.Apply(start with { Chips = 1000 }).Chips;
+                                long bigger = item.Apply(start with { Chips = 2000 }).Chips;
+                                Assert.True(after.Mult == start.Mult && after.Chips >= start.Chips && Math.Abs(bigger - 2 * big) <= 2, item.Id);
+                            }
+                            break;
+                        case DeskItemKind.Retrigger: // fires enhancements again: only ever adds or multiplies
+                            Assert.True(after.Chips >= start.Chips && after.Mult >= start.Mult, item.Id);
+                            break;
+                        case DeskItemKind.Copy: // nothing to copy without a desk
+                            Assert.True(after.Chips == start.Chips && after.Mult == start.Mult, item.Id);
                             break;
                         case DeskItemKind.Money or DeskItemKind.Rules:
                             Assert.True(after.Chips == start.Chips && after.Mult == start.Mult, item.Id);

@@ -28,6 +28,9 @@ public sealed record ScoreContext(long Chips, decimal Mult, PlayAnalysis Play, I
 
     public ScoreEnvironment Env { get; init; } = ScoreEnvironment.Empty;
 
+    /// <summary>The scoring numbers this play is scored with (set by <see cref="Scoring.ScoringEngine"/>; items that re-fire tile enhancements read it).</summary>
+    public ScoringConfig? Scoring { get; init; }
+
     /// <summary>Each formed word's letter chips as scored in step 2, aligned with <see cref="PlayAnalysis.Words"/>.</summary>
     public ImmutableArray<long> WordChips { get; init; } = ImmutableArray<long>.Empty;
 

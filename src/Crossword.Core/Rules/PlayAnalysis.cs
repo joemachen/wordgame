@@ -27,4 +27,24 @@ public sealed record PlayAnalysis(ImmutableArray<PlacedTile> Placed, ImmutableAr
             .ToImmutableArray();
 
     public FormedWord LongestWord => Words.MaxBy(w => w.Length)!;
+
+    /// <summary>
+    /// The same play with one tile (matched by id) replaced wherever it appears — placed tiles, formed words and the
+    /// board after the play — so a shop bot can re-score a play as if a deck tile were enhanced. The play itself
+    /// when the tile isn't in it.
+    /// </summary>
+    public PlayAnalysis WithTile(Tile tile)
+    {
+        int boardIndex = -1;
+        for (int i = 0; i < BoardAfter.Cells.Length && boardIndex < 0; i++)
+            if (BoardAfter.Cells[i]?.Id == tile.Id)
+                boardIndex = i;
+        bool inWords = Words.Any(w => w.Cells.Any(c => c.Tile.Id == tile.Id));
+        if (boardIndex < 0 && !inWords && !Placed.Any(p => p.Tile.Id == tile.Id))
+            return this;
+        return new PlayAnalysis(
+            Placed.Select(p => p.Tile.Id == tile.Id ? p with { Tile = tile } : p).ToImmutableArray(),
+            Words.Select(w => w with { Cells = w.Cells.Select(c => c.Tile.Id == tile.Id ? c with { Tile = tile } : c).ToImmutableArray() }).ToImmutableArray(),
+            boardIndex < 0 ? BoardAfter : BoardAfter with { Cells = BoardAfter.Cells.SetItem(boardIndex, tile) });
+    }
 }

@@ -20,9 +20,10 @@ public class DeskOrderTests
     [Fact]
     public void Sorted_PutsChipsThenMultThenMultipliers()
     {
-        IDeskItem[] items = [new SecondPrinting(), new Pulitzer(), new TileRack(), new RedPen(), new Thesaurus()];
+        IDeskItem[] items = [new CarbonCopy(), new SecondPrinting(), new Newsstand(), new Pulitzer(), new PullQuote(), new TileRack(), new RedPen(), new Thesaurus()];
 
-        Assert.Equal(["thesaurus", "red-pen", "tile-rack", "pulitzer", "second-printing"], DeskOrder.Sorted(items).Select(i => i.Id));
+        Assert.Equal(["thesaurus", "red-pen", "pull-quote", "tile-rack", "newsstand", "pulitzer", "second-printing", "carbon-copy"],
+            DeskOrder.Sorted(items).Select(i => i.Id));
     }
 
     /// <summary>
@@ -37,6 +38,9 @@ public class DeskOrderTests
             PlayOn(Board.Empty(5), "CAT", 0, 0, Direction.Across, "CAT"),
             PlayOn(Board.Empty(5), "STAR", 0, 0, Direction.Across, "STAR"),
             PlayOn(BoardFromRows("CAT..", ".....", ".....", ".....", "....."), "TO", 1, 1, Direction.Across, "TO"),
+            // The same play onto enhanced board tiles (Underlined A, Bold T), so retriggers and step 4d take part.
+            PlayOn(Enhance(Enhance(BoardFromRows("CAT..", ".....", ".....", ".....", "....."), 0, 1, TileEnhancement.Underlined), 0, 2, TileEnhancement.Bold),
+                "TO", 1, 1, Direction.Across, "TO"),
         ];
         ScoreEnvironment[] envs = [new(20, 1, 0) { SubmissionsMade = 3 }, new(8, 4, 3) { SubmissionsMade = 0 }];
         var rng = Rng.FromSeed(11);

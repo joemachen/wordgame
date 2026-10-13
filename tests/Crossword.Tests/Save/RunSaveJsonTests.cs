@@ -58,6 +58,7 @@ public class RunSaveJsonTests
             new Pulitzer(Factor: 2.5m, PerBoss: 0.25m),
             new PrintingPressRoller(MinWords: 2, Gain: 0.2m, Factor: 1.6m),
             new LettersToTheEditor(MultPerLetter: 1m, Letters: "ACT"),
+            new SubscriptionDrive(Growth: 1.1m, MinWords: 2, Factor: 1.3m),
         ]).ToList();
 
         foreach (var item in items)
@@ -93,6 +94,8 @@ public class RunSaveJsonTests
             new AddTileOffer(Tile.WildPlaceholder, TileEnhancement.None, 6, Wild: true),
             new WildOffer(5),
             new EnhanceOffer(TileEnhancement.Italic, 4),
+            new EnhanceOffer(TileEnhancement.Underlined, 5),
+            new AddTileOffer(Letter.From('E'), TileEnhancement.Embossed, 6),
             new StrikeOffer(2, 3),
             new StyleGuideOffer(5, "Pulp Paperbacks", "5-letter", 10, 1, 3),
             new StationeryOffer(new MarginClip(), 6),

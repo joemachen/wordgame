@@ -67,6 +67,51 @@ public class ShopBotTests
 
     private static string[] Ids(GameSession session) => session.Run.DeskItems.Select(d => d.Id).ToArray();
 
+    /// <summary>A history whose chosen play is the best one, on a deck made of the hand's own tiles.</summary>
+    private static (GameSession Session, ShopHistory History) WithOwnDeck(GameSession session)
+    {
+        var plays = Plays();
+        var best = plays.MaxBy(p => ScoringEngine.Score(p, [], Scoring, Env).Total)!;
+        var history = ShopHistory.Empty.Add(new DecisionPoint(0, new RoundConfig(TargetScore: 1), Env, plays, best), window: 10);
+        return (session with { Run = session.Run with { Deck = HandOf("AERSTO").Tiles } }, history);
+    }
+
+    [Fact]
+    public void BuysAnEnhancement_WhenReScoringShowsAGain()
+    {
+        var (session, history) = WithOwnDeck(InShop(10, 0, [], new EnhanceOffer(TileEnhancement.Underlined, 5)));
+
+        var after = EvaluatingShopBot.Shop(session, history, Bot);
+
+        var enhanced = Assert.Single(after.Run.Deck, t => t.Enhancement == TileEnhancement.Underlined);
+        Assert.Contains(history.Decisions[0].Chosen.Placed, p => p.Tile.Id == enhanced.Id); // a tile it actually plays
+        Assert.Equal(5, after.Run.Money);
+    }
+
+    [Fact]
+    public void IgnoresEnhancements_OnTilesItNeverPlays()
+    {
+        var session = InShop(10, 0, [], new EnhanceOffer(TileEnhancement.Underlined, 5));
+        session = session with { Run = session.Run with { Deck = [.. Enumerable.Range(500, 6).Select(i => new Tile(i, Letter.From('E')))] } };
+
+        var after = EvaluatingShopBot.Shop(session, History(Plays()), Bot);
+
+        Assert.DoesNotContain(after.Run.Deck, t => t.Enhancement != TileEnhancement.None);
+        Assert.Equal(10, after.Run.Money);
+    }
+
+    [Fact]
+    public void BuysCarbonCopy_OnlyWithAMultiplierToCopy()
+    {
+        var offer = new DeskItemOffer(new CarbonCopy(), 10);
+
+        var withPulitzer = EvaluatingShopBot.Shop(InShop(10, 0, [new Pulitzer(Factor: 2, PerBoss: 0)], offer), History(Plays()), Bot);
+        var withRedPen = EvaluatingShopBot.Shop(InShop(10, 0, [new RedPen(5)], offer), History(Plays()), Bot);
+
+        Assert.Equal(["pulitzer", "carbon-copy"], Ids(withPulitzer));
+        Assert.Equal(["red-pen"], Ids(withRedPen));
+    }
+
     [Fact]
     public void BuysTheStrongerItem_WhenItCanAffordOnlyOne()
     {

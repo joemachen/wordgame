@@ -50,6 +50,8 @@ public static class SimulationReport
             sb.AppendLine($"  Reached week {week + 1}: {100.0 * reached / runs.Count,3:0}%");
         }
         AppendSubmissionsToWin(sb, runs, config);
+        AppendRoundScores(sb, runs, config);
+        AppendFinalDesks(sb, runs);
         var used = runs.SelectMany(r => r.StationeryUsed).GroupBy(id => id).OrderByDescending(g => g.Count())
             .Select(g => $"{g.Key} {(double)g.Count() / runs.Count:0.00}").ToList();
         sb.AppendLine($"  Stationery used per run: {(used.Count == 0 ? "none" : string.Join(", ", used))}");
@@ -76,6 +78,28 @@ public static class SimulationReport
             });
             sb.AppendLine($"    {$"Week {week + 1}",-8}{string.Join("", cells)}");
         }
+    }
+
+    /// <summary>Median and p90 score of won rounds per week against the week's Daily deadline: how far the engines carry a build.</summary>
+    private static void AppendRoundScores(StringBuilder sb, IReadOnlyList<SimulatedRun> runs, RunConfig config)
+    {
+        sb.AppendLine("  Won-round score per week (median / p90 / deadline of the Sunday Edition):");
+        for (int week = 0; week < config.WeekTargets.Length; week++)
+        {
+            var scores = runs.SelectMany(r => r.Rounds).Where(r => r.Won && config.WeekOf(r.RoundIndex) == week).Select(r => r.Score).Order().ToList();
+            if (scores.Count == 0)
+                continue;
+            long sunday = config.TargetFor(week * config.Days.Length + config.Days.Length - 1);
+            sb.AppendLine($"    Week {week + 1}: {Crossword.Core.Scoring.ScoreFormat.Number(Percentile(scores, 50)),16} / {Crossword.Core.Scoring.ScoreFormat.Number(Percentile(scores, 90)),16} / {Crossword.Core.Scoring.ScoreFormat.Number(sunday),16}");
+        }
+    }
+
+    /// <summary>How often each Desk Item is on the desk when the run ends (the top of the list = what the bot builds around).</summary>
+    private static void AppendFinalDesks(StringBuilder sb, IReadOnlyList<SimulatedRun> runs)
+    {
+        var picks = runs.SelectMany(r => r.DeskItems).GroupBy(id => id).OrderByDescending(g => g.Count()).ThenBy(g => g.Key)
+            .Select(g => $"{g.Key} {100.0 * g.Count() / runs.Count:0}%").ToList();
+        sb.AppendLine($"  Final desks: {string.Join(", ", picks)}");
     }
 
     private static int? SubmissionsToReach(SimulatedRound round, long target)

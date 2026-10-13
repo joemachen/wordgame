@@ -13,6 +13,8 @@ namespace Crossword.Core.Scoring;
 /// 4. Intersections — each new tile in both an Across and a Down word adds Mult.
 /// 4b. Theme words — each formed word in the run's theme dictionary adds Mult (The Olde English Folio).
 /// 4c. Round bonus — flat Mult from Stationery used this round (Red Ink Bottle).
+/// 4d. Multiplicative enhancements — each Underlined (×Mult) or Embossed (×Chips) tile fires once per formed word
+///     containing it, after every additive source so it multiplies them all (the same rule the desk order follows).
 /// 5. Desk Items — applied in slot order.
 /// 6. Total — floor(Chips × Mult).
 /// </summary>
@@ -32,17 +34,18 @@ public static class ScoringEngine
     public static ScoreContext Score(PlayAnalysis play, IReadOnlyList<IDeskItem> deskItemsInSlotOrder, ScoringConfig config,
         ScoreEnvironment? environment = null)
     {
-        var context = ApplyTier(play, config) with { Env = environment ?? ScoreEnvironment.Empty };
+        var context = ApplyTier(play, config) with { Env = environment ?? ScoreEnvironment.Empty, Scoring = config };
         context = play.Words.Aggregate(context, (ctx, word) => ApplyWord(ctx, word, config));
         if (config.Clipping is { } clipping)
             context = ApplyClipping(context, clipping, config);
-        context = play.Words.Aggregate(context, (ctx, word) => ApplyEnhancements(ctx, word, config));
+        context = play.Words.Aggregate(context, (ctx, word) => ApplyEnhancements(ctx, word, config, multiplicative: false));
         context = ApplyIntersections(context, config);
         if (config.Theme is { } theme)
             context = play.Words.Where(word => theme.Words.Contains(word.Text)).Aggregate(context, (ctx, word) =>
                 ctx.AddMult(theme.MultPerWord).Record(Sources.Theme, $"{word.Text} ({theme.Name}): +{theme.MultPerWord} mult"));
         if (config.BonusMult != 0)
             context = context.AddMult(config.BonusMult).Record(Sources.Bonus, $"Red ink: +{config.BonusMult} mult");
+        context = play.Words.Aggregate(context, (ctx, word) => ApplyEnhancements(ctx, word, config, multiplicative: true));
         return EffectPipeline.Apply(deskItemsInSlotOrder, context);
     }
 
@@ -113,19 +116,31 @@ public static class ScoringEngine
             .Record(Sources.Word, $"{word.Text}: +{chips} chips{suffix}");
     }
 
-    private static ScoreContext ApplyEnhancements(ScoreContext context, FormedWord word, ScoringConfig config)
+    /// <summary>
+    /// Fires the enhanced tiles of one formed word: the additive ones (step 3: Bold, Italic, Gilded) or the
+    /// multiplicative ones (step 4d: Underlined, Embossed). Public so a retrigger item (Pull Quote) can fire them again
+    /// under its own <paramref name="sourceId"/> and <paramref name="prefix"/>.
+    /// </summary>
+    public static ScoreContext ApplyEnhancements(ScoreContext context, FormedWord word, ScoringConfig config, bool multiplicative,
+        string sourceId = Sources.Enhancement, string prefix = "")
     {
         foreach (var cell in word.Cells)
         {
             var tile = cell.Tile;
+            if (ScoringConfig.IsMultiplicative(tile.Enhancement) != multiplicative)
+                continue;
             context = tile.Enhancement switch
             {
                 TileEnhancement.Bold => context.AddChips(config.BoldChips)
-                    .Record(Sources.Enhancement, $"Bold {tile} in {word.Text}: +{config.BoldChips} chips"),
+                    .Record(sourceId, $"{prefix}Bold {tile} in {word.Text}: +{config.BoldChips} chips"),
                 TileEnhancement.Italic => context.AddMult(config.ItalicMult)
-                    .Record(Sources.Enhancement, $"Italic {tile} in {word.Text}: +{config.ItalicMult} mult"),
+                    .Record(sourceId, $"{prefix}Italic {tile} in {word.Text}: +{config.ItalicMult} mult"),
                 TileEnhancement.Gilded => context.AddMoney(config.GildedMoney)
-                    .Record(Sources.Enhancement, $"Gilded {tile} in {word.Text}: +${config.GildedMoney}"),
+                    .Record(sourceId, $"{prefix}Gilded {tile} in {word.Text}: +${config.GildedMoney}"),
+                TileEnhancement.Underlined => context.TimesMult(config.UnderlinedMult)
+                    .Record(sourceId, $"{prefix}Underlined {tile} in {word.Text}: ×{config.UnderlinedMult:0.##} mult"),
+                TileEnhancement.Embossed => context.TimesChips(config.EmbossedChips)
+                    .Record(sourceId, $"{prefix}Embossed {tile} in {word.Text}: ×{config.EmbossedChips:0.##} chips"),
                 _ => context,
             };
         }

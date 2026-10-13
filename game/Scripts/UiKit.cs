@@ -63,6 +63,8 @@ public static class UiKit
         TileEnhancement.Bold => new Color("3d8bfd"),
         TileEnhancement.Italic => new Color("b45cff"),
         TileEnhancement.Gilded => new Color("f5c542"),
+        TileEnhancement.Underlined => new Color("2ec4b6"),
+        TileEnhancement.Embossed => new Color("e07b39"),
         _ => new Color("c9bfa5"),
     };
 

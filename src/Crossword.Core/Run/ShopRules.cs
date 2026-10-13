@@ -11,7 +11,6 @@ namespace Crossword.Core.Run;
 /// <summary>Pure shop transitions. Each shop gets its own RNG stream split off the run RNG.</summary>
 public static class ShopRules
 {
-    private static readonly TileEnhancement[] Enhancements = [TileEnhancement.Bold, TileEnhancement.Italic, TileEnhancement.Gilded];
 
     /// <summary>Opens a shop; returns it with the advanced run RNG.</summary>
     public static (ShopState Shop, Rng RunRng) Generate(RunState run, RunConfig config, Rng runRng)
@@ -185,9 +184,8 @@ public static class ShopRules
                 (int enhancedRoll, rng) = rng.NextInt(100);
                 var enhancement = TileEnhancement.None;
                 if (enhancedRoll < config.EnhancedTilePercent)
-                    (enhancement, rng) = PickEnhancement(rng);
-                offers.Add(new AddTileOffer(letterPool[pick].Letter, enhancement,
-                    enhancement == TileEnhancement.None ? config.PlainTilePrice : config.EnhancedTilePrice));
+                    (enhancement, rng) = PickEnhancement(config, rng);
+                offers.Add(new AddTileOffer(letterPool[pick].Letter, enhancement, config.EnhancedTilePriceOf(enhancement)));
             }
             else if (roll < 50 + config.WildEditPercent)
             {
@@ -195,8 +193,8 @@ public static class ShopRules
             }
             else if (roll < 80)
             {
-                (var enhancement, rng) = PickEnhancement(rng);
-                offers.Add(new EnhanceOffer(enhancement, config.EnhancePrice));
+                (var enhancement, rng) = PickEnhancement(config, rng);
+                offers.Add(new EnhanceOffer(enhancement, config.EnhancePriceOf(enhancement)));
             }
             else
             {
@@ -245,10 +243,19 @@ public static class ShopRules
         return (weights[^1].Rarity, next);
     }
 
-    private static (TileEnhancement, Rng) PickEnhancement(Rng rng)
+    /// <summary>One weighted roll over <see cref="ShopConfig.EnhancementWeights"/> (a zero weight never comes up).</summary>
+    private static (TileEnhancement, Rng) PickEnhancement(ShopConfig config, Rng rng)
     {
-        var (i, next) = rng.NextInt(Enhancements.Length);
-        return (Enhancements[i], next);
+        var weights = config.EnhancementWeights().ToList();
+        var (roll, next) = rng.NextInt(Math.Max(1, weights.Sum(w => w.Weight)));
+        int running = 0;
+        foreach (var (enhancement, weight) in weights)
+        {
+            running += weight;
+            if (roll < running)
+                return (enhancement, next);
+        }
+        return (weights.Last(w => w.Weight > 0).Enhancement, next);
     }
 
     private static Result<GameSession, string> Fail(string message) => Result<GameSession, string>.Fail(message);

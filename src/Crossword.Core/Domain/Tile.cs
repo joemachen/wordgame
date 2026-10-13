@@ -10,6 +10,10 @@ public enum TileEnhancement
     Bold,
     Italic,
     Gilded,
+    /// <summary>×Mult in every word it's in (2026-10-12, the compounding batch).</summary>
+    Underlined,
+    /// <summary>×Chips in every word it's in.</summary>
+    Embossed,
 }
 
 /// <summary>

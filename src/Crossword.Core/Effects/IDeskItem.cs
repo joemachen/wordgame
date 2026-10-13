@@ -19,6 +19,12 @@ public enum DeskItemKind
     TimesChipsAndMult,
     Money,
     Rules,
+    /// <summary>Multiplies chips by a factor that depends on the play (Newsstand). Sorted with the ×Mult items.</summary>
+    TimesChips,
+    /// <summary>Fires tile enhancements again (Pull Quote): adds, then multiplies — sorted between +Mult and ×Mult.</summary>
+    Retrigger,
+    /// <summary>Fires another Desk Item again (Carbon Copy): a pure "× your best factor", sorted last.</summary>
+    Copy,
 }
 
 /// <summary>Player-facing tag and explanation for each <see cref="DeskItemKind"/>.</summary>
@@ -30,6 +36,9 @@ public static class DeskItemKinds
         DeskItemKind.Mult => "+MULT",
         DeskItemKind.TimesMult => "×MULT",
         DeskItemKind.TimesChipsAndMult => "×CHIPS ×MULT",
+        DeskItemKind.TimesChips => "×CHIPS",
+        DeskItemKind.Retrigger => "AGAIN",
+        DeskItemKind.Copy => "COPY",
         DeskItemKind.Money => "$",
         _ => "RULES",
     };
@@ -40,6 +49,9 @@ public static class DeskItemKinds
         DeskItemKind.Mult => "Adds mult: put it to the left of ×Mult items so they multiply it.",
         DeskItemKind.TimesMult => "Multiplies the mult from everything to its left: put it after your +Mult items.",
         DeskItemKind.TimesChipsAndMult => "Multiplies chips and mult from everything to its left: put it last.",
+        DeskItemKind.TimesChips => "Multiplies the chips from everything to its left: put it after your +Chips items.",
+        DeskItemKind.Retrigger => "Fires enhanced tiles again: after the +Mult items, before the ×Mult items.",
+        DeskItemKind.Copy => "Fires your strongest multiplier again: put it last.",
         DeskItemKind.Money => "Pays money: its place doesn't matter.",
         _ => "Changes the round's rules: its place doesn't matter.",
     };
@@ -75,6 +87,12 @@ public interface IDeskItem
     DeskItemKind Kind { get; }
 
     ScoreContext Apply(ScoreContext context);
+
+    /// <summary>
+    /// <see cref="Apply(ScoreContext)"/> with the whole desk in slot order, for items that fire another item
+    /// (Carbon Copy). <see cref="EffectPipeline"/> calls this one; everything else ignores the desk.
+    /// </summary>
+    ScoreContext Apply(ScoreContext context, IReadOnlyList<IDeskItem> desk) => Apply(context);
 
     /// <summary>Called after every submitted play. Scaling items return an updated copy; others return themselves.</summary>
     IDeskItem AfterPlay(PlayAnalysis play) => this;

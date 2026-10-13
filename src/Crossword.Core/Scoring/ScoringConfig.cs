@@ -26,6 +26,7 @@ public sealed record WordTheme(string Name, ImmutableHashSet<string> Words, deci
 /// <see cref="BonusMult"/> is a flat per-play Mult added before Desk Items; it is only set for a round in progress
 /// (Red Ink Bottle, via <see cref="Domain.RoundConfig.EffectiveScoring"/>).
 /// <see cref="RepeatWordsScoreZero"/> (boss Redundant Copy): a word already formed earlier this round adds no letter chips.
+/// <see cref="UnderlinedMult"/> / <see cref="EmbossedChips"/> are the multiplicative tile enhancements (step 4d).
 /// <see cref="Theme"/> is set from the run's theme dictionary (<see cref="Run.RunRules.ConfigFor"/>), null otherwise.
 /// </summary>
 public sealed record ScoringConfig(
@@ -35,6 +36,8 @@ public sealed record ScoringConfig(
     long BoldChips = 10,
     decimal ItalicMult = 2,
     int GildedMoney = 1,
+    decimal UnderlinedMult = 1.5m,
+    decimal EmbossedChips = 2m,
     decimal BonusMult = 0,
     bool RepeatWordsScoreZero = false,
     WordTheme? Theme = null,
@@ -78,8 +81,14 @@ public sealed record ScoringConfig(
         TileEnhancement.Bold => $"Bold: +{BoldChips} chips in every word it's in",
         TileEnhancement.Italic => $"Italic: +{ItalicMult:0.##} mult in every word it's in",
         TileEnhancement.Gilded => $"Gilded: +${GildedMoney} in every word it's in",
+        TileEnhancement.Underlined => $"Underlined: ×{UnderlinedMult:0.##} mult in every word it's in",
+        TileEnhancement.Embossed => $"Embossed: ×{EmbossedChips:0.##} chips in every word it's in",
         _ => "",
     };
+
+    /// <summary>Underlined and Embossed multiply (scoring step 4d, after every additive source); the rest add.</summary>
+    public static bool IsMultiplicative(TileEnhancement enhancement) =>
+        enhancement is TileEnhancement.Underlined or TileEnhancement.Embossed;
 
     /// <summary>Applies Style Guide upgrades (keyed by tier MinLength → number of upgrades).</summary>
     public ScoringConfig WithUpgrades(IReadOnlyDictionary<int, int> upgrades) =>

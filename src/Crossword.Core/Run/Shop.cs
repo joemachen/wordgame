@@ -47,21 +47,51 @@ public sealed record ShopConfig(
     int WildTilePrice = 6,
     int WildEditPercent = 10,
     int WildEditPrice = 5,
-    IReadOnlySet<string>? DeskItemIds = null)
+    IReadOnlySet<string>? DeskItemIds = null,
+    int BoldWeight = 30,
+    int ItalicWeight = 30,
+    int GildedWeight = 15,
+    int UnderlinedWeight = 15,
+    int EmbossedWeight = 10,
+    IReadOnlyDictionary<TileEnhancement, int>? EnhancePrices = null,
+    IReadOnlyDictionary<TileEnhancement, int>? EnhancedTilePrices = null)
 {
     /// <summary>
     /// Margin Clip costs $6: at the flat $3 it alone added +13 pts of win rate (ScoreFraction 0.75). Price is a weak lever
     /// for it — $5–$7 measure alike — because an extra submission saves runs. The rule-breakers (2026-10-10) are priced
     /// above the flat $3 by how much they bend: a Gold Star or Clipping $4, a Poetic License or Correction Tape $5.
     /// </summary>
-    public static ShopConfig Default { get; } = new(StationeryPrices: new Dictionary<string, int>
+    public static ShopConfig Default { get; } = new(
+        StationeryPrices: new Dictionary<string, int>
+        {
+            ["margin-clip"] = 6,
+            ["gold-star"] = 4,
+            ["clipping"] = 4,
+            ["poetic-license"] = 5,
+            ["correction-tape"] = 5,
+        },
+        // The multiplicative enhancements (2026-10-12) cost more than the additive ones.
+        EnhancePrices: new Dictionary<TileEnhancement, int> { [TileEnhancement.Underlined] = 5, [TileEnhancement.Embossed] = 5 },
+        EnhancedTilePrices: new Dictionary<TileEnhancement, int> { [TileEnhancement.Underlined] = 6, [TileEnhancement.Embossed] = 6 });
+
+    /// <summary>Each enhancement with its roll weight, in order (one roll against the running sum, like rarities).</summary>
+    public IEnumerable<(TileEnhancement Enhancement, int Weight)> EnhancementWeights()
     {
-        ["margin-clip"] = 6,
-        ["gold-star"] = 4,
-        ["clipping"] = 4,
-        ["poetic-license"] = 5,
-        ["correction-tape"] = 5,
-    });
+        yield return (TileEnhancement.Bold, BoldWeight);
+        yield return (TileEnhancement.Italic, ItalicWeight);
+        yield return (TileEnhancement.Gilded, GildedWeight);
+        yield return (TileEnhancement.Underlined, UnderlinedWeight);
+        yield return (TileEnhancement.Embossed, EmbossedWeight);
+    }
+
+    /// <summary>The price of the "make a tile …" edit for an enhancement (<see cref="EnhancePrice"/> unless overridden).</summary>
+    public int EnhancePriceOf(TileEnhancement enhancement) =>
+        EnhancePrices is not null && EnhancePrices.TryGetValue(enhancement, out int price) ? price : EnhancePrice;
+
+    /// <summary>The price of an added tile with an enhancement (<see cref="EnhancedTilePrice"/> unless overridden).</summary>
+    public int EnhancedTilePriceOf(TileEnhancement enhancement) =>
+        enhancement == TileEnhancement.None ? PlainTilePrice
+        : EnhancedTilePrices is not null && EnhancedTilePrices.TryGetValue(enhancement, out int price) ? price : EnhancedTilePrice;
 
     public int PriceOf(IDeskItem item) => item.Rarity switch
     {
