@@ -24,8 +24,17 @@ public sealed record RunState(
         DeskItems: ImmutableArray<IDeskItem>.Empty,
         RoundIndex: 0);
 
-    public const int MaxDeskSlots = 5;
-    public const int MaxStationerySlots = 2;
+    /// <summary>Desk Item slots of a run without upgrades (<see cref="Run.RunConfig.DeskSlots"/>).</summary>
+    public const int DefaultDeskSlots = 5;
+
+    /// <summary>The most Desk Item slots a run can reach (Filing Cabinets).</summary>
+    public const int MaxDeskSlots = 7;
+
+    /// <summary>Stationery slots of a run without upgrades (<see cref="Run.RunConfig.StationerySlots"/>).</summary>
+    public const int DefaultStationerySlots = 2;
+
+    /// <summary>The most Stationery slots a run can reach (Supply Closets).</summary>
+    public const int MaxStationerySlots = 4;
 
     /// <summary>One-shot Stationery held for later use; duplicates are allowed.</summary>
     public ImmutableArray<IStationery> Stationery { get; init; } = ImmutableArray<IStationery>.Empty;
@@ -48,6 +57,9 @@ public sealed record RunState(
     /// </summary>
     public bool Seeded { get; init; }
 
+    /// <summary>Office upgrades bought: upgrade id → level (see <see cref="Run.OfficeUpgrades"/>).</summary>
+    public ImmutableDictionary<string, int> Upgrades { get; init; } = ImmutableDictionary<string, int>.Empty;
+
     /// <summary>Style Guide upgrades bought: word tier MinLength → number of upgrades.</summary>
     public ImmutableDictionary<int, int> TierUpgrades { get; init; } = ImmutableDictionary<int, int>.Empty;
 
@@ -57,14 +69,14 @@ public sealed record RunState(
     public RunState AdvanceRound() => this with { RoundIndex = RoundIndex + 1 };
 
     /// <summary>
-    /// Adds an item to the rightmost slot of <paramref name="slots"/> (the run's <see cref="Run.RunConfig.DeskSlots"/>).
-    /// Duplicates (same Id) are not allowed.
+    /// Adds an item to the desk of <paramref name="slots"/> slots (the run's <see cref="Run.RunConfig.DeskSlots"/>), which
+    /// keeps itself in the best order. Duplicates (same Id) need <paramref name="allowDuplicates"/> (the Photocopier).
     /// </summary>
-    public Result<RunState, string> AddDeskItem(IDeskItem item, int slots = MaxDeskSlots)
+    public Result<RunState, string> AddDeskItem(IDeskItem item, int slots = DefaultDeskSlots, bool allowDuplicates = false)
     {
         if (DeskItems.Length >= slots)
             return Result<RunState, string>.Fail($"All {slots} desk slots are full.");
-        if (DeskItems.Any(d => d.Id == item.Id))
+        if (!allowDuplicates && DeskItems.Any(d => d.Id == item.Id))
             return Result<RunState, string>.Fail($"You already have {item.Name}.");
         return Result<RunState, string>.Ok(this with { DeskItems = DeskOrder.Sorted(DeskItems.Add(item)) });
     }
@@ -74,9 +86,10 @@ public sealed record RunState(
             ? Result<RunState, string>.Ok(this with { DeskItems = DeskItems.RemoveAt(slot) })
             : Result<RunState, string>.Fail($"No desk item in slot {slot + 1}.");
 
-    public Result<RunState, string> AddStationery(IStationery item) =>
-        Stationery.Length >= MaxStationerySlots
-            ? Result<RunState, string>.Fail($"Both {MaxStationerySlots} stationery slots are full.")
+    /// <summary>Holds <paramref name="item"/> in one of <paramref name="slots"/> slots (the run's <see cref="Run.RunConfig.StationerySlots"/>).</summary>
+    public Result<RunState, string> AddStationery(IStationery item, int slots = DefaultStationerySlots) =>
+        Stationery.Length >= slots
+            ? Result<RunState, string>.Fail($"All {slots} stationery slots are full.")
             : Result<RunState, string>.Ok(this with { Stationery = Stationery.Add(item) });
 
     public Result<RunState, string> RemoveStationery(int slot) =>

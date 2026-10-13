@@ -100,6 +100,10 @@ public static class SimulationReport
         var picks = runs.SelectMany(r => r.DeskItems).GroupBy(id => id).OrderByDescending(g => g.Count()).ThenBy(g => g.Key)
             .Select(g => $"{g.Key} {100.0 * g.Count() / runs.Count:0}%").ToList();
         sb.AppendLine($"  Final desks: {string.Join(", ", picks)}");
+        var upgrades = runs.SelectMany(r => r.Upgrades.Keys).GroupBy(id => id).OrderByDescending(g => g.Count()).ThenBy(g => g.Key)
+            .Select(g => $"{g.Key} {100.0 * g.Count() / runs.Count:0}%").ToList();
+        if (upgrades.Count > 0)
+            sb.AppendLine($"  Office upgrades bought: {string.Join(", ", upgrades)}");
     }
 
     private static int? SubmissionsToReach(SimulatedRound round, long target)

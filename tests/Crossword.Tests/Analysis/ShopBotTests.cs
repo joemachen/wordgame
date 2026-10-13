@@ -152,7 +152,7 @@ public class ShopBotTests
 
         var after = EvaluatingShopBot.Shop(session, History(Plays()), Bot);
 
-        Assert.Equal(RunState.MaxDeskSlots, after.Run.DeskItems.Length);
+        Assert.Equal(RunState.DefaultDeskSlots, after.Run.DeskItems.Length);
         Assert.Contains("red-pen", Ids(after));
         Assert.Null(after.Shop!.Offers[0]);
     }

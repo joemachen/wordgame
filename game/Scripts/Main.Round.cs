@@ -14,8 +14,17 @@ namespace Wordgame.Godot;
 
 public partial class Main
 {
-    private const float CellSize = 66;
+    private const float BaseCellSize = 66;
+    private const float CellGap = 4;
     private const float HandTileSize = 72;
+
+    /// <summary>
+    /// A board square's size: 66 px up to 7×7; a bigger board (the Broadsheet's 9×9) shrinks its squares to keep the
+    /// 7×7 board's footprint, so the layout around it never moves.
+    /// </summary>
+    private float CellSize => Round.Board.Size <= 7
+        ? BaseCellSize
+        : MathF.Floor((7 * BaseCellSize - (Round.Board.Size - 7) * CellGap) / Round.Board.Size);
 
     private Button _shuffleButton = null!;
     private Button _sortButton = null!;
@@ -92,8 +101,8 @@ public partial class Main
             : new();
         var frame = UiKit.MakePanel(UiKit.Panel, padding: 10, radius: 12);
         var grid = new GridContainer { Columns = Round.Board.Size };
-        grid.AddThemeConstantOverride("h_separation", 4);
-        grid.AddThemeConstantOverride("v_separation", 4);
+        grid.AddThemeConstantOverride("h_separation", (int)CellGap);
+        grid.AddThemeConstantOverride("v_separation", (int)CellGap);
         frame.AddChild(grid);
         _boardHolder.AddChild(frame);
 
@@ -163,7 +172,7 @@ public partial class Main
         var premium = board.PremiumAt(pos);
         var color = UiKit.PremiumColor(premium);
         cell.Text = UiKit.PremiumText(premium);
-        cell.AddThemeFontSizeOverride("font_size", UiKit.FontSize(18));
+        cell.AddThemeFontSizeOverride("font_size", UiKit.FontSize((int)(18 * CellSize / BaseCellSize)));
         cell.AddThemeColorOverride("font_color", new Color(1, 1, 1, 0.85f));
         cell.AddThemeColorOverride("font_hover_color", Colors.White);
         if (ArmedTarget == StationeryTarget.EmptyCell)

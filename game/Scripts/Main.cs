@@ -222,11 +222,18 @@ public partial class Main : Control
     /// <summary>Dev flag --give: adds Desk Items / Stationery (comma-separated ids) before the first round starts.</summary>
     private RunState Give(RunState run, string ids)
     {
-        int slots = RunRules.ConfigFor(_baseConfig, run.DeckId, run.PressRun).DeskSlots;
-        foreach (var id in ids.Split(',', StringSplitOptions.RemoveEmptyEntries))
-            if (Crossword.Core.DeskItems.DeskItemCatalog.Find(id) is { } item && run.AddDeskItem(item, slots) is { IsOk: true } added)
+        // Office upgrades first, so the slots they add can take the given items.
+        var given = ids.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var id in given)
+            if (OfficeUpgrades.Find(id) is { } upgrade && run.Upgrades.GetValueOrDefault(upgrade.Id) < upgrade.MaxLevel)
+                run = run with { Upgrades = run.Upgrades.SetItem(upgrade.Id, run.Upgrades.GetValueOrDefault(upgrade.Id) + 1) };
+        var config = RunRules.ConfigFor(_baseConfig, run);
+        foreach (var id in given)
+            if (Crossword.Core.DeskItems.DeskItemCatalog.Find(id) is { } item
+                && run.AddDeskItem(item, config.DeskSlots, config.DuplicateDeskItems) is { IsOk: true } added)
                 run = added.Value;
-            else if (Crossword.Core.Stationery.StationeryCatalog.Find(id) is { } stationery && run.AddStationery(stationery) is { IsOk: true } held)
+            else if (Crossword.Core.Stationery.StationeryCatalog.Find(id) is { } stationery
+                && run.AddStationery(stationery, config.StationerySlots) is { IsOk: true } held)
                 run = held.Value;
         return run;
     }
@@ -476,7 +483,8 @@ public partial class Main : Control
         _seedLabel.TooltipText = PressRunText()
             + (Run.DeckId != Decks.StandardId ? $"\n· {deckInfo.Upside}\n· {deckInfo.Cost}" : "")
             + string.Concat(Run.Dictionaries.Select(id => $"\n· {Dictionaries.Get(id).Name}: {Dictionaries.Get(id).Description}"))
-            + string.Concat(PressRuns.All.Take(Run.PressRun).Skip(1).Select(p => $"\n· {p.Adds}"));
+            + string.Concat(PressRuns.All.Take(Run.PressRun).Skip(1).Select(p => $"\n· {p.Adds}"))
+            + (OfficeSummary() is { Length: > 0 } office ? $"\n{office}" : "");
     }
 
     /// <summary>Week header, week pips, this week's three puzzles and how far away the boss is.</summary>

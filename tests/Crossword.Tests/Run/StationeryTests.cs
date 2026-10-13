@@ -119,7 +119,7 @@ public class StationeryTests
         var session = InShop(10, new StationeryOffer(new AnswerKey(), 3));
         session = session with
         {
-            Run = session.Run with { Stationery = Enumerable.Repeat<IStationery>(new AnswerKey(), RunState.MaxStationerySlots).ToImmutableArray() },
+            Run = session.Run with { Stationery = Enumerable.Repeat<IStationery>(new AnswerKey(), RunState.DefaultStationerySlots).ToImmutableArray() },
         };
 
         Assert.False(ShopRules.Buy(session, 0).IsOk);
@@ -141,7 +141,7 @@ public class StationeryTests
     public void AddStationery_AllowsDuplicates_UpToTheSlotLimit()
     {
         var run = RunState.New(1);
-        for (int i = 0; i < RunState.MaxStationerySlots; i++)
+        for (int i = 0; i < RunState.DefaultStationerySlots; i++)
             run = run.AddStationery(new AnswerKey()).Value;
 
         Assert.False(run.AddStationery(new AnswerKey()).IsOk);

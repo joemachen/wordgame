@@ -38,7 +38,22 @@ public partial class Main
         _ => new Color("5aa9e6"),
     };
 
-    /// <summary>The five Desk Item slots. They apply left to right, so they can be reordered.</summary>
+    /// <summary>
+    /// More cards than the default 5 + 2 (Filing Cabinets, Supply Closets) share the bar equally: tighter padding, a bare
+    /// price on the Sell buttons (the tooltip says Sell) and wrapping placeholders, so up to 7 + 4 fit 1440 px.
+    /// </summary>
+    private bool DenseDesk => _session.Config.DeskSlots + _session.Config.StationerySlots > RunState.DefaultDeskSlots + RunState.DefaultStationerySlots;
+
+    private int DeskCardPadding => DenseDesk ? 6 : 10;
+
+    private Button SellButton(int value)
+    {
+        var sell = UiKit.Compact(UiKit.MakeButton(DenseDesk ? $"${value}" : $"Sell ${value}", UiKit.Panel, 12, UiKit.Money));
+        sell.TooltipText = $"Sell for ${value}";
+        return sell;
+    }
+
+    /// <summary>The Desk Item slots (they fire left to right, in the order the game keeps them in) and the Stationery slots.</summary>
     private void RefreshDesk()
     {
         UiKit.ClearChildren(_deskRow);
@@ -52,13 +67,13 @@ public partial class Main
         {
             if (slot >= Run.DeskItems.Length)
             {
-                var empty = UiKit.MakePanel(UiKit.Panel, padding: 10, border: UiKit.PanelBorder, borderWidth: 1);
+                var empty = UiKit.MakePanel(UiKit.Panel, padding: DeskCardPadding, border: UiKit.PanelBorder, borderWidth: 1);
                 empty.CustomMinimumSize = new Vector2(0, DeskCardHeight);
                 empty.SizeFlagsHorizontal = SizeFlags.ExpandFill;
                 var emptyBox = UiKit.VBox(4);
                 empty.AddChild(emptyBox);
                 emptyBox.AddChild(SlotLine(slot, null));
-                var emptyText = UiKit.MakeLabel("empty desk slot", 13, UiKit.TextMuted, HorizontalAlignment.Center);
+                var emptyText = UiKit.MakeLabel("empty desk slot", 13, UiKit.TextMuted, HorizontalAlignment.Center, wrap: DenseDesk);
                 emptyText.SizeFlagsVertical = SizeFlags.ExpandFill;
                 emptyText.VerticalAlignment = VerticalAlignment.Center;
                 emptyBox.AddChild(emptyText);
@@ -67,7 +82,7 @@ public partial class Main
             }
 
             var item = Run.DeskItems[slot];
-            var card = UiKit.MakePanel(UiKit.PanelRaised, padding: 10, border: RarityColor(item.Rarity), borderWidth: 2);
+            var card = UiKit.MakePanel(UiKit.PanelRaised, padding: DeskCardPadding, border: RarityColor(item.Rarity), borderWidth: 2);
             card.CustomMinimumSize = new Vector2(0, DeskCardHeight);
             card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             card.TooltipText = $"{item.Name} ({item.Rarity})\n{item.Description}";
@@ -86,7 +101,7 @@ public partial class Main
 
             var actions = UiKit.HBox(4);
             int index = slot;
-            var sell = UiKit.Compact(UiKit.MakeButton($"Sell ${_session.Config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money));
+            var sell = SellButton(_session.Config.Shop.SellValueOf(item));
             sell.Disabled = !canEdit;
             sell.Pressed += () => SellDeskItem(index);
             actions.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
@@ -96,7 +111,7 @@ public partial class Main
         }
 
         _deskRow.AddChild(new VSeparator());
-        for (int slot = 0; slot < RunState.MaxStationerySlots; slot++)
+        for (int slot = 0; slot < _session.Config.StationerySlots; slot++)
             _deskRow.AddChild(BuildStationerySlot(slot, canEdit));
     }
 
@@ -141,12 +156,14 @@ public partial class Main
     /// <summary>A Stationery slot: one-shot items, used during a round or sold.</summary>
     private Control BuildStationerySlot(int slot, bool canEdit)
     {
-        var card = UiKit.MakePanel(slot < Run.Stationery.Length ? UiKit.PanelRaised : UiKit.Panel, padding: 10,
+        var card = UiKit.MakePanel(slot < Run.Stationery.Length ? UiKit.PanelRaised : UiKit.Panel, padding: DeskCardPadding,
             border: slot < Run.Stationery.Length ? StationeryColor : UiKit.PanelBorder, borderWidth: slot < Run.Stationery.Length ? 2 : 1);
-        card.CustomMinimumSize = new Vector2(150, DeskCardHeight);
+        card.CustomMinimumSize = new Vector2(DenseDesk ? 0 : 150, DeskCardHeight);
+        if (DenseDesk)
+            card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         if (slot >= Run.Stationery.Length)
         {
-            var emptyText = UiKit.MakeLabel("empty stationery", 13, UiKit.TextMuted, HorizontalAlignment.Center);
+            var emptyText = UiKit.MakeLabel("empty stationery", 13, UiKit.TextMuted, HorizontalAlignment.Center, wrap: DenseDesk);
             emptyText.VerticalAlignment = VerticalAlignment.Center;
             card.AddChild(emptyText);
             return card;
@@ -178,7 +195,7 @@ public partial class Main
             _ => "",
         };
         use.Pressed += () => UseStationery(index);
-        var sell = UiKit.Compact(UiKit.MakeButton($"Sell ${_session.Config.Shop.SellValueOf(item)}", UiKit.Panel, 12, UiKit.Money));
+        var sell = SellButton(_session.Config.Shop.SellValueOf(item));
         sell.Disabled = !canEdit;
         sell.Pressed += () => SellStationery(index);
         actions.AddChild(use);

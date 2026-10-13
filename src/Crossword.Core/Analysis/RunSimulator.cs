@@ -38,7 +38,10 @@ public sealed record ShopSpend(int MoneyBefore, int MoneyAfter, int DeskItems, i
 
     public int Net => MoneyBefore - MoneyAfter;
 
-    public int DeckEdits => Net + Sold - DeskItems - StyleGuides - Stationery - Rerolls;
+    /// <summary>Spent on Office upgrades.</summary>
+    public int Upgrades { get; init; }
+
+    public int DeckEdits => Net + Sold - DeskItems - StyleGuides - Stationery - Rerolls - Upgrades;
 
     public bool BoughtNothing => Net + Sold == 0;
 }
@@ -54,6 +57,9 @@ public sealed record SimulatedRun(
 
     /// <summary>Ids of the Stationery used during the run, in order.</summary>
     public ImmutableArray<string> StationeryUsed { get; init; } = ImmutableArray<string>.Empty;
+
+    /// <summary>The Office upgrades bought by the end of the run (id → level).</summary>
+    public ImmutableDictionary<string, int> Upgrades { get; init; } = ImmutableDictionary<string, int>.Empty;
 }
 
 /// <summary>
@@ -110,6 +116,7 @@ public static class RunSimulator
             session.Run.DeskItems.Select(d => d.Id).ToImmutableArray())
         {
             StationeryUsed = stationeryUsed.ToImmutable(),
+            Upgrades = session.Run.Upgrades,
         };
     }
 
@@ -187,9 +194,11 @@ public static class RunSimulator
         int rerolls = 0;
         for (int cost = before.Shop!.RerollCost; cost < after.Shop!.RerollCost; cost += shop.RerollStep)
             rerolls += cost;
+        int upgrades = after.Run.Upgrades.Sum(u => (u.Value - before.Run.Upgrades.GetValueOrDefault(u.Key)) * shop.PriceOfUpgrade(u.Key));
         var offers = before.Shop.Offers.Where(o => o is not null).Select(o => o!).ToList();
         return new ShopSpend(before.Run.Money, after.Run.Money, desk, guides, stationery, rerolls, sold)
         {
+            Upgrades = upgrades,
             CheapestDeskItem = offers.OfType<DeskItemOffer>().Select(o => (int?)o.Price).Min(),
             CheapestOffer = offers.Select(o => (int?)o.Price).Min(),
         };

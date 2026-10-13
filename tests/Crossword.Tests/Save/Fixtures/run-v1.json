@@ -640,6 +640,7 @@
     "deckId": "standard",
     "dictionaries": [],
     "seeded": false,
+    "upgrades": {},
     "tierUpgrades": {
       "3": 1,
       "7": 1
@@ -1452,11 +1453,19 @@
           "id": "clipping"
         },
         "price": 4
+      },
+      {
+        "type": "upgrade",
+        "upgradeId": "filing-cabinet",
+        "level": 1,
+        "name": "Filing Cabinet",
+        "text": "\u002B1 Desk Item slot (5 \u2192 6).",
+        "price": 10
       }
     ],
     "rerollCost": 5,
     "rng": {
-      "state": 1244886564173596349
+      "state": 12645601383496794834
     }
   },
   "lastPayout": {

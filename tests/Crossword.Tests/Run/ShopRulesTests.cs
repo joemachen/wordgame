@@ -34,7 +34,7 @@ public class ShopRulesTests
 
         Assert.Equal(a.Offers, b.Offers);
         Assert.Equal(rngA, rngB);
-        Assert.Equal(Shop.DeskItemOffers + Shop.EditOffers + Shop.StyleGuideOffers + Shop.StationeryOffers, a.Offers.Length);
+        Assert.Equal(Shop.DeskItemOffers + Shop.EditOffers + Shop.StyleGuideOffers + Shop.StationeryOffers + Shop.UpgradeOffers, a.Offers.Length);
         Assert.Single(a.Offers.OfType<StyleGuideOffer>());
         var stationery = a.Offers.OfType<StationeryOffer>().ToList();
         Assert.Equal(Shop.StationeryOffers, stationery.Count);
@@ -65,7 +65,7 @@ public class ShopRulesTests
     public void BuyDeskItem_WhenDeskFull_IsRejected_AndCostsNothing()
     {
         var session = InShop(20, new DeskItemOffer(new RareInk(), 4));
-        var full = DeskItemCatalog.All.Take(RunState.MaxDeskSlots).Aggregate(session.Run, (r, i) => r.AddDeskItem(i).Value);
+        var full = DeskItemCatalog.All.Take(RunState.DefaultDeskSlots).Aggregate(session.Run, (r, i) => r.AddDeskItem(i).Value);
         session = session with { Run = full };
 
         Assert.False(ShopRules.Buy(session, 0).IsOk);

@@ -5,9 +5,19 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-13 · HEAD `2f8daab` (code; finale decision recorded after) · 645 unit tests passing · UI self-test 112/112 passing · CI green_
+_Last updated: 2026-10-13 · Office upgrades (phase 3) committed after `dc2fead` · 660 unit tests passing · UI self-test 115/115 passing · CI green at `dc2fead`_
 
 ## 0. ▶ Status and what's next
+
+**2026-10-13: Phase 3 "cap breakers" built as Office upgrades** (ROADMAP §3b; Claude's design calls, flagged below
+in §3). One upgrade per shop, $10, ten upgrades (Filing Cabinet, Supply Closet, Composing Stick, Overtime, Wastebasket,
+Broadsheet 9×9, Editorial Cuts, Photocopier, Savings Bond, Bonus Clause), five of them buyable twice. Measured in §4f:
+none is overpowered at $10 for the bot; it now buys Overtime and Broadsheet (reference 0.75: 36 → 40.5%, targets
+unchanged). **Not built, recommended to skip:** "Second Edition" item levels (Photocopier copies already fire twice)
+and new money→Mult items (Ad Revenue × Savings Bond covers it) — ask the user. **Next: Phase 4** (Circulation dial →
+`RunConfig.TargetScale`, steeper endless, stacking endless bosses, re-measure decks and the Press Run ladder) and
+**Phase 5** (ring-up tiers). **Playtest ask:** buy Office upgrades in a real run (dev: `--give=broadsheet,overtime,filing-cabinet,filing-cabinet,supply-closet,supply-closet`)
+— does the dense 7 + 4 desk bar read OK, does the 9×9 board feel good, is $10 right?
 
 **2026-10-12/13: "Break the game" phases 1–2 built** (user's direction: scores into the billions on the hardest content,
 Disgaea-style, and every cap breakable; plan in `ROADMAP.md` §3b). Landed: saturating score math + words for big numbers
@@ -227,6 +237,15 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   would beat the sorted order next to a +Mult item); **Pull Quote** sits between +Mult and ×Mult; the engine items were
   **doubled** after the first measurement (0% at a 1M finale) and the finale shipped at 80k pending the user's decision
   (§0). Dev flags `--score`, `--deadline`, `--textsize`; 12-digit scores fit the sidebar at 100–120% text.
+- **Office upgrades = Phase 3 cap breakers** (2026-10-13, built from the user's 2026-10-12 list; Claude's calls,
+  flagged): a permanent run upgrade bought in the shop (Balatro's vouchers), **one per shop, rolled last** (so the
+  other offers never move), **$10 flat** (per-id overrides exist), levels per upgrade (two for slots, hand, discards,
+  deck minimum, interest, overkill; one for Overtime, Broadsheet, Photocopier), not offered once maxed or at a slot
+  cap. A `RunConfig` transform like decks and Press Runs, applied last in `RunRules.ConfigFor(base, run)` and at
+  once on purchase. Overtime's submission comes after the boss and Rush Job's cap (like Extra! Extra!); the Broadsheet
+  is overridden by Tight Margins; Wastebasket stacks with Ink Shortage's −1 via `DiscardsDelta`; caps 7 Desk Item
+  slots and 4 Stationery slots. UI: past 5 + 2 slots the desk bar goes dense; a 9×9 board shrinks its squares to the
+  7×7 footprint. Not built: Second Edition and money→Mult items (see §0).
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps an unlimited best play for development — since 2026-10-10 as a separate **Best (dev)** button next to Hint (user's request), so a dev build still shows the player's decent Hint. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Starting decks (2026-10-06)
@@ -462,7 +481,41 @@ per letter, Ad Revenue +0.2 per $5, Subscription Drive ×1.15, Newsstand +0.5 pe
 - `ShopBotConfig.EnhancedTileGains` (enhanced add-tile offers) stays at 0 — not measured yet; `EnhanceOffer`s are
   re-scored (bought when the tile the bot places most often gains ≥3%).
 
+## 4f. Office upgrades (2026-10-13)
+
+Scratch harness `upgsim` (`<runs> <skill> <gain> <price> <ids…>`: paired seeds 1–200, evaluating bot, ScoreFraction;
+an `<id>` arm always offers that one upgrade (`ShopConfig.UpgradeIds`) and the bot buys it at the fixed gain;
+`buy:a+b` offers every upgrade but the bot buys only those; `all` buys everything). Baseline (bot buys no upgrade) 36%.
+
+| Arm ($10, gain 0.3, 0.75) | Win | Δ | Levels bought |
+|---|---|---|---|
+| Overtime | 38% | +2 | 0.72 |
+| Broadsheet | 38% | +2 | 0.72 |
+| Composing Stick | 36% | 0 | 1.27 |
+| Filing Cabinet | 34% | −2 | 1.19 |
+| Wastebasket | 30% | −6 | 1.24 |
+| Bonus Clause | 29.5% | −6.5 | 1.23 |
+| Photocopier | 27% | −9 | 0.72 |
+| Supply Closet / Editorial Cuts / Savings Bond | 26–26.5% | −9.5 / −10 / −10 | 1.22 |
+| all ten | 34% | −2 | 2.19 |
+| **buy only Overtime + Broadsheet (gain 0.3) — shipped bot default** | **40.5%** | **+4.5** | 0.50 |
+| same at gain 0.1 | 39% | +3 | 0.37 |
+| buy Overtime, Broadsheet, Composing Stick, Filing Cabinet (0.1) | 37.5% | +1.5 | 0.64 |
+
+- First purchase ~round 5 (Week 2): the bot rarely has $10 spare before.
+- The −10 arms are "$20 spent on something the bot can't use" (it never saves, so Savings Bond is dead; it never
+  strikes; it rarely uses Stationery) — so ~5 pts per $10 is what money is worth to the bot mid-run. A human who saves,
+  strikes and uses Stationery should get much more from those; check in playtests.
+- Photocopier −9: the bot values a duplicate by re-scoring, but rarely has a second copy offered *and* the money.
+- Targets unchanged: 40.5% is ~1 noise bar above the 35.5–36% reference. Re-measure with Phase 4.
+
 ## 5. Open concerns / known gaps
+
+18. **Office upgrades** (§4f): prices are a flat $10 and untested by humans. Watch Overtime (+1 submission every round
+    is what Extra! Extra! does for $12 and a slot) and Broadsheet (bigger board = more premiums and longer words). The
+    dense desk bar truncates Desk Item names at 7 slots (full text in the tooltip) — revisit in the visual overhaul.
+    With the Photocopier, `Main._deskCards` is keyed by item id, so the ring-up pops only one of two copies, and
+    `RunSimulator`'s shop spend ignores duplicate purchases (by-id set difference).
 
 0. **Difficulty after the content batch** (§4d): resolved 2026-10-11 by targets ×0.88 (reference back to 39%). The new
    Stationery is bought by humans, not the bot, so a human may win more than the bot does; check in playtests.
@@ -537,10 +590,8 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
--1. ~~Decide the finale~~ ✅ 2026-10-13 (80k stays; the dial carries 1M+), so **Phase 3 cap breakers** (ROADMAP §3b: a fourth shop category rolled after
-   Stationery — +desk slot / +hand / +submission / +discard / +Stationery slot, 9×9 board, deck minimum down, duplicates
-   licence, "Second edition" item levels, uncapped economy; new `ShopOffer` subclasses need `RunSaveJson` tags; depend on
-   `Config.DeskSlots`, never the `MaxDeskSlots` const), **Phase 4** (Circulation dial → `RunConfig.TargetScale`, steeper
+-1. ~~Decide the finale~~ ✅ 2026-10-13 (80k stays; the dial carries 1M+); ~~Phase 3 cap breakers~~ ✅ 2026-10-13
+   (Office upgrades, §4f; Second Edition and money→Mult items not built — ask the user), so **Phase 4** (Circulation dial → `RunConfig.TargetScale`, steeper
    endless, stacking endless bosses, then re-measure decks and the Press Run ladder on the new curve) and **Phase 5**
    (ring-up tiers past the stamp; the longer `EffectEvent` logs — one line per enhanced tile per word — may need a faster
    step floor or collapsed enhancement lines). Also measure `ShopBotConfig.EnhancedTileGains` and the new items' prices.
@@ -608,6 +659,9 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
+(next)  Add Office upgrades: a fourth shop offer that breaks the run's caps
+dc2fead Record the finale decision: 80k base, the Circulation dial carries 1M+
+7b859a0 Record the targets commit in handoff history
 2f8daab Steepen the week targets and document the compounding engines
 203b126 Add multiplicative tile enhancements and ten compounding Desk Items
 c47a7fe Saturate score arithmetic and print big numbers as words

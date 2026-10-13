@@ -44,7 +44,8 @@ public sealed record ShopBotConfig(
     double WildTileGain = 0,
     double WildEditGain = 0,
     IReadOnlyDictionary<string, double>? DeskItemGain = null,
-    IReadOnlyDictionary<TileEnhancement, double>? EnhancedTileGains = null)
+    IReadOnlyDictionary<TileEnhancement, double>? EnhancedTileGains = null,
+    IReadOnlyDictionary<string, double>? UpgradeGains = null)
 {
     /// <summary>
     /// Wild buying is off: measured at ScoreFraction 0.75 (200 paired runs), a wild tile or wild edit at gain 0.05/0.15
@@ -52,13 +53,21 @@ public sealed record ShopBotConfig(
     /// Buys only the Margin Clip: measured alone at $3 (200 runs, ScoreFraction 0.75) it added +13 pts of win rate,
     /// while Answer Key (−3), Red Ink Bottle (−2.5) and Scissors (−8, cutting Q/Z/X/J) cost the bot more than they
     /// returned. White-Out is only used to escape a stuck hand, which almost never happens.
+    /// Office upgrades (2026-10-13, 200 paired runs at ScoreFraction 0.75, $10, bot forced to buy the one on offer):
+    /// Overtime +2 and Broadsheet +2, Composing Stick 0, Filing Cabinet −2, Wastebasket −6, Bonus Clause −6.5,
+    /// Photocopier −9, Supply Closet / Editorial Cuts / Savings Bond −10 (the bot never saves, rarely uses Stationery and
+    /// never strikes, so $10 spent on them is $10 lost). Buying only Overtime and Broadsheet at 0.3: +4.5 (36 → 40.5%).
     /// </summary>
     public static ShopBotConfig Default { get; } = new(
         StationeryGain: new Dictionary<string, double> { ["margin-clip"] = 0.05 },
-        DeskItemGain: new Dictionary<string, double> { ["extra-extra"] = 0.2 }); // +1 submission/round is invisible to re-scoring
+        DeskItemGain: new Dictionary<string, double> { ["extra-extra"] = 0.2 }, // +1 submission/round is invisible to re-scoring
+        UpgradeGains: new Dictionary<string, double> { ["overtime"] = 0.3, ["broadsheet"] = 0.3 });
 
     /// <summary>Fixed estimated gain of buying a Stationery item (by id); 0 = never buy it.</summary>
     public double GainOf(Stationery.IStationery item) => StationeryGain?.GetValueOrDefault(item.Id) ?? 0;
+
+    /// <summary>Fixed estimated gain of buying an Office upgrade (by upgrade id, any level); 0 = never buy it.</summary>
+    public double GainOfUpgrade(string id) => UpgradeGains?.GetValueOrDefault(id) ?? 0;
 
     /// <summary>Fixed gain added to a Desk Item's measured value (by id), for effects outside scoring.</summary>
     public double GainOf(IDeskItem item) => DeskItemGain?.GetValueOrDefault(item.Id) ?? 0;
@@ -210,9 +219,14 @@ public static class EvaluatingShopBot
                         offer.Price, s => ShopRules.Buy(s, index));
                     break;
 
-                case StationeryOffer stationery when run.Money >= offer.Price && run.Stationery.Length < RunState.MaxStationerySlots:
+                case StationeryOffer stationery when run.Money >= offer.Price && run.Stationery.Length < session.Config.StationerySlots:
                     if (config.GainOf(stationery.Item) is var stationeryGain and > 0)
                         yield return new Candidate(index, stationeryGain, offer.Price, offer.Price, s => ShopRules.Buy(s, index));
+                    break;
+
+                case UpgradeOffer upgrade when run.Money >= offer.Price:
+                    if (config.GainOfUpgrade(upgrade.UpgradeId) is var upgradeGain and > 0)
+                        yield return new Candidate(index, upgradeGain, offer.Price, offer.Price, s => ShopRules.Buy(s, index));
                     break;
 
                 case AddTileOffer { Wild: true } when run.Money >= offer.Price:

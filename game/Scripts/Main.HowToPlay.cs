@@ -175,16 +175,22 @@ public partial class Main
     {
         var shop = config.Shop;
         HowHeading("Stationery");
-        HowText($"Stationery are one-use items. You can hold {RunState.MaxStationerySlots}; use them during a round with their Use button "
+        HowText($"Stationery are one-use items. You can hold {config.StationerySlots}; use them during a round with their Use button "
             + "(some need you to select hand tiles or click the board first).");
         foreach (var item in StationeryCatalog.All)
             HowRich($"[b]{item.Name}[/b]  [color=#{UiKit.Money.ToHtml(false)}]${shop.PriceOf(item)}[/color]  {item.Description}");
         HowHeading("The shop");
         HowText($"After every cleared puzzle the shop offers {shop.DeskItemOffers} Desk Items, {shop.EditOffers} deck edits, "
-            + $"{shop.StyleGuideOffers} Style Guide and {shop.StationeryOffers} Stationery. Reroll for new offers "
+            + $"{shop.StyleGuideOffers} Style Guide, {shop.StationeryOffers} Stationery and {shop.UpgradeOffers} Office upgrade. Reroll for new offers "
             + $"(${shop.RerollBaseCost}, then $1 more each time). Anything you own sells for half its price.");
         HowText($"Desk Items cost ${shop.CommonPrice} (Common), ${shop.UncommonPrice} (Uncommon), ${shop.RarePrice} (Rare), "
             + $"${shop.EpicPrice} (Epic) or ${shop.LegendaryPrice} (Legendary).");
+        HowHeading("Office upgrades");
+        HowText($"One shop offer is an Office upgrade (${shop.UpgradePrice}): a permanent change to your run's rules that "
+            + "breaks one of its caps. Some can be bought twice.");
+        foreach (var upgrade in OfficeUpgrades.Catalog(config.Office))
+            HowRich($"[b]{upgrade.Name}[/b]  [color=#{UiKit.Money.ToHtml(false)}]${shop.PriceOfUpgrade(upgrade.Id)}[/color]"
+                + (upgrade.MaxLevel > 1 ? $"  ×{upgrade.MaxLevel}" : "") + $"  {OfficeUpgrades.Describe(upgrade.Id, 1, config)}");
         HowHeading("Your paycheck");
         HowText(Economy.HowToEarnMore(config.Economy));
     }

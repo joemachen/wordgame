@@ -36,9 +36,9 @@ public class RunStateDeskTests
     [Fact]
     public void AddDeskItem_RejectsWhenFull()
     {
-        var full = With(DeskItemCatalog.All.Take(RunState.MaxDeskSlots).ToArray());
+        var full = With(DeskItemCatalog.All.Take(RunState.DefaultDeskSlots).ToArray());
 
-        Assert.False(full.AddDeskItem(DeskItemCatalog.All[RunState.MaxDeskSlots]).IsOk);
+        Assert.False(full.AddDeskItem(DeskItemCatalog.All[RunState.DefaultDeskSlots]).IsOk);
     }
 
     [Fact]

@@ -529,6 +529,56 @@ public partial class Main
         await PressKey(global::Godot.Key.Escape);
         Check("esc in the shop opens and closes the pause screen", shopPaused && !_pauseOverlay.Visible);
 
+        // 14c. Office upgrades: the shop's upgrade card buys a Filing Cabinet, the desk bar grows a slot at once, and a
+        //      maxed office (7 desk + 4 Stationery slots, full) still fits the bar on screen; the Broadsheet's 9×9 board
+        //      keeps the 7×7 board's footprint.
+        var shopBefore = _session;
+        int slotsBefore = _session.Config.DeskSlots;
+        _session = _session with
+        {
+            Run = Run with { Money = 99 },
+            Shop = _session.Shop! with
+            {
+                Offers = _session.Shop!.Offers.SetItem(_session.Shop!.Offers.Length - 1, new Crossword.Core.Run.UpgradeOffer(
+                    Crossword.Core.Run.OfficeUpgrades.FilingCabinetId, 1, "Filing Cabinet", "+1 Desk Item slot.", 10)),
+            },
+        };
+        Refresh();
+        await Frames(2);
+        var upgradeBuy = _shopContent.FindChildren("*", nameof(Button), owned: false).OfType<Button>().Last(b => b.Text.StartsWith("Buy"));
+        await Click(Centre(upgradeBuy));
+        await Frames(2);
+        int emptyDeskCards = _deskRow.FindChildren("*", nameof(Label), owned: false).OfType<Label>().Count(l => l.Text == "empty desk slot");
+        Check("buying an Office upgrade adds a desk slot at once", _session.Config.DeskSlots == slotsBefore + 1
+            && Run.Upgrades.GetValueOrDefault(Crossword.Core.Run.OfficeUpgrades.FilingCabinetId) == 1
+            && emptyDeskCards == _session.Config.DeskSlots - Run.DeskItems.Length);
+
+        var maxed = Run with
+        {
+            Upgrades = System.Collections.Immutable.ImmutableDictionary<string, int>.Empty
+                .Add(Crossword.Core.Run.OfficeUpgrades.FilingCabinetId, 2).Add(Crossword.Core.Run.OfficeUpgrades.SupplyClosetId, 2)
+                .Add(Crossword.Core.Run.OfficeUpgrades.BroadsheetId, 1),
+            DeskItems = [.. Crossword.Core.DeskItems.DeskItemCatalog.All.Take(Crossword.Core.Domain.RunState.MaxDeskSlots)],
+            Stationery = [.. Crossword.Core.Stationery.StationeryCatalog.All.Take(Crossword.Core.Domain.RunState.MaxStationerySlots)],
+        };
+        var maxedSession = Crossword.Core.Run.RunRules.LeaveShop(_session with
+        {
+            Config = Crossword.Core.Run.RunRules.ConfigFor(_baseConfig, maxed),
+            Run = maxed,
+        }, _lexicon).Value;
+        float boardWidth = _boardHolder.GetChild<Control>(0).Size.X;
+        _session = maxedSession;
+        Refresh();
+        await Frames(3);
+        Check("a maxed office's desk bar stays on screen", _deskRow.GetChildCount() == Crossword.Core.Domain.RunState.MaxDeskSlots
+            + Crossword.Core.Domain.RunState.MaxStationerySlots + 1
+            && _deskRow.GetChildren().OfType<Control>().All(c => c.GetGlobalRect().End.X <= GetViewportRect().Size.X));
+        Check("the Broadsheet's 9x9 board keeps the board's footprint", Round.Board.Size == 9
+            && _boardHolder.GetChild<Control>(0).Size.X <= boardWidth + 1 && _submitButton.GetGlobalRect().End.Y <= GetViewportRect().Size.Y);
+        _session = shopBefore;
+        Refresh();
+        await Frames(1);
+
         // 15. Save & resume through a real file: a fresh run, then resuming, restores the run and hand order exactly
         //     without recording stats twice; a corrupt save is set aside with a notice.
         string savePath = ProjectSettings.GlobalizePath("user://saves/__selftest.json");

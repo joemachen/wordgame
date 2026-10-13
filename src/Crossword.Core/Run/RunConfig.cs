@@ -82,8 +82,29 @@ public sealed record RunConfig(
     /// <summary>Every round's minimum word length; a boss can raise it further (starting decks).</summary>
     public int MinWordLength { get; init; } = 2;
 
-    /// <summary>Desk Item slots, at most <see cref="RunState.MaxDeskSlots"/> (starting decks).</summary>
-    public int DeskSlots { get; init; } = RunState.MaxDeskSlots;
+    /// <summary>Desk Item slots, at most <see cref="RunState.MaxDeskSlots"/> (starting decks, Office upgrades).</summary>
+    public int DeskSlots { get; init; } = RunState.DefaultDeskSlots;
+
+    /// <summary>Stationery slots, at most <see cref="RunState.MaxStationerySlots"/> (Office upgrades).</summary>
+    public int StationerySlots { get; init; } = RunState.DefaultStationerySlots;
+
+    /// <summary>Every round's board size before the boss (Tight Margins still shrinks it; Office upgrades).</summary>
+    public int BoardSize { get; init; } = 7;
+
+    /// <summary>Every round's premium pairs before the boss (null = <see cref="PremiumPairs.Default"/>; Office upgrades).</summary>
+    public PremiumPairs? Premiums { get; init; }
+
+    /// <summary>Added to every round's hand size, after the boss (Office upgrades).</summary>
+    public int HandSizeDelta { get; init; }
+
+    /// <summary>Added to every round's submissions after the boss and the boss cap (Office upgrades).</summary>
+    public int SubmissionsDelta { get; init; }
+
+    /// <summary>The shop offers Desk Items already owned and the desk holds copies (Office upgrades).</summary>
+    public bool DuplicateDeskItems { get; init; }
+
+    /// <summary>The numbers behind the Office upgrades (<see cref="OfficeUpgrades"/>).</summary>
+    public OfficeConfig Office { get; init; } = OfficeConfig.Default;
 
     /// <summary>Desk Items a new run starts with, left to right (starting decks).</summary>
     public ImmutableArray<IDeskItem> StartingDeskItems { get; init; } = ImmutableArray<IDeskItem>.Empty;
@@ -147,25 +168,29 @@ public sealed record RunConfig(
     }
 
     /// <summary>
-    /// Round rules for a round; <paramref name="boss"/> is applied only on boss rounds. The boss submission cap and the
-    /// discard delta apply after the boss (a cap of 3 leaves Tight Deadline's 3 submissions alone; discards stack); the
-    /// minimum word length is the higher of the run's and the boss's.
+    /// Round rules for a round; <paramref name="boss"/> is applied only on boss rounds, on top of the run's board size and
+    /// premiums. The boss submission cap and the deltas apply after the boss (a cap of 3 leaves Tight Deadline's 3
+    /// submissions alone; discards stack), and <see cref="SubmissionsDelta"/> after the cap (an Overtime submission is
+    /// paid for, like Extra! Extra!'s); the minimum word length is the higher of the run's and the boss's.
     /// </summary>
     public RoundConfig RoundConfigFor(int roundIndex, BossModifier? boss = null, char? censoredLetter = null)
     {
-        var config = new RoundConfig(TargetScore: TargetFor(roundIndex), Draw: Draw, CensoredLetter: censoredLetter);
+        var config = new RoundConfig(TargetScore: TargetFor(roundIndex), BoardSize: BoardSize, Premiums: Premiums, Draw: Draw,
+            CensoredLetter: censoredLetter);
         bool bossRound = KindOf(roundIndex).IsBoss;
         if (bossRound && boss is not null)
             config = boss.Apply(config);
         if (config.MinWordLength < MinWordLength)
             config = config with { MinWordLength = MinWordLength };
-        int submissionsDelta = bossRound && BossSubmissionsCap > 0 ? Math.Min(0, BossSubmissionsCap - config.Submissions) : 0;
-        return submissionsDelta == 0 && DiscardsDelta == 0
+        int submissionsDelta = (bossRound && BossSubmissionsCap > 0 ? Math.Min(0, BossSubmissionsCap - config.Submissions) : 0)
+            + SubmissionsDelta;
+        return submissionsDelta == 0 && DiscardsDelta == 0 && HandSizeDelta == 0
             ? config
             : config with
             {
                 Submissions = Math.Max(1, config.Submissions + submissionsDelta),
                 Discards = Math.Max(0, config.Discards + DiscardsDelta),
+                HandSize = Math.Max(1, config.HandSize + HandSizeDelta),
             };
     }
 }

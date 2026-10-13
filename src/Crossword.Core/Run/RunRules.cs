@@ -43,7 +43,11 @@ public static class RunRules
             Dictionaries = dictionaries,
             Seeded = seeded,
         };
-        return StartRound(config, setup?.Invoke(run) ?? run, dictionaries.IsEmpty ? lexicon : LexiconLoader.For(dictionaries));
+        // A setup may grant Office upgrades (dev --give), so the config is rebuilt from the run it returns.
+        var started = setup?.Invoke(run) ?? run;
+        if (!started.Upgrades.IsEmpty)
+            config = OfficeUpgrades.Apply(config, started.Upgrades);
+        return StartRound(config, started, dictionaries.IsEmpty ? lexicon : LexiconLoader.For(dictionaries));
     }
 
     /// <summary>
@@ -54,6 +58,17 @@ public static class RunRules
     {
         config = PressRuns.Apply(Decks.Apply(config, deck), pressRun);
         return Dictionaries.Theme(dictionaries ?? []) is { } theme ? config with { Scoring = config.Scoring with { Theme = theme } } : config;
+    }
+
+    /// <summary>
+    /// The base <paramref name="config"/> with everything <paramref name="run"/> carries applied: its deck, Press Run and
+    /// dictionaries (<see cref="ConfigFor(RunConfig, string, int, IEnumerable{string}?)"/>), then its Office upgrades
+    /// (<see cref="OfficeUpgrades.Apply(RunConfig, IReadOnlyDictionary{string, int})"/>), last so they build on the deck's numbers.
+    /// </summary>
+    public static RunConfig ConfigFor(RunConfig config, RunState run)
+    {
+        config = ConfigFor(config, run.DeckId, run.PressRun, run.Dictionaries);
+        return run.Upgrades.IsEmpty ? config : OfficeUpgrades.Apply(config, run.Upgrades);
     }
 
     /// <summary>

@@ -73,7 +73,18 @@ public partial class Main
             $"{t.Label(i == tiers.Length - 1)} Lv{Run.TierUpgrades.GetValueOrDefault(t.MinLength) + 1}: {t.BaseChips}×{t.BaseMult:0.##}"));
         _shopContent.AddChild(UiKit.MakeLabel($"Word tiers   {tierText}     · Tab: Style Guides", 14, UiKit.TextMuted, wrap: true));
         _shopContent.AddChild(UiKit.MakeLabel(DeckSummary(), 14, UiKit.TextMuted, wrap: true));
+        if (OfficeSummary() is { Length: > 0 } office)
+            _shopContent.AddChild(UiKit.MakeLabel(office, 14, OfficeColor, wrap: true));
     }
+
+    private static readonly Color OfficeColor = new("e08a4f");
+
+    /// <summary>The Office upgrades bought this run, with their levels ("" when none).</summary>
+    private string OfficeSummary() =>
+        Run.Upgrades.IsEmpty
+            ? ""
+            : "Office: " + string.Join("   ·   ", OfficeUpgrades.All.Where(u => Run.Upgrades.ContainsKey(u.Id))
+                .Select(u => u.MaxLevel > 1 ? $"{u.Name} {Run.Upgrades[u.Id]}/{u.MaxLevel}" : u.Name));
 
     private Control BuildPaycheck(Payout payout)
     {
@@ -97,7 +108,7 @@ public partial class Main
         return panel;
     }
 
-    // Offers sit in a 4-column grid of fixed-height cards: two rows for the usual seven offers.
+    // Offers sit in a 4-column grid of fixed-height cards: two rows for the usual eight offers.
     private const int ShopColumns = 4;
     private const int ShopCardHeight = 176;
 
@@ -108,6 +119,7 @@ public partial class Main
             DeskItemOffer desk => RarityColor(desk.Item.Rarity),
             StyleGuideOffer => UiKit.Chips,
             StationeryOffer => StationeryColor,
+            UpgradeOffer => OfficeColor,
             null => UiKit.PanelBorder,
             _ => UiKit.Money,
         };
@@ -134,6 +146,7 @@ public partial class Main
             WildOffer => ("EDIT", "Make a tile wild", "It plays as any letter you choose (0 chips) and keeps its enhancement. You choose the tile."),
             EnhanceOffer e => ("EDIT", $"Make a tile {e.Enhancement}", $"{_session.Scoring.Describe(e.Enhancement)}. You choose the tile."),
             StrikeOffer s => ("EDIT", "Strike tiles", $"Remove up to {s.MaxTiles} tiles from your deck."),
+            UpgradeOffer u => (u.Level > 1 ? $"OFFICE UPGRADE · LEVEL {u.Level}" : "OFFICE UPGRADE", u.Name, $"{u.Text} For the rest of the run."),
             _ => ("", offer.Description, ""),
         };
 

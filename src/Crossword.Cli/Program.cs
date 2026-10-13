@@ -393,10 +393,27 @@ public static class Program
         if (args.Length == 1 && DeskItemCatalog.Find(args[0]) is { } item)
             ApplyRun(Run.AddDeskItem(item, _session.Config.DeskSlots));
         else if (args.Length == 1 && StationeryCatalog.Find(args[0]) is { } stationery)
-            ApplyRun(Run.AddStationery(stationery));
+            ApplyRun(Run.AddStationery(stationery, _session.Config.StationerySlots));
+        else if (args.Length == 1 && OfficeUpgrades.Find(args[0]) is { } upgrade)
+        {
+            int level = Run.Upgrades.GetValueOrDefault(upgrade.Id) + 1;
+            if (level > upgrade.MaxLevel)
+            {
+                Console.WriteLine($"{upgrade.Name} is already at its last level.");
+                return;
+            }
+            _session = _session with
+            {
+                Config = OfficeUpgrades.Apply(_session.Config, upgrade.Id, level),
+                Run = Run with { Upgrades = Run.Upgrades.SetItem(upgrade.Id, level) },
+            };
+            Console.WriteLine($"{upgrade.Name} level {level} (applies from the next round where it changes round rules).");
+            PrintDesk(showCatalog: false);
+        }
         else
             Console.WriteLine("Usage: give <id>   ids: "
-                + string.Join(", ", DeskItemCatalog.All.Select(i => i.Id).Concat(StationeryCatalog.All.Select(i => i.Id))));
+                + string.Join(", ", DeskItemCatalog.All.Select(i => i.Id).Concat(StationeryCatalog.All.Select(i => i.Id))
+                    .Concat(OfficeUpgrades.All.Select(u => u.Id))));
     }
 
     private static void UseStationery(string[] args)
@@ -443,7 +460,9 @@ public static class Program
     private static void PrintDesk(bool showCatalog)
     {
         Console.WriteLine(ConsoleRenderer.Desk(Run, _session.Config.Shop, _session.Config.DeskSlots));
-        Console.WriteLine(ConsoleRenderer.Stationery(Run, _session.Config.Shop));
+        Console.WriteLine(ConsoleRenderer.Stationery(Run, _session.Config.Shop, _session.Config.StationerySlots));
+        if (ConsoleRenderer.Office(Run) is { Length: > 0 } office)
+            Console.WriteLine(office);
         if (!showCatalog)
             return;
         Console.WriteLine("Catalog (dev: 'give <id>'):");
@@ -520,7 +539,7 @@ public static class Program
                 if (!Run.DeskItems.IsEmpty)
                     Console.WriteLine(ConsoleRenderer.Desk(Run, _session.Config.Shop, _session.Config.DeskSlots));
                 if (!Run.Stationery.IsEmpty)
-                    Console.WriteLine(ConsoleRenderer.Stationery(Run, _session.Config.Shop));
+                    Console.WriteLine(ConsoleRenderer.Stationery(Run, _session.Config.Shop, _session.Config.StationerySlots));
                 Console.WriteLine(ConsoleRenderer.Hand(Round.Hand, Round.Config.EffectiveScoring(_session.Scoring)));
                 if (!RoundRules.HasLegalPlay(Round, _lexicon))
                     Console.WriteLine("(!) No legal play with this hand - discard some tiles.");

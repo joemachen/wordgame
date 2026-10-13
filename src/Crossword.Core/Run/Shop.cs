@@ -54,7 +54,11 @@ public sealed record ShopConfig(
     int UnderlinedWeight = 15,
     int EmbossedWeight = 10,
     IReadOnlyDictionary<TileEnhancement, int>? EnhancePrices = null,
-    IReadOnlyDictionary<TileEnhancement, int>? EnhancedTilePrices = null)
+    IReadOnlyDictionary<TileEnhancement, int>? EnhancedTilePrices = null,
+    int UpgradeOffers = 1,
+    int UpgradePrice = 10,
+    IReadOnlyDictionary<string, int>? UpgradePrices = null,
+    IReadOnlySet<string>? UpgradeIds = null)
 {
     /// <summary>
     /// Margin Clip costs $6: at the flat $3 it alone added +13 pts of win rate (ScoreFraction 0.75). Price is a weak lever
@@ -118,6 +122,10 @@ public sealed record ShopConfig(
         StationeryPrices is not null && StationeryPrices.TryGetValue(item.Id, out int price) ? price : StationeryPrice;
 
     public int SellValueOf(IStationery item) => Math.Max(1, PriceOf(item) / 2);
+
+    /// <summary>The price of an Office upgrade (<see cref="UpgradePrice"/> unless overridden by id).</summary>
+    public int PriceOfUpgrade(string id) =>
+        UpgradePrices is not null && UpgradePrices.TryGetValue(id, out int price) ? price : UpgradePrice;
 }
 
 public abstract record ShopOffer(int Price)
@@ -177,6 +185,15 @@ public sealed record StyleGuideOffer(int TierMinLength, string Name, string Tier
 public sealed record StationeryOffer(IStationery Item, int Price) : ShopOffer(Price)
 {
     public override string Description => $"{Item.Name} (Stationery) — {Item.Description}";
+}
+
+/// <summary>
+/// An Office upgrade (<see cref="OfficeUpgrades"/>): level <see cref="Level"/> of a permanent change to the run's rules.
+/// <see cref="Text"/> is what it does, written with the run's numbers when the shop was rolled.
+/// </summary>
+public sealed record UpgradeOffer(string UpgradeId, int Level, string Name, string Text, int Price) : ShopOffer(Price)
+{
+    public override string Description => $"{Name} (Office upgrade{(Level > 1 ? $" {Level}" : "")}) — {Text}";
 }
 
 /// <summary>Player-facing Style Guide names, one per word tier (keyed by the tier's minimum length).</summary>

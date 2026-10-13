@@ -82,18 +82,25 @@ public static class ConsoleRenderer
         (round.Config.Clipping is { } clipping ? $" | Clipping: {clipping.Text}" : "") +
         (round.Config.IllegalWordsAllowed > 0 ? $" | Poetic License x{round.Config.IllegalWordsAllowed}" : "");
 
-    public static string Desk(RunState run, ShopConfig shop, int slots = RunState.MaxDeskSlots) =>
+    public static string Desk(RunState run, ShopConfig shop, int slots = RunState.DefaultDeskSlots) =>
         run.DeskItems.IsEmpty
             ? $"Desk: (empty, {slots} slots)"
             : $"Desk ({run.DeskItems.Length}/{slots}): " +
               string.Join("  ", run.DeskItems.Select((item, i) =>
                   $"[{i + 1}] {item.Name} {DeskItemKinds.Tag(item.Kind)}: {item.Description} (sell ${shop.SellValueOf(item)})"));
 
-    public static string Stationery(RunState run, ShopConfig shop) =>
-        $"Stationery ({run.Stationery.Length}/{RunState.MaxStationerySlots}): " +
-        string.Join("  ", Enumerable.Range(0, RunState.MaxStationerySlots).Select(i => i < run.Stationery.Length
+    public static string Stationery(RunState run, ShopConfig shop, int slots = RunState.DefaultStationerySlots) =>
+        $"Stationery ({run.Stationery.Length}/{slots}): " +
+        string.Join("  ", Enumerable.Range(0, slots).Select(i => i < run.Stationery.Length
             ? $"[{i + 1}] {run.Stationery[i].Name}: {run.Stationery[i].Description} (sell ${shop.SellValueOf(run.Stationery[i])})"
             : $"[{i + 1}] (empty)"));
+
+    /// <summary>The Office upgrades bought, with their levels (empty when none).</summary>
+    public static string Office(RunState run) =>
+        run.Upgrades.IsEmpty
+            ? ""
+            : "Office: " + string.Join(", ", OfficeUpgrades.All.Where(u => run.Upgrades.ContainsKey(u.Id))
+                .Select(u => u.MaxLevel > 1 ? $"{u.Name} {run.Upgrades[u.Id]}/{u.MaxLevel}" : u.Name));
 
     public static string Deck(RunState run, ScoringConfig scoring)
     {

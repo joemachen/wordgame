@@ -33,12 +33,14 @@ public static class ShopRules
         if (session.Run.Money < offer.Price)
             return Fail($"Costs ${offer.Price}; you have ${session.Run.Money}.");
 
-        var applied = Apply(session.Run, offer, tileIds ?? [], session.Config.Shop, session.Config.DeskSlots);
+        var applied = Apply(session.Run, offer, tileIds ?? [], session.Config);
         if (!applied.IsOk)
             return Fail(applied.Error);
 
         return Result<GameSession, string>.Ok(session with
         {
+            // An Office upgrade changes the run's rules at once (its next level on top of the levels already applied).
+            Config = offer is UpgradeOffer upgrade ? OfficeUpgrades.Apply(session.Config, upgrade.UpgradeId, upgrade.Level) : session.Config,
             Run = applied.Value with { Money = applied.Value.Money - offer.Price },
             Shop = shop with { Offers = shop.Offers.SetItem(index, null) },
         });
@@ -88,13 +90,18 @@ public static class ShopRules
         });
     }
 
-    private static Result<RunState, string> Apply(RunState run, ShopOffer offer, IReadOnlyCollection<int> tileIds, ShopConfig config,
-        int deskSlots)
+    private static Result<RunState, string> Apply(RunState run, ShopOffer offer, IReadOnlyCollection<int> tileIds, RunConfig runConfig)
     {
+        var config = runConfig.Shop;
         switch (offer)
         {
             case DeskItemOffer desk:
-                return run.AddDeskItem(desk.Item, deskSlots);
+                return run.AddDeskItem(desk.Item, runConfig.DeskSlots, runConfig.DuplicateDeskItems);
+
+            case UpgradeOffer upgrade:
+                if (run.Upgrades.GetValueOrDefault(upgrade.UpgradeId) != upgrade.Level - 1)
+                    return Result<RunState, string>.Fail($"You already have {upgrade.Name}.");
+                return Result<RunState, string>.Ok(run with { Upgrades = run.Upgrades.SetItem(upgrade.UpgradeId, upgrade.Level) });
 
             case AddTileOffer add:
                 int id = run.Deck.IsEmpty ? 0 : run.Deck.Max(t => t.Id) + 1;
@@ -128,7 +135,7 @@ public static class ShopRules
                 });
 
             case StationeryOffer stationery:
-                return run.AddStationery(stationery.Item);
+                return run.AddStationery(stationery.Item, runConfig.StationerySlots);
 
             case StyleGuideOffer guide:
                 return Result<RunState, string>.Ok(run.UpgradeTier(guide.TierMinLength));
@@ -153,9 +160,10 @@ public static class ShopRules
         var config = runConfig.Shop;
         var offers = ImmutableArray.CreateBuilder<ShopOffer?>();
 
+        // With the Photocopier the shop offers items the player already owns too.
         var unowned = DeskItemCatalog.All
             .Where(item => config.DeskItemIds?.Contains(item.Id) ?? true)
-            .Where(item => run.DeskItems.All(owned => owned.Id != item.Id))
+            .Where(item => runConfig.DuplicateDeskItems || run.DeskItems.All(owned => owned.Id != item.Id))
             .ToList();
         for (int i = 0; i < config.DeskItemOffers && unowned.Count > 0; i++)
         {
@@ -224,6 +232,20 @@ public static class ShopRules
                 (pick, rng) = rng.NextInt(stationery.Count);
             offers.Add(new StationeryOffer(stationery[pick], config.PriceOf(stationery[pick])));
             stationery.RemoveAt(pick);
+        }
+
+        // Office upgrades come after everything else for the same reason. An upgrade at its last level isn't offered.
+        var upgrades = OfficeUpgrades.Available(runConfig, run).Where(u => config.UpgradeIds?.Contains(u.Id) ?? true).ToList();
+        for (int i = 0; i < config.UpgradeOffers && upgrades.Count > 0; i++)
+        {
+            int pick = 0;
+            if (upgrades.Count > 1)
+                (pick, rng) = rng.NextInt(upgrades.Count);
+            var upgrade = upgrades[pick];
+            int level = run.Upgrades.GetValueOrDefault(upgrade.Id) + 1;
+            offers.Add(new UpgradeOffer(upgrade.Id, level, upgrade.Name, OfficeUpgrades.Describe(upgrade.Id, level, runConfig),
+                config.PriceOfUpgrade(upgrade.Id)));
+            upgrades.RemoveAt(pick);
         }
 
         return (offers.ToImmutable(), rng);

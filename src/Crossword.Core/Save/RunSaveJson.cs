@@ -33,6 +33,7 @@ public static class RunSaveJson
         ["strike"] = typeof(StrikeOffer),
         ["style-guide"] = typeof(StyleGuideOffer),
         ["stationery"] = typeof(StationeryOffer),
+        ["upgrade"] = typeof(UpgradeOffer),
     };
 
     private static readonly Dictionary<Type, string> OfferTags = OfferTypes.ToDictionary(kv => kv.Value, kv => kv.Key);
@@ -95,10 +96,12 @@ public static class RunSaveJson
                 return Result<SavedRun, string>.Fail($"Unreadable save: no deck '{dto.Run.DeckId}'.");
             if (dto.Run.Dictionaries.FirstOrDefault(id => Dictionaries.Find(id) is null) is { } unknown)
                 return Result<SavedRun, string>.Fail($"Unreadable save: no dictionary '{unknown}'.");
+            if (dto.Run.Upgrades.Keys.FirstOrDefault(id => OfficeUpgrades.Find(id) is null) is { } unknownUpgrade)
+                return Result<SavedRun, string>.Fail($"Unreadable save: no Office upgrade '{unknownUpgrade}'.");
 
             // A run saved before Desk Items were ordered automatically comes back in the best order.
             var run = dto.Run with { DeskItems = DeskOrder.Sorted(dto.Run.DeskItems) };
-            var session = new GameSession(RunRules.ConfigFor(config, dto.Run.DeckId, dto.Run.PressRun, dto.Run.Dictionaries), run, dto.Phase, dto.Round, dto.Shop, dto.LastPayout);
+            var session = new GameSession(RunRules.ConfigFor(config, run), run, dto.Phase, dto.Round, dto.Shop, dto.LastPayout);
             return Result<SavedRun, string>.Ok(new SavedRun(session, (dto.HandOrder ?? []).ToImmutableArray()));
         }
         catch (Exception e) when (e is JsonException or NotSupportedException or InvalidOperationException or ArgumentException)
