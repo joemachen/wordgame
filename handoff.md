@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-13 · HEAD `53c564f` (Office upgrades) · 660 unit tests passing · UI self-test 115/115 passing · CI green at `dc2fead`_
+_Last updated: 2026-10-13 · HEAD `53c564f` (Office upgrades) · 660 unit tests passing · UI self-test 115/115 passing · CI green_
 
 ## 0. ▶ Status and what's next
 
