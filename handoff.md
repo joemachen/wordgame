@@ -5,9 +5,28 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-12 · HEAD `dbd0721` (code) · 570 unit tests passing · UI self-test 108/108 passing · CI green_
+_Last updated: 2026-10-13 · HEAD `(this commit)` (code) · 645 unit tests passing · UI self-test 112/112 passing · CI green_
 
 ## 0. ▶ Status and what's next
+
+**2026-10-12/13: "Break the game" phases 1–2 built** (user's direction: scores into the billions on the hardest content,
+Disgaea-style, and every cap breakable; plan in `ROADMAP.md` §3b). Landed: saturating score math + words for big numbers
+(Phase 1), multiplicative tile enhancements (Underlined ×2 Mult, Embossed ×3 Chips), three Desk Item kinds and ten
+compounding Desk Items, bot re-scoring of enhancements, and a steeper target curve (Phase 2). Balance in §4e.
+
+**▶ Decision needed — the 1M finale.** The user chose a base-game Week 5 Sunday deadline of ~1,000,000 (today 33,680).
+Measured with the engines (200 paired runs, ScoreFraction 0.75, evaluating bot, §4e): at a 1M Sunday the bot wins
+**0%** with the first item numbers and the curve shape doesn't matter (losses pile into whichever week jumps ×5+); after
+doubling the engine items' factors it wins 56% on the old curve, 28% at a 128k Sunday, 14.5% at 240k, 8% at 480k.
+The bot's desks stay additive (Word Count 54%, Margin Notes 46%; the compounding items 15–27% each), so its score grows
+~×3–4 per week, not the ×6 per week a 1M finale needs. **Shipped for now: 450/1600/5200/17000/50000** (Week 5 Sunday
+80,000, ×2.4 — the reference 0.75 at 35.5%, within noise of the 39% acceptance band; p90 won-round scores reach ~440k
+in Week 5, so engine builds already score in the hundreds of thousands per round). Options: (a) keep ~80k and let the
+Circulation dial (Phase 4) and endless carry the climb to 1M and billions — Claude's recommendation, it keeps the
+"a linear build still wins the base game" principle; (b) push the finale to 1M anyway and accept ~5–8% base wins (or
+buff the engines again — Underlined/Embossed and the ten items are already at 2× their first numbers); (c) first teach
+the bot to build engines (it values items by re-scoring recent best plays, where a ×1.3-per-tile item looks like a
+flat +Mult) and re-measure. Decks and the Press Run ladder are **not re-measured** on the new curve yet.
 
 **Playtested 2026-10-11: "all is good"** — the user played the 2026-10-11 batch (Esc/pause, auto-ordered desk, How to play, two Stationery per shop, targets ×0.88) and reported no issues. Then (user's pick) the **Press Run ladder was re-measured and retuned** (§4a): the $5 paycheck floor had
 made First Edition a no-op, so the user chose the "full fix" — strong player now 51.5 → 6.5% in steps of 4–11.
@@ -198,6 +217,16 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   Claude's calls: Rush Job became a cap (Sundays ≤ 3 submissions) rather than −1, so it never stacks with Tight
   Deadline; First Edition only lowers the floor (`Math.Min`), never raises one; the Reprint start week is a
   `PressRunConfig` number (`ReprintFromWeek` = 1, i.e. Week 2), shown in the level's description.
+- **Break the game, phases 1–2** (2026-10-12, user's direction and choices: base Week 5 Sunday ~1M, a Circulation dial for
+  billions, all cap breakers, phases 1–2 first). Claude's calls: the cap is a constant `ScoreMath.MaxScore` = 10^18
+  (numeric safety, not balance) and a capped total prints as the plain number; compact numbers are **words**
+  ("1.23 trillion"), never e-notation; endless targets grow in exact decimal steps (no `Math.Pow`); the multiplicative
+  enhancements are **Underlined** (×Mult) and **Embossed** (×Chips) because tile faces tag by first letter (no B/I/G);
+  they fire in a new **step 4d** after every additive source (the same rule `DeskOrder` follows); **Carbon Copy** re-fires
+  the strongest owned multiplier (a pure "× best factor", so the automatic order stays optimal — "copy the neighbour"
+  would beat the sorted order next to a +Mult item); **Pull Quote** sits between +Mult and ×Mult; the engine items were
+  **doubled** after the first measurement (0% at a 1M finale) and the finale shipped at 80k pending the user's decision
+  (§0). Dev flags `--score`, `--deadline`, `--textsize`; 12-digit scores fit the sidebar at 100–120% text.
 - **Hint is not a free solve** (user's choice, 2026-10-05): the free Hint shows a decent play, never the best; the best play is the paid one-shot **Answer Key** Stationery; `--dev` keeps an unlimited best play for development — since 2026-10-10 as a separate **Best (dev)** button next to Hint (user's request), so a dev build still shows the player's decent Hint. Chosen over money-cost hints, limited charges, or nudge-only hints.
 
 ## 4. Starting decks (2026-10-06)
@@ -400,6 +429,39 @@ change that touches it is the Stationery pool growing from 6 to 11 — Margin Cl
 strongest in the game, is now offered in ~1 shop in 11 instead of ~1 in 6. The rest is the rarity re-weighting and noise
 (±3.5). Decision for the user in §0.
 
+## 4e. Break the game, phases 1–2 (2026-10-12/13)
+
+Scratch harness `targetsim` (`<runs> <skill> curve=A,B,…`: paired seeds 1–200, evaluating bot, ScoreFraction; prints win
+%, subs per won round, won-round score median/p90 per week next to the Sunday deadline, losses by week and final-desk
+pick rates). Won-round *medians* track the deadline (the bot stops at the target); p90 shows the engines.
+
+**First item numbers** (Column Inches ×1.5, Hot Type ×1.2, Interlock ×1.4, Evening Edition ×1.5, Feature Story +0.5,
+Ad Revenue +0.1, Subscription Drive ×1.05, Newsstand +0.25, Underlined ×1.5, Embossed ×2), 0.75:
+old curve 39.5% (unchanged: pool dilution ≈ engine power); 1M-Sunday curves A geometric / B bending / C soft all **0%**;
+E (150k base, 240k Sunday) 2.5%.
+
+**Buffed (shipped) numbers** (Column Inches ×2, Hot Type ×1.3, Interlock ×1.6, Evening Edition ×2, Feature Story +1
+per letter, Ad Revenue +0.2 per $5, Subscription Drive ×1.15, Newsstand +0.5 per word, Underlined ×2, Embossed ×3):
+
+| Curve (week bases; Sunday = ×1.6) | 0.75 | 0.9 | 0.6 |
+|---|---|---|---|
+| old 450/1580/4730/12830/21050 (Sunday 33,680) | 56% | 71% | — |
+| J 450/1600/5000/15000/40000 (64,000) | 43% | — | — |
+| **I 450/1600/5200/17000/50000 (80,000) — shipped** | **35.5%** | 49.5% | 27% |
+| H 450/1600/5500/20000/80000 (128,000) | 28% | — | — |
+| F 450/1700/6500/25000/120000 (192,000) | 17% | — | — |
+| E 450/1580/5500/25000/150000 (240,000) | 14.5% | 23% | — |
+| G 450/1800/7500/32000/200000 (320,000) | 12% | — | — |
+| D 450/1800/8000/40000/300000 (480,000) | 8% | 9.5% | — |
+
+- The strong player (0.9) gains little on steep curves (E 23% vs 14.5%): the ceiling is the *build*, not play quality.
+  Final desks at 0.75 on the old curve: Word Count 54%, Margin Notes 46%, Hot Type 27%, Evening Edition 25%, Column
+  Inches 23%, Pulitzer 20%, Newsstand 19%; losses are mostly Dailies (the week's first round, before any new shop).
+- Week 5 p90 won-round scores: old curve 263k, I 440k, D 2.2M (0.9: 5.0M) — the top decile of bot builds already plays
+  in the millions.
+- `ShopBotConfig.EnhancedTileGains` (enhanced add-tile offers) stays at 0 — not measured yet; `EnhanceOffer`s are
+  re-scored (bought when the tile the bot places most often gains ≥3%).
+
 ## 5. Open concerns / known gaps
 
 0. **Difficulty after the content batch** (§4d): resolved 2026-10-11 by targets ×0.88 (reference back to 39%). The new
@@ -475,6 +537,13 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
+-1. **Decide the finale (§0)**, then **Phase 3 cap breakers** (ROADMAP §3b: a fourth shop category rolled after
+   Stationery — +desk slot / +hand / +submission / +discard / +Stationery slot, 9×9 board, deck minimum down, duplicates
+   licence, "Second edition" item levels, uncapped economy; new `ShopOffer` subclasses need `RunSaveJson` tags; depend on
+   `Config.DeskSlots`, never the `MaxDeskSlots` const), **Phase 4** (Circulation dial → `RunConfig.TargetScale`, steeper
+   endless, stacking endless bosses, then re-measure decks and the Press Run ladder on the new curve) and **Phase 5**
+   (ring-up tiers past the stamp; the longer `EffectEvent` logs — one line per enhanced tile per word — may need a faster
+   step floor or collapsed enhancement lines). Also measure `ShopBotConfig.EnhancedTileGains` and the new items' prices.
 0. ~~Playtest the new content + re-measure the Press Run ladder~~ ✅ 2026-10-11 (playtest "all is good"; ladder
    retuned, §4a). Playtest the new ladder when convenient: First Edition without the paycheck floor, Rush Job's
    3-submission Sundays, Heavy Printing's pricier Desk Items, Final Print Run from Week 2.
@@ -539,6 +608,10 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
+(this commit) Steepen the week targets and document the compounding engines
+203b126 Add multiplicative tile enhancements and ten compounding Desk Items
+c47a7fe Saturate score arithmetic and print big numbers as words
+66dea8c Add the docs commit to handoff history
 180915a Record the playtest and the retuned Press Run ladder in the docs
 dbd0721 Retune the Press Run ladder for the paycheck floor and new targets
 18304c5 Bring handoff up to date after the 2026-10-11 work

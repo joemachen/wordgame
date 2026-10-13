@@ -40,7 +40,9 @@ public sealed record EconomyConfig(
 /// model (a human-like player; 150–200 runs per cell): raised ×1.3 on 2026-10-05 after balanced draws made hands
 /// fairer, then ×1.15 after the richer economy (overkill every 25%, interest per $4), then ×0.88 on 2026-10-11 (user's
 /// choice) after the content batch (Epic/Legendary items, rule-breaking Stationery) dropped the reference skill 0.75
-/// from ~40% to ~33% wins. Retune with 'runsim [runs] [skill] frac' whenever scaling content changes.
+/// from ~40% to ~33% wins; then steepened on 2026-10-12 for the compounding engines (multiplicative tile enhancements
+/// and Desk Items): 450/1600/5200/17000/50000, Week 5 Sunday 80,000 (×2.4), reference 0.75 at ~36%. Retune with
+/// 'runsim [runs] [skill] frac' whenever scaling content changes.
 /// </summary>
 public sealed record RunConfig(
     ImmutableArray<long> WeekTargets,
@@ -96,7 +98,7 @@ public sealed record RunConfig(
     public decimal TargetScale { get; init; } = 1;
 
     public static RunConfig Default { get; } = new(
-        WeekTargets: [450, 1580, 4730, 12830, 21050],
+        WeekTargets: [450, 1600, 5200, 17000, 50000],
         Days:
         [
             new RoundKind("Daily", 1m, BasePay: 3, IsBoss: false),

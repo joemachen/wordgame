@@ -99,6 +99,29 @@ use the Desk Item round hook (`IDeskItem.ModifyRound`, applied when each round s
 | **Magnifying Glass** | See the next 3 tiles in the bag; +2 Mult. **Deferred:** balanced draws pick tiles based on the hand at draw time, so there are no fixed "next 3" without a pre-shuffled bag (which would change every seed). Rework idea: show the letters left in the bag. | Common | 🟡 |
 | **Brass Paperclip** | Keep up to 2 hand tiles between rounds; they start in your next hand. **Deferred:** needs a "keep which tiles" picker after a win plus a carry-over in `RunState` (filtered against deck edits made in the shop). | Uncommon | 🟡 |
 | **Printing Press Roller** | Scaling: gains ×0.1 Mult each time a play forms 3+ words | Rare | ✅ |
+| **Column Inches** · **Hot Type** · **Interlock** · **Evening Edition** · **Feature Story** · **Ad Revenue** · **Subscription Drive** · **Newsstand** · **Pull Quote** · **Carbon Copy** | The compounding batch (§3b, 2026-10-12): ×Mult per word / tile / intersection / play made / letter beyond 4 / $5 held; a factor that compounds forever (Epic); ×Chips per word; the longest word's enhancements fire again; your strongest multiplier fires again (Epic) | Rare / Uncommon / Epic | ✅ |
+
+### Tile enhancements
+
+✅ Bold +10 Chips, Italic +2 Mult, Gilded +$1 (additive) and, since 2026-10-12, **Underlined ×2 Mult** and **Embossed ×3 Chips**
+(multiplicative, scoring step 4d) — each fires once per formed word containing the tile. The shop rolls them by weight
+(30/30/15/15/10) and prices the multiplicative ones $5 (edit) / $6 (tile).
+
+## 3b. "Break the game" — compounding scores (2026-10-12) 🟡 (phases 1–2 ✅)
+
+The user's direction (2026-10-12): scores that can reach the **billions** on the hardest content, Disgaea-style, and every
+cap in the game (desk slots, hand, submissions, board, deck, economy, item power) something a build can push past.
+Decisions: the base game's Week 5 Sunday should land near **1,000,000**; billions are demanded by a **Circulation dial**
+(a print run ×1…×1000 chosen at run start that multiplies deadlines and raises paychecks / rarity weights) plus endless;
+all cap breakers as a fourth shop category; build in phases.
+
+| Phase | Work | Status |
+|---|---|---|
+| 1 | Saturating score math (`ScoreMath`, cap 10^18), big-number words (`ScoreFormat`), precision-safe count-up, UI digit budgets, `RunConfig.TargetScale` | ✅ |
+| 2 | Underlined / Embossed tiles, three Desk Item kinds (×CHIPS, AGAIN, COPY), ten compounding Desk Items, bot re-scoring of enhancements, targets → 450/1600/5200/17000/50000 (Week 5 Sunday 80k; the 1M target measured 0–8% for the bot — open decision in `handoff.md` §0) | ✅ |
+| 3 | Cap breakers: 4th shop category ("Office upgrades": +desk slot to 7, +hand, +submission, +discard, +Stationery slot; 9×9 board with more premiums; deck minimum 30 → 20 → 15; a duplicates licence; "Second edition" item levels; interest/overkill caps lifted, money→Mult items) | 🟡 |
+| 4 | Circulation dial (`RunState.Circulation` → `RunConfig.TargetScale`, rewards as `Payout`/`ShopConfig` fields), steeper endless (×3–4/week), stacking endless bosses; re-measure decks and the Press Run ladder | 🟡 |
+| 5 | Ring-up tiers past "STOP THE PRESSES!" (×2, ×10, ×100 the deadline), long-log tempo | 🟡 |
 
 ### Stationery (consumables) 🟡 — new system
 
@@ -274,6 +297,7 @@ tests and a `runsim` balance check.
 | **Release hygiene** | Slur denylist ✅ (ENABLE + definitions; overlays must use it); "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
 | **Wild tiles** ✅ | Play as any letter (chosen when placed), 0 letter chips. 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5), Fountain Pen Stationery. Bots don't buy the wild offers or the Fountain Pen yet. | done 2026-10-05 |
 | **Letter mix** ✅ | Balanced draws (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) + starting deck at ~42% vowels. Rough hands at play time 29.5% → 10%. | done 2026-10-05 |
+| **Break the game** 🟡 | §3b: phases 1–2 ✅ (saturating math, words for big numbers, multiplicative tiles, compounding Desk Items, steeper targets); phases 3–5 (cap breakers, Circulation dial + endless, ring-up tiers) next | started 2026-10-12 |
 
 | Parallel track | Work | Best time |
 |---|---|---|
@@ -286,6 +310,7 @@ tests and a `runsim` balance check.
 
 ## 12. Open questions
 
+- **The 1M finale (§3b):** with the compounding engines the reference bot wins 35.5% at a Week 5 Sunday of 80k and only 8% at 480k / 0% at 1M; a 1M base-game finale needs stronger engines, a smarter engine-building bot, or the Circulation dial to carry it. User's call.
 - **Trademarks dictionary:** legal review before any work, or drop it.
 - **Slang dictionary source:** find a word list we can legally ship (or build our own), and plan how to keep slurs out of it.
 - **Vowel Drought:** keep the Vowel Tax effect, or rework it to fewer vowels in the bag?

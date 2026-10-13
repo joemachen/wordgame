@@ -11,7 +11,7 @@ namespace Crossword.Core.DeskItems;
 // (DeskOrder) stays optimal.
 
 /// <summary>Rare: ×Mult per word formed — parallel plays that form many words compound.</summary>
-public sealed record ColumnInches(decimal PerWord = 1.5m) : IDeskItem
+public sealed record ColumnInches(decimal PerWord = 2m) : IDeskItem
 {
     public string Id => "column-inches";
     public DeskItemKind Kind => DeskItemKind.TimesMult;
@@ -27,7 +27,7 @@ public sealed record ColumnInches(decimal PerWord = 1.5m) : IDeskItem
 }
 
 /// <summary>Rare: ×Mult per tile placed this play — big plays compound.</summary>
-public sealed record HotType(decimal PerTile = 1.2m) : IDeskItem
+public sealed record HotType(decimal PerTile = 1.3m) : IDeskItem
 {
     public string Id => "hot-type";
     public DeskItemKind Kind => DeskItemKind.TimesMult;
@@ -43,7 +43,7 @@ public sealed record HotType(decimal PerTile = 1.2m) : IDeskItem
 }
 
 /// <summary>Rare: ×Mult per intersection — the grid-building multiplier.</summary>
-public sealed record Interlock(decimal PerIntersection = 1.4m) : IDeskItem
+public sealed record Interlock(decimal PerIntersection = 1.6m) : IDeskItem
 {
     public string Id => "interlock";
     public DeskItemKind Kind => DeskItemKind.TimesMult;
@@ -62,7 +62,7 @@ public sealed record Interlock(decimal PerIntersection = 1.4m) : IDeskItem
 }
 
 /// <summary>Uncommon: ×Mult per play already made this round — Late Edition's multiplicative sibling.</summary>
-public sealed record EveningEdition(decimal PerSubmission = 1.5m) : IDeskItem
+public sealed record EveningEdition(decimal PerSubmission = 2m) : IDeskItem
 {
     public string Id => "evening-edition";
     public DeskItemKind Kind => DeskItemKind.TimesMult;
@@ -81,7 +81,7 @@ public sealed record EveningEdition(decimal PerSubmission = 1.5m) : IDeskItem
 }
 
 /// <summary>Rare: long words multiply — ×Mult grows with every letter of the longest word beyond a few.</summary>
-public sealed record FeatureStory(decimal PerLetter = 0.5m, int BeyondLength = 4) : IDeskItem
+public sealed record FeatureStory(decimal PerLetter = 1m, int BeyondLength = 4) : IDeskItem
 {
     public string Id => "feature-story";
     public DeskItemKind Kind => DeskItemKind.TimesMult;
@@ -100,7 +100,7 @@ public sealed record FeatureStory(decimal PerLetter = 0.5m, int BeyondLength = 4
 }
 
 /// <summary>Uncommon: money multiplies — ×Mult grows with the money held.</summary>
-public sealed record AdRevenue(decimal PerStep = 0.1m, int MoneyStep = 5) : IDeskItem
+public sealed record AdRevenue(decimal PerStep = 0.2m, int MoneyStep = 5) : IDeskItem
 {
     public string Id => "ad-revenue";
     public DeskItemKind Kind => DeskItemKind.TimesMult;
@@ -119,7 +119,7 @@ public sealed record AdRevenue(decimal PerStep = 0.1m, int MoneyStep = 5) : IDes
 }
 
 /// <summary>Epic: compounding scaler — its ×Mult grows by a factor with every play that forms several words, forever.</summary>
-public sealed record SubscriptionDrive(decimal Growth = 1.05m, int MinWords = 3, decimal Factor = 1) : IDeskItem
+public sealed record SubscriptionDrive(decimal Growth = 1.15m, int MinWords = 3, decimal Factor = 1) : IDeskItem
 {
     public string Id => "subscription-drive";
     public DeskItemKind Kind => DeskItemKind.TimesMult;
@@ -135,7 +135,7 @@ public sealed record SubscriptionDrive(decimal Growth = 1.05m, int MinWords = 3,
 }
 
 /// <summary>Rare: ×Chips per word formed — the chips side of Column Inches.</summary>
-public sealed record Newsstand(decimal PerWord = 0.25m) : IDeskItem
+public sealed record Newsstand(decimal PerWord = 0.5m) : IDeskItem
 {
     public string Id => "newsstand";
     public DeskItemKind Kind => DeskItemKind.TimesChips;
