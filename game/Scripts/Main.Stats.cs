@@ -55,7 +55,7 @@ public partial class Main
         var stats = _profile.Profile.Stats;
 
         _statsBox.AddChild(UiKit.MakeLabel($"{_profile.Profile.Name}'s Stats", 26, UiKit.Text));
-        string best = stats.BestPlayWords is null ? "—" : $"{stats.BestPlayScore:N0} ({stats.BestPlayWords})";
+        string best = stats.BestPlayWords is null ? "—" : $"{Juice.Score(stats.BestPlayScore)} ({stats.BestPlayWords})";
         var overview = UiKit.MakeLabel(
             $"Runs {stats.RunsStarted}   ·   Wins {stats.RunsWon}{(stats.SeededRunsWon > 0 ? $" (+{stats.SeededRunsWon} seeded)" : "")}   ·   Furthest week {(stats.BestWeekReached == 0 ? "—" : stats.BestWeekReached)}\n"
             + $"Distinct words {stats.Words.Count:N0}   ·   Plays {stats.PlaysRecorded:N0}   ·   Longest word {stats.LongestWord ?? "—"}   ·   Best play {best}\n"

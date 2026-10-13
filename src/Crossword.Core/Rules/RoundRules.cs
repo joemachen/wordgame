@@ -112,7 +112,7 @@ public static class RoundRules
             Undo = null,
             Board = play.BoardAfter,
             Hand = state.Hand.Remove(placed.Select(p => p.Tile.Id)),
-            Score = state.Score + score.Total,
+            Score = ScoreMath.Add(state.Score, score.Total),
             SubmissionsLeft = state.SubmissionsLeft - 1,
             SubmissionsMade = state.SubmissionsMade + 1,
             WordsFormed = state.WordsFormed.Union(play.Words.Select(w => w.Text)),

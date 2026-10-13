@@ -1,3 +1,4 @@
+using Crossword.Core.Scoring;
 using Godot;
 
 namespace Wordgame.Godot;
@@ -48,6 +49,20 @@ public static class Juice
     public const float ReceiptTotalPunch = 1.3f;
     public const double ReceiptScrollOffSeconds = 0.25;
 
+    // Digit budgets: a number prints in full with separators while it has at most this many digits, then as words
+    // ("1.23 trillion", ScoreFormat). Chosen so each label fits its box at 100–120% text size: the 34 pt score and
+    // deadline in the 330 px sidebar, the two 30 pt tally panels sharing that width, the receipt's 12 pt tallies.
+    public const int ScoreDigits = 12;
+    public const int TallyDigits = 7;
+    public const int ReceiptChipsDigits = 9;
+    public const int ReceiptMultDigits = 7;
+    public const int ReceiptProductDigits = 12;
+
+    public static string Score(long value) => ScoreFormat.Number(value, ScoreDigits);
+    public static string Score(decimal value) => ScoreFormat.Number(value, ScoreDigits);
+    public static string Chips(decimal value) => ScoreFormat.Number(value, TallyDigits);
+    public static string Mult(decimal value) => ScoreFormat.Mult(value, TallyDigits);
+
     // The Style Guides drawer slides in and out over this long (instant with reduced motion).
     public const double DrawerSeconds = 0.22;
 
@@ -90,15 +105,18 @@ public static class Juice
         item.CreateTween().TweenProperty(item, "modulate", Colors.White, seconds);
     }
 
-    /// <summary>Ticks a label's number from one value to another.</summary>
-    public static void CountUp(Label label, decimal from, decimal to, double seconds, string format)
+    /// <summary>
+    /// Ticks a label's number from one value to another. The tween drives a 0..1 progress and the value is interpolated
+    /// in decimal, so a quintillion counts up without losing digits (a double would round past ~10^15).
+    /// </summary>
+    public static void CountUp(Label label, decimal from, decimal to, double seconds, Func<decimal, string> format)
     {
         if (from == to)
         {
-            label.Text = to.ToString(format);
+            label.Text = format(to);
             return;
         }
-        label.CreateTween().TweenMethod(Callable.From<double>(v => label.Text = ((decimal)v).ToString(format)), (double)from, (double)to, seconds);
+        label.CreateTween().TweenMethod(Callable.From<double>(t => label.Text = format(from + (to - from) * (decimal)Math.Clamp(t, 0, 1))), 0.0, 1.0, seconds);
     }
 
     /// <summary>Text that rises and fades from a point on the effects layer.</summary>

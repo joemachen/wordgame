@@ -59,7 +59,7 @@ public sealed record StrictGrammarian(int MinLength = 3, decimal TargetScale = 0
     public override string Description => $"Every word formed must be at least {MinLength} letters.";
 
     protected override RoundConfig ModifyRound(RoundConfig config) =>
-        config with { MinWordLength = MinLength, TargetScore = (long)(config.TargetScore * TargetScale) };
+        config with { MinWordLength = MinLength, TargetScore = ScoreMath.Scale(config.TargetScore, TargetScale) };
 }
 
 /// <summary>Vowels cost chips instead of earning them, in every word they appear in.</summary>
@@ -115,7 +115,7 @@ public sealed record PuzzleMaster(BossModifier? First = null, BossModifier? Seco
         if (First is null || Second is null)
             return config;
         var both = Second.Apply(First.Apply(config));
-        return TargetScale == 1 ? both : both with { TargetScore = (long)(both.TargetScore * TargetScale) };
+        return TargetScale == 1 ? both : both with { TargetScore = ScoreMath.Scale(both.TargetScore, TargetScale) };
     }
 
     public override ScoringConfig ModifyScoring(ScoringConfig scoring) =>

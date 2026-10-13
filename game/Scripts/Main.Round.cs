@@ -465,10 +465,10 @@ public partial class Main
         }
 
         var score = ScoringEngine.Score(validation.Value, Run.DeskItems, RoundScoring, RoundRules.Environment(Round, Run.Money));
-        _chipsLabel.Text = score.Chips.ToString("N0");
-        _multLabel.Text = score.Mult.ToString("0.##");
+        _chipsLabel.Text = Juice.Chips(score.Chips);
+        _multLabel.Text = Juice.Mult(score.Mult);
         bool licensed = validation.Value.Words.Any(w => !_lexicon.Contains(w.Text));
-        SetMessage($"{string.Join(" + ", validation.Value.Words.Select(w => w.Text))}  →  {score.Total:N0} points{(licensed ? "  ·  poetic licence" : "")}", UiKit.Good);
+        SetMessage($"{string.Join(" + ", validation.Value.Words.Select(w => w.Text))}  →  {Juice.Score(score.Total)} points{(licensed ? "  ·  poetic licence" : "")}", UiKit.Good);
         _definitionsLabel.Text = DefinitionsText(validation.Value.Words.Select(w => w.Text));
         _previewTier = RoundScoring.TierFor(validation.Value.Words.Max(w => w.Text.Length)).MinLength;
     }
@@ -578,7 +578,7 @@ public partial class Main
     {
         long target = Round.Config.TargetScore;
         var level = Juice.LevelFor(score.Total, target);
-        _scoreLabel.Text = scoreBefore.ToString("N0");
+        _scoreLabel.Text = Juice.Score(scoreBefore);
         _chipsLabel.Text = "0";
         _multLabel.Text = "0";
 
@@ -600,8 +600,8 @@ public partial class Main
         tween.TweenCallback(Callable.From(() =>
         {
             _receipt.AddTotal(score.Total, score.Money, Juice.FinalCountSeconds);
-            Juice.CountUp(_scoreLabel, scoreBefore, scoreBefore + score.Total, Juice.FinalCountSeconds, "N0");
-            SetMessage($"+{score.Total:N0}", UiKit.Good);
+            Juice.CountUp(_scoreLabel, scoreBefore, ScoreMath.Add(scoreBefore, score.Total), Juice.FinalCountSeconds, Juice.Score);
+            SetMessage($"+{Juice.Score(score.Total)}", UiKit.Good);
         }));
         tween.TweenInterval(Juice.FinalCountSeconds);
         tween.TweenCallback(Callable.From(() => Celebrate(score.Total, target, level)));
@@ -621,12 +621,12 @@ public partial class Main
         double count = seconds * 0.7;
         if (e.ChipsAfter != chipsFrom)
         {
-            Juice.CountUp(_chipsLabel, chipsFrom, e.ChipsAfter, count, "N0");
+            Juice.CountUp(_chipsLabel, chipsFrom, e.ChipsAfter, count, Juice.Chips);
             Juice.Pop(_chipsPanel, punch);
         }
         if (e.MultAfter != multFrom)
         {
-            Juice.CountUp(_multLabel, multFrom, e.MultAfter, count, "0.##");
+            Juice.CountUp(_multLabel, multFrom, e.MultAfter, count, Juice.Mult);
             Juice.Pop(_multPanel, punch);
         }
         var color = ColorFor(e.SourceId);

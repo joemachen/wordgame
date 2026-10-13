@@ -218,5 +218,5 @@ public sealed record SecondPrinting(decimal Factor = 2) : IDeskItem
     public string Description => $"×{Factor} Chips and ×{Factor} Mult.";
 
     public ScoreContext Apply(ScoreContext c) =>
-        (c with { Chips = (long)decimal.Floor(c.Chips * Factor) }).TimesMult(Factor).Record(Id, $"{Name}: ×{Factor} chips, ×{Factor} mult");
+        c.TimesChips(Factor).TimesMult(Factor).Record(Id, $"{Name}: ×{Factor} chips, ×{Factor} mult");
 }

@@ -49,6 +49,25 @@ public class RunRulesTests
     }
 
     [Fact]
+    public void RunConfig_TargetScale_MultipliesEveryDeadline()
+    {
+        var scaled = Config with { TargetScale = 10 };
+
+        Assert.Equal(3000, scaled.TargetFor(0));
+        Assert.Equal(4500, scaled.TargetFor(1));
+        Assert.Equal(48000, scaled.TargetFor(11));
+    }
+
+    [Fact]
+    public void RunConfig_EndlessTargets_GrowExactly_ThenSaturate()
+    {
+        for (int week = 3; week < 23; week++)
+            Assert.Equal(1200L << (week - 2), Config.TargetFor(week * 3)); // exact powers of two, no floating point drift
+        Assert.Equal(Crossword.Core.Scoring.ScoreMath.MaxScore, Config.TargetFor(100 * 3)); // week 101: capped, no overflow
+        Assert.Equal(Crossword.Core.Scoring.ScoreMath.MaxScore, Config.TargetFor(100 * 3 + 2));
+    }
+
+    [Fact]
     public void NewGame_StartsDailyRound_WithStartingMoney()
     {
         var session = NewGame();

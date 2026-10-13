@@ -3,6 +3,7 @@ using Crossword.Core.Lexicon;
 using System.Collections.Immutable;
 using Crossword.Core.Rules;
 using Crossword.Core.Run;
+using Crossword.Core.Scoring;
 using Crossword.Core.Save;
 using Godot;
 using GridPos = Crossword.Core.Domain.Position;
@@ -396,7 +397,7 @@ public partial class Main
         //      first touch of a tile.
         Check("receipt prints one line per step plus the total", receiptHidden && _receipt.IsShowing
             && _receipt.LineCount == submitted.Score.Log.Count && _receipt.HasTotal
-            && _receipt.TotalText == submitted.Score.Total.ToString("N0"));
+            && _receipt.TotalText == Receipt.Total(submitted.Score.Total));
         await Click(Centre(HandButton(0)));
         await Seconds(Juice.ReceiptScrollOffSeconds + 0.15);
         Check("touching a tile scrolls the receipt off", !_receipt.IsShowing && _receipt.LineCount == 0);
@@ -408,6 +409,36 @@ public partial class Main
             Check("clue columns list the board's words", numbered.Length > 0
             && numbered.All(w => ClueText(w.Direction == Crossword.Core.Domain.Direction.Across ? _acrossBox : _downBox).Contains($"{w.Number}  {w.Text}"))
             && ClueText(_downBox).Contains("FROM THE MORGUE"));
+
+        // 13c. Big numbers: a score in the hundreds of trillions prints as words and fits the sidebar; a ring-up whose
+        //      chips × mult passes the cap counts up to the cap on the receipt without throwing.
+        var realRound = Round;
+        _session = _session with { Round = Round with { Score = 123_456_789_012_345, Config = Round.Config with { TargetScore = 987_654_321_098_765 } } };
+        Refresh();
+        await Frames(2);
+        Check("huge score and deadline print as words and fit the sidebar",
+            _scoreLabel.Text == "123 trillion" && _targetLabel.Text == "988 trillion"
+            && _scoreLabel.GetMinimumSize().X <= _scoreLabel.Size.X && _targetLabel.GetMinimumSize().X <= _targetLabel.Size.X);
+        var hugeLog = submitted.Score with
+        {
+            Chips = 1_000_000_000_000_000, Mult = 1_000_000m,
+            Log = [new Crossword.Core.Effects.EffectEvent("tier", "a quadrillion chips", 1_000_000_000_000_000, 1_000_000m)],
+        };
+        _animating = true;
+        AnimateScore(hugeLog, 0);
+        for (int i = 0; i < 100 && !_receipt.HasTotal; i++)
+            await Seconds(0.1);
+        await Seconds(Juice.FinalCountSeconds + 0.1); // the TOTAL has counted up; the tally panels still show the step
+        bool hugeRingUp = _receipt.TotalText == Receipt.Total(ScoreMath.MaxScore)
+            && _chipsLabel.Text == "1 quadrillion" && _multLabel.Text == "1,000,000"
+            && _chipsLabel.GetMinimumSize().X <= _chipsPanel.Size.X && _multLabel.GetMinimumSize().X <= _multPanel.Size.X;
+        string hugeSeen = $"total '{_receipt.TotalText}' chips '{_chipsLabel.Text}' mult '{_multLabel.Text}'";
+        for (int i = 0; i < 100 && _animating; i++)
+            await Seconds(0.1);
+        Check($"a ring-up past the cap counts up to the cap ({hugeSeen})", hugeRingUp && !_animating);
+        _receipt.Clear();
+        _session = _session with { Round = realRound };
+        Refresh();
 
         // 14. The play lands in the (in-memory) profile, and the Stats popup lists its words; Esc closes it.
         var playedWords = submitted.Play.Words.Select(w => w.Text).ToList();

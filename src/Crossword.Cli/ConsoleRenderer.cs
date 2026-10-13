@@ -73,7 +73,7 @@ public static class ConsoleRenderer
     }
 
     public static string Status(RoundState round) =>
-        $"Score {round.Score}/{round.Config.TargetScore} | Submissions {round.SubmissionsLeft} | " +
+        $"Score {ScoreFormat.Number(round.Score)}/{ScoreFormat.Number(round.Config.TargetScore)} | Submissions {round.SubmissionsLeft} | " +
         $"Discards {round.DiscardsLeft} | Bag {round.Bag.Count}" +
         (round.Config.CensoredLetter is { } censored ? $" | Censored: {censored}" : "") +
         (round.Config.Highlight is { } highlight ? $" | Highlighter x{highlight.Factor} on tile #{highlight.TileId}" : "") +
@@ -114,7 +114,7 @@ public static class ConsoleRenderer
         var sb = new StringBuilder();
         foreach (var evt in score.Log)
             sb.AppendLine($"  {evt}");
-        sb.Append($"  = {score.Chips} chips × {score.Mult:0.##} mult = {score.Total} points");
+        sb.Append($"  = {ScoreFormat.Number(score.Chips)} chips × {ScoreFormat.Mult(score.Mult)} mult = {ScoreFormat.Number(score.Total)} points");
         if (score.Money > 0)
             sb.Append($"   (+${score.Money})");
         return sb.ToString();

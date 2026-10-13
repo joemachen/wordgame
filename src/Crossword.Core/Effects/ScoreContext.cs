@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Crossword.Core.Rules;
+using Crossword.Core.Scoring;
 
 namespace Crossword.Core.Effects;
 
@@ -33,14 +34,21 @@ public sealed record ScoreContext(long Chips, decimal Mult, PlayAnalysis Play, I
     /// <summary>Money earned during this play (e.g. Gilded tiles); paid into the run immediately.</summary>
     public int Money { get; init; }
 
-    /// <summary>Final play score: floor(Chips × Mult), never negative (boss rules can push Chips below zero).</summary>
-    public long Total => Math.Max(0, (long)decimal.Floor(Chips * Mult));
+    /// <summary>
+    /// Final play score: floor(Chips × Mult), never negative (boss rules can push Chips below zero), capped at
+    /// <see cref="ScoreMath.MaxScore"/>. All arithmetic here saturates (<see cref="ScoreMath"/>): scores compound into
+    /// the billions and beyond without ever overflowing.
+    /// </summary>
+    public long Total => ScoreMath.Total(Chips, Mult);
 
-    public ScoreContext AddChips(long amount) => this with { Chips = Chips + amount };
+    public ScoreContext AddChips(long amount) => this with { Chips = ScoreMath.Add(Chips, amount) };
 
-    public ScoreContext AddMult(decimal amount) => this with { Mult = Mult + amount };
+    public ScoreContext AddMult(decimal amount) => this with { Mult = ScoreMath.AddMult(Mult, amount) };
 
-    public ScoreContext TimesMult(decimal factor) => this with { Mult = Mult * factor };
+    public ScoreContext TimesMult(decimal factor) => this with { Mult = ScoreMath.MultiplyMult(Mult, factor) };
+
+    /// <summary>Multiplies Chips (floored), for items and tiles that scale chips rather than mult.</summary>
+    public ScoreContext TimesChips(decimal factor) => this with { Chips = ScoreMath.Scale(Chips, factor) };
 
     public ScoreContext AddMoney(int amount) => this with { Money = Money + amount };
 
@@ -52,5 +60,5 @@ public sealed record ScoreContext(long Chips, decimal Mult, PlayAnalysis Play, I
 /// <summary>One scoring step or effect firing, with the running totals after it applied.</summary>
 public sealed record EffectEvent(string SourceId, string Description, long ChipsAfter, decimal MultAfter)
 {
-    public override string ToString() => $"{Description}  →  {ChipsAfter} × {MultAfter:0.##}";
+    public override string ToString() => $"{Description}  →  {ScoreFormat.Number(ChipsAfter)} × {ScoreFormat.Mult(MultAfter)}";
 }

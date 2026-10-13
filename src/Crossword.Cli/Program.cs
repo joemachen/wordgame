@@ -6,6 +6,7 @@ using Crossword.Core.Lexicon;
 using Crossword.Core.Rules;
 using Crossword.Core.Run;
 using Crossword.Core.Save;
+using Crossword.Core.Scoring;
 using Crossword.Core.Stationery;
 
 namespace Crossword.Cli;
@@ -324,7 +325,7 @@ public static class Program
         if (_session.Phase is RunPhase.Shop or RunPhase.Victory && _session.LastPayout is { } payout)
         {
             Console.WriteLine();
-            Console.WriteLine($"*** {_session.Kind.Name} cleared with {Round.Score}/{Round.Config.TargetScore}! ***");
+            Console.WriteLine($"*** {_session.Kind.Name} cleared with {ScoreFormat.Number(Round.Score)}/{ScoreFormat.Number(Round.Config.TargetScore)}! ***");
             Console.WriteLine(ConsoleRenderer.Paycheck(payout, Run.Money, _session.Config.Economy));
         }
         PrintPhase();
@@ -428,7 +429,7 @@ public static class Program
         _session = result.Value.Session;
         Console.WriteLine($"Used {item.Name}.");
         if (result.Value.Play is var (play, score))
-            Console.WriteLine($"  Best play: {score.Total}  {PlayCommandText(play)}   words: {string.Join(", ", play.Words.Select(w => w.Text))}");
+            Console.WriteLine($"  Best play: {ScoreFormat.Number(score.Total)}  {PlayCommandText(play)}   words: {string.Join(", ", play.Words.Select(w => w.Text))}");
         PrintPhase();
     }
 
@@ -468,7 +469,7 @@ public static class Program
 
         Console.WriteLine($"{ranked.Count} legal plays. Best {Math.Min(count, ranked.Count)}:");
         foreach (var (play, score) in ranked.Take(count))
-            Console.WriteLine($"  {score.Total,5}  {PlayCommandText(play),-24} words: {string.Join(", ", play.Words.Select(w => w.Text))}");
+            Console.WriteLine($"  {ScoreFormat.Number(score.Total),9}  {PlayCommandText(play),-24} words: {string.Join(", ", play.Words.Select(w => w.Text))}");
     }
 
     private static void Simulate(int rounds)

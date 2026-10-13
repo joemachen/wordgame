@@ -89,6 +89,12 @@ public sealed record RunConfig(
     /// <summary>Boss ids that never appear, in any week (starting decks).</summary>
     public ImmutableArray<string> ExcludedBosses { get; init; } = ImmutableArray<string>.Empty;
 
+    /// <summary>
+    /// Every deadline is multiplied by this, after the week table and the day multiplier (1 = unchanged). The hook for
+    /// the Circulation dial: a run that asks for a bigger print run gets steeper deadlines and bigger rewards.
+    /// </summary>
+    public decimal TargetScale { get; init; } = 1;
+
     public static RunConfig Default { get; } = new(
         WeekTargets: [450, 1580, 4730, 12830, 21050],
         Days:
@@ -123,13 +129,19 @@ public sealed record RunConfig(
 
     public bool IsFinalRound(int roundIndex) => roundIndex == TotalRounds - 1;
 
+    /// <summary>
+    /// The deadline for a round: the week's table entry (endless weeks grow the last one by <see cref="EndlessGrowth"/>
+    /// per week, in exact decimal steps) × the day's multiplier × <see cref="TargetScale"/>. Saturates at
+    /// <see cref="ScoreMath.MaxScore"/> instead of overflowing deep into endless play.
+    /// </summary>
     public long TargetFor(int roundIndex)
     {
         int week = WeekOf(roundIndex);
-        decimal weekTarget = week < WeekTargets.Length
-            ? WeekTargets[week]
-            : WeekTargets[^1] * (decimal)Math.Pow((double)EndlessGrowth, week - (WeekTargets.Length - 1));
-        return (long)(weekTarget * KindOf(roundIndex).TargetMultiplier);
+        long weekTarget = WeekTargets[Math.Min(week, WeekTargets.Length - 1)];
+        for (int endless = WeekTargets.Length - 1; endless < week && weekTarget < ScoreMath.MaxScore; endless++)
+            weekTarget = ScoreMath.Scale(weekTarget, EndlessGrowth);
+        long target = ScoreMath.Scale(weekTarget, KindOf(roundIndex).TargetMultiplier);
+        return TargetScale == 1 ? target : ScoreMath.Scale(target, TargetScale);
     }
 
     /// <summary>

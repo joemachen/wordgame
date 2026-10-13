@@ -15,7 +15,8 @@ namespace Wordgame.Godot;
 /// Command-line user args (after "--"): --seed=N, --give=id,id (dev: Desk Items or Stationery, e.g. answer-key), --autoplay=N (play N best moves / leave shops),
 /// --hint (pre-place the best play), --dev (the Hint button shows the best play), --screenshot=path.png (save a screenshot after loading and quit),
 /// --selftest (drive the UI with simulated input, print PASS/FAIL, quit), --profile=name (player profile to load/save;
-/// default: the last one played, else "Player"), --week=N (dev: start at week N), --press=N (dev: start at Press Run N, locked or not), --deck=id
+/// default: the last one played, else "Player"), --week=N (dev: start at week N), --press=N (dev: start at Press Run N, locked or not), --deck=id,
+/// --score=N / --deadline=N (dev: set the round's score / deadline, to see how big numbers fit), --textsize=120 (dev: a text size from Settings),
 /// (dev: that starting deck), --dict=id (dev: that dictionary overlay; implies The Lexicographer's Deck). --selftest,
 /// --screenshot and --autoplay keep the profile and settings in memory so QA runs never touch stats. The run is saved
 /// per profile; launch shows the title menu, whose Continue resumes it. --seed (a new seeded run that replaces the
@@ -108,6 +109,8 @@ public partial class Main : Control
         _settings = qaRun ? SettingsStore.InMemory() : SettingsStore.Load();
         string profileName = args.TryGetValue("profile", out var named) && named.Length > 0 ? named : _settings.Settings.LastProfile ?? "Player";
         _profile = qaRun ? ProfileStore.InMemory(profileName) : ProfileStore.Load(profileName);
+        if (args.TryGetValue("textsize", out var ts) && int.TryParse(ts, out int percent) && GameSettings.TextScales.Contains(percent / 100f))
+            _settings.Update(settings => settings with { TextScale = percent / 100f }); // dev: --textsize=120, for layout screenshots
         ApplySettings();
         BuildLayout();
 
@@ -141,6 +144,13 @@ public partial class Main : Control
 
         if (args.TryGetValue("autoplay", out var auto) && int.TryParse(auto, out int steps))
             Autoplay(steps);
+        if (_session?.Phase == RunPhase.InRound && (args.ContainsKey("score") || args.ContainsKey("deadline")))
+        {
+            // Dev/QA: --score=N / --deadline=N set the round's score and deadline, to check how big numbers fit the UI.
+            long score = args.TryGetValue("score", out var sc) && long.TryParse(sc, out long scoreValue) ? scoreValue : Round.Score;
+            long deadline = args.TryGetValue("deadline", out var dl) && long.TryParse(dl, out long deadlineValue) ? deadlineValue : Round.Config.TargetScore;
+            _session = _session with { Round = Round with { Score = score, Config = Round.Config with { TargetScore = deadline } } };
+        }
 
         Refresh();
 
@@ -451,9 +461,9 @@ public partial class Main : Control
         if (_session.Phase == RunPhase.Shop && _messageLabel.Text.StartsWith("New run"))
             SetMessage("Paycheck in. Spend it in the shop, then start the next round.", UiKit.Money);
         RefreshProgress();
-        _targetLabel.Text = Round.Config.TargetScore.ToString("N0");
+        _targetLabel.Text = Juice.Score(Round.Config.TargetScore);
         if (!_animating)
-            _scoreLabel.Text = Round.Score.ToString("N0");
+            _scoreLabel.Text = Juice.Score(Round.Score);
         _resourcesLabel.Text = $"Submissions {Round.SubmissionsLeft}   ·   Discards {Round.DiscardsLeft}   ·   Bag {Round.Bag.Count}"
             + (Round.Config.BonusMult > 0 ? $"   ·   Red ink +{Round.Config.BonusMult:0.##} mult" : "")
             + (Round.Config.CensoredLetter is { } censored ? $"   ·   Censored: {censored}" : "")

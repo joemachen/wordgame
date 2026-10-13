@@ -47,7 +47,7 @@ public partial class Main
         title.VerticalAlignment = VerticalAlignment.Center;
         header.AddChild(title);
         var nextLabel = UiKit.MakeLabel(
-            $"Next: Week {config.WeekOf(next) + 1} {nextKind.Name}, deadline {RunRules.TargetFor(config, Run, next):N0}{nextBoss}", 16,
+            $"Next: Week {config.WeekOf(next) + 1} {nextKind.Name}, deadline {Juice.Score(RunRules.TargetFor(config, Run, next))}{nextBoss}", 16,
             nextKind.IsBoss ? UiKit.Bad : UiKit.TextMuted, wrap: true);
         nextLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         nextLabel.VerticalAlignment = VerticalAlignment.Center;
@@ -81,7 +81,7 @@ public partial class Main
         var box = UiKit.VBox(4);
         panel.AddChild(box);
         var top = UiKit.HBox(12);
-        var cleared = UiKit.MakeLabel($"{_session.Kind.Name} cleared — {Round.Score:N0} / {Round.Config.TargetScore:N0}", 20, UiKit.Good, wrap: true);
+        var cleared = UiKit.MakeLabel($"{_session.Kind.Name} cleared — {Juice.Score(Round.Score)} / {Juice.Score(Round.Config.TargetScore)}", 20, UiKit.Good, wrap: true);
         cleared.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         top.AddChild(cleared);
         top.AddChild(UiKit.MakeLabel($"+${payout.Total}", 24, UiKit.Money));
@@ -202,7 +202,7 @@ public partial class Main
         }
         _session = result.Value;
         ClearLog();
-        SetMessage($"{_session.Kind.Name}: reach {Round.Config.TargetScore:N0}.", UiKit.TextMuted);
+        SetMessage($"{_session.Kind.Name}: reach {Juice.Score(Round.Config.TargetScore)}.", UiKit.TextMuted);
         AfterAction();
     }
 
@@ -288,7 +288,7 @@ public partial class Main
             ? "You won the run!"
             : Round.Deadlocked
                 ? "No legal plays and no discards left."
-                : $"{Round.Score:N0} of {Round.Config.TargetScore:N0} on Week {_session.Week + 1}, {_session.Kind.Name}.";
+                : $"{Juice.Score(Round.Score)} of {Juice.Score(Round.Config.TargetScore)} on Week {_session.Week + 1}, {_session.Kind.Name}.";
         box.AddChild(UiKit.MakeLabel(detail, 20, UiKit.Text, HorizontalAlignment.Center));
         if (victory && Run.Seeded)
         {

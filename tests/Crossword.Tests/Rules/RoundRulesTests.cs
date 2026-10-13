@@ -28,6 +28,18 @@ public class RoundRulesTests
         RoundRules.Submit(round, Spell(round.Board, round.Hand, 0, 0, Direction.Across, "CAT"), Words, NoItems, ScoringConfig.Default);
 
     [Fact]
+    public void Submit_SaturatesTheRoundScore_AtTheCap()
+    {
+        var nearCap = KnownRound(target: ScoreMath.MaxScore) with { Score = ScoreMath.MaxScore - 1 }; // the round is still open at the cap minus one
+
+        var outcome = PlayCat(nearCap);
+
+        Assert.True(outcome.IsOk);
+        Assert.True(outcome.Value.Score.Total > 1);
+        Assert.Equal(ScoreMath.MaxScore, outcome.Value.State.Score);
+    }
+
+    [Fact]
     public void Start_DealsHand_FromFullDeck_OnSymmetricBoard()
     {
         var run = RunState.New(seed: 7);

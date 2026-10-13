@@ -143,6 +143,18 @@ public class NewsroomDeskItemsTests
     }
 
     [Fact]
+    public void SecondPrinting_SaturatesInsteadOfOverflowing()
+    {
+        var huge = ScoreContext.Start(SimplePlay, chips: Crossword.Core.Scoring.ScoreMath.MaxScore - 1, mult: Crossword.Core.Scoring.ScoreMath.MaxMult - 1);
+
+        var doubled = new SecondPrinting(2).Apply(huge);
+
+        Assert.Equal(Crossword.Core.Scoring.ScoreMath.MaxScore, doubled.Chips);
+        Assert.Equal(Crossword.Core.Scoring.ScoreMath.MaxMult, doubled.Mult);
+        Assert.Equal(Crossword.Core.Scoring.ScoreMath.MaxScore, doubled.Total);
+    }
+
+    [Fact]
     public void Catalog_ListsEveryNewsroomItem_WithItsRarity()
     {
         Assert.Equal(DeskItemRarity.Epic, DeskItemCatalog.Find("front-page")!.Rarity);

@@ -79,9 +79,9 @@ public partial class Receipt : PanelContainer
         row.AddChild(description);
         var tally = UiKit.VBox(0);
         tally.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-        tally.AddChild(UiKit.MakeMonoLabel($"{e.ChipsAfter:N0} × {e.MultAfter:0.##}", 12, ink, HorizontalAlignment.Right));
-        long product = Math.Max(0, (long)decimal.Floor(e.ChipsAfter * e.MultAfter));
-        tally.AddChild(UiKit.MakeMonoLabel($"= {product:N0}", 10, UiKit.PaperMuted, HorizontalAlignment.Right));
+        tally.AddChild(UiKit.MakeMonoLabel($"{ScoreFormat.Number(e.ChipsAfter, Juice.ReceiptChipsDigits)} × {ScoreFormat.Mult(e.MultAfter, Juice.ReceiptMultDigits)}", 12, ink, HorizontalAlignment.Right));
+        long product = ScoreMath.Total(e.ChipsAfter, e.MultAfter);
+        tally.AddChild(UiKit.MakeMonoLabel($"= {ScoreFormat.Number(product, Juice.ReceiptProductDigits)}", 10, UiKit.PaperMuted, HorizontalAlignment.Right));
         row.AddChild(tally);
         Print(row);
         LineCount++;
@@ -97,15 +97,18 @@ public partial class Receipt : PanelContainer
         caption.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         caption.VerticalAlignment = VerticalAlignment.Center;
         row.AddChild(caption);
-        _total = UiKit.MakeMonoLabel(total.ToString("N0"), 20, UiKit.PaperInk, HorizontalAlignment.Right);
+        _total = UiKit.MakeMonoLabel(Total(total), 20, UiKit.PaperInk, HorizontalAlignment.Right);
         _total.CustomMinimumSize = new Vector2(_total.GetMinimumSize().X, 0); // room for the final number while it counts up
         row.AddChild(_total);
         Print(row);
-        Juice.CountUp(_total, 0, total, seconds, "N0");
+        Juice.CountUp(_total, 0, total, seconds, Total);
         Juice.Pop(_total, Juice.ReceiptTotalPunch, seconds);
         if (money > 0)
             Print(UiKit.MakeMonoLabel($"+${money} earned", 12, UiKit.Money.Darkened(0.45f), HorizontalAlignment.Right));
     }
+
+    /// <summary>How the TOTAL line prints a score (full digits up to the receipt's budget, then words).</summary>
+    public static string Total(decimal total) => ScoreFormat.Number(total, Juice.ReceiptProductDigits);
 
     /// <summary>Rolls the tape away (fades with reduced motion), then clears it. A no-op when nothing is printed.</summary>
     public void Dismiss()
