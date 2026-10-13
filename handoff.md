@@ -539,6 +539,7 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
+180915a Record the playtest and the retuned Press Run ladder in the docs
 dbd0721 Retune the Press Run ladder for the paycheck floor and new targets
 18304c5 Bring handoff up to date after the 2026-10-11 work
 317ff3c Lower the week targets x0.88 after the content batch
