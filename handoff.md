@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-14 · Phase 4 (Circulation dial) committed after `c109d88` · 669 unit tests passing · UI self-test 118/118 passing · CI green at `c109d88`_
+_Last updated: 2026-10-14 · HEAD `107fc2c` (Circulation dial) · 669 unit tests passing · UI self-test 118/118 passing · CI green_
 
 ## 0. ▶ Status and what's next
 
@@ -16,8 +16,8 @@ ramp back-loaded (Week 1 always ×1), paychecks +$1/4/6/8/10, Rare+ items likeli
 Measured (§4g): reference 0.75 wins **41 / 26 / 17 / 8 / 2 / 0%**, strong 0.9 52 / 36 / 29 / 14%. Endless is now ×3 per
 week and each endless week's boss stacks one more rule. Also fixed two id/name clashes from Phase 3: the 9×9 upgrade is
 now **Double Truck** (a Desk Item is called Broadsheet) and the interest upgrade **Trust Fund** (a Desk Item is called
-Savings Bond); a test guards the shared `give` namespace. **Next:** re-measure the decks and the Press Run ladder on the
-current curve (running/queued — see §4g when filled), then **Phase 5** (ring-up tiers past the stamp). Second Edition /
+Savings Bond); a test guards the shared `give` namespace. Decks and the Press Run ladder were re-measured on the current
+curve (§4g): both still in their bands, not retuned. **Next: Phase 5** (ring-up tiers past the stamp). Second Edition /
 money→Mult items still await the user's call (recommended: skip). **Playtest ask:** try ×3 and ×12 (`--circ=2` / `--circ=3`
 dev flags, or win a run to unlock them) — does the back-loaded ramp feel like a climb, and do the bigger paychecks make
 engine builds reachable?
@@ -562,6 +562,21 @@ bot with the Office-upgrade gains, ScoreFraction; deadlines ×N^((w/4)^K) per we
 - ×1000 is 0% for the bot, which can't plan an engine (it values items by re-scoring recent plays); it's the human
   ceiling. If playtests find ×250/×1000 hopeless, raise their pay bonus first (the measured lever).
 
+**Decks and Press Runs re-measured on the current curve** (×1, Office upgrades in the shop; CLI `runsim 200 … frac`):
+
+| Deck (0.75) | Standard | Crossword Draft | Redactor | Copy Editor | Lexicographer |
+|---|---|---|---|---|---|
+| Win % | 41 | 35 | 47 | 34 | 37 |
+
+| Press Run (0.9) | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| Win % now | 52 | 39 | 34 | 28 | 28 | 15 | 8 | 7 |
+| Win % at the 2026-10-11 retune | 51.5 | 45.5 | 40.5 | 29.5 | 24.5 | 16 | 10.5 | 6.5 |
+
+- Decks stay within ±7 of Standard (Redactor +6, Copy Editor −7), as when they were tuned — not retuned.
+- The Press Run ladder still runs ~52% → 7%; First Edition is now a −13 step and Ink Shortage measures flat over Rush
+  Job (noise ±3.5). Not retuned (the 2026-10-11 retune was the user's "full fix"); offer a touch-up if they care.
+
 ## 5. Open concerns / known gaps
 
 18. **Office upgrades** (§4f): prices are a flat $10 and untested by humans. Watch Overtime (+1 submission every round
@@ -712,7 +727,7 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
-(next)  Add the Circulation dial, steeper stacking endless, and fix upgrade name clashes
+107fc2c Add the Circulation dial, steeper stacking endless, and fix upgrade name clashes
 c109d88 Note CI is green in handoff
 53c564f Add Office upgrades: a fourth shop offer that breaks the run's caps
 dc2fead Record the finale decision: 80k base, the Circulation dial carries 1M+
