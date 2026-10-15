@@ -14,9 +14,9 @@ namespace Crossword.Tests.Run;
 public class OfficeUpgradeTests
 {
     private static readonly OfficeConfig Office = new(DeskSlotLevels: 2, StationerySlotLevels: 2, HandSizeLevels: 2, SubmissionLevels: 1,
-        DiscardLevels: 2, BroadsheetSize: 9)
+        DiscardLevels: 2, DoubleTruckSize: 9)
     {
-        BroadsheetPremiums = new PremiumPairs(TripleWord: 2, DoubleWord: 3, TripleLetter: 2, DoubleLetter: 3),
+        DoubleTruckPremiums = new PremiumPairs(TripleWord: 2, DoubleWord: 3, TripleLetter: 2, DoubleLetter: 3),
         DeckMinimums = [20, 15],
         InterestCaps = [10, 20],
         OverkillCaps = [6, 12],
@@ -51,13 +51,13 @@ public class OfficeUpgradeTests
         Assert.Equal(2, With((OfficeUpgrades.ComposingStickId, 2)).HandSizeDelta);
         Assert.Equal(1, With((OfficeUpgrades.OvertimeId, 1)).SubmissionsDelta);
         Assert.Equal(2, With((OfficeUpgrades.WastebasketId, 2)).DiscardsDelta);
-        var broadsheet = With((OfficeUpgrades.BroadsheetId, 1));
-        Assert.Equal(9, broadsheet.BoardSize);
-        Assert.Equal(Office.BroadsheetPremiums, broadsheet.Premiums);
+        var doubleTruck = With((OfficeUpgrades.DoubleTruckId, 1));
+        Assert.Equal(9, doubleTruck.BoardSize);
+        Assert.Equal(Office.DoubleTruckPremiums, doubleTruck.Premiums);
         Assert.Equal(20, With((OfficeUpgrades.EditorialCutsId, 1)).Shop.MinDeckSize);
         Assert.Equal(15, With((OfficeUpgrades.EditorialCutsId, 2)).Shop.MinDeckSize);
         Assert.True(With((OfficeUpgrades.PhotocopierId, 1)).DuplicateDeskItems);
-        Assert.Equal(20, With((OfficeUpgrades.SavingsBondId, 2)).Economy.InterestCap);
+        Assert.Equal(20, With((OfficeUpgrades.TrustFundId, 2)).Economy.InterestCap);
         Assert.Equal(6, With((OfficeUpgrades.BonusClauseId, 1)).Economy.OverkillCap);
         Assert.Same(Config, OfficeUpgrades.Apply(Config, ImmutableDictionary<string, int>.Empty));
     }
@@ -66,11 +66,11 @@ public class OfficeUpgradeTests
     public void RoundRules_TakeTheUpgradedNumbers_AfterTheBoss()
     {
         var config = With((OfficeUpgrades.ComposingStickId, 1), (OfficeUpgrades.OvertimeId, 1), (OfficeUpgrades.WastebasketId, 1),
-            (OfficeUpgrades.BroadsheetId, 1));
+            (OfficeUpgrades.DoubleTruckId, 1));
 
         var daily = config.RoundConfigFor(0);
         Assert.Equal((9, 5, 4, 8), (daily.BoardSize, daily.Submissions, daily.Discards, daily.HandSize));
-        Assert.Equal(Office.BroadsheetPremiums, daily.PremiumPairs);
+        Assert.Equal(Office.DoubleTruckPremiums, daily.PremiumPairs);
 
         // Tight Margins still shrinks the board; Tight Deadline's 3 submissions get the Overtime one on top.
         var margins = config.RoundConfigFor(2, new TightMargins(5));
@@ -81,15 +81,15 @@ public class OfficeUpgradeTests
     }
 
     [Fact]
-    public void Broadsheet_StartsA9x9Round()
+    public void DoubleTruck_StartsA9x9Round()
     {
         var session = RunRules.NewGame(4, Config, LexiconLoader.Enable,
-            run => run with { Upgrades = run.Upgrades.SetItem(OfficeUpgrades.BroadsheetId, 1) });
+            run => run with { Upgrades = run.Upgrades.SetItem(OfficeUpgrades.DoubleTruckId, 1) });
 
         Assert.Equal(9, session.Round.Board.Size);
         Assert.Equal(9, session.Config.BoardSize);
         int premiums = Enumerable.Range(0, 81).Count(i => session.Round.Board.PremiumAt(new Position(i / 9, i % 9)) != Premium.None);
-        Assert.Equal(Office.BroadsheetPremiums.Total * 2, premiums);
+        Assert.Equal(Office.DoubleTruckPremiums.Total * 2, premiums);
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public class OfficeUpgradeTests
     }
 
     [Fact]
-    public void SavingsBond_AndBonusClause_RaiseTheirCaps()
+    public void TrustFund_AndBonusClause_RaiseTheirCaps()
     {
         var kind = new RoundKind("Daily", 1m, BasePay: 3, IsBoss: false);
         var round = new RoundState(new RoundConfig(TargetScore: 100), Board.Empty(7), TileBag.Empty, Hand.Empty,
@@ -212,7 +212,7 @@ public class OfficeUpgradeTests
         var plain = Economy.Calculate(Config.Economy, kind, round, moneyBeforePayout: 100);
         Assert.Equal((3, 5), (plain.Overkill, plain.Interest));
 
-        var upgraded = With((OfficeUpgrades.SavingsBondId, 2), (OfficeUpgrades.BonusClauseId, 2));
+        var upgraded = With((OfficeUpgrades.TrustFundId, 2), (OfficeUpgrades.BonusClauseId, 2));
         var payout = Economy.Calculate(upgraded.Economy, kind, round, moneyBeforePayout: 100);
         Assert.Equal((12, 20), (payout.Overkill, payout.Interest));
     }
@@ -250,6 +250,9 @@ public class OfficeUpgradeTests
     public void Catalog_IdsAreUnique_AndEveryLevelDescribes()
     {
         Assert.Equal(OfficeUpgrades.All.Length, OfficeUpgrades.All.Select(u => u.Id).Distinct().Count());
+        // 'give <id>' and --give share one namespace with Desk Items and Stationery, and names show side by side.
+        var others = DeskItemCatalog.All.Select(i => (i.Id, i.Name)).Concat(StationeryCatalog.All.Select(i => (i.Id, i.Name))).ToList();
+        Assert.DoesNotContain(OfficeUpgrades.All, u => others.Any(o => o.Id == u.Id || o.Name == u.Name));
         foreach (var upgrade in OfficeUpgrades.All)
             for (int level = 1; level <= upgrade.MaxLevel; level++)
                 Assert.False(string.IsNullOrWhiteSpace(OfficeUpgrades.Describe(upgrade.Id, level, Config)));

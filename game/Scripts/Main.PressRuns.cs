@@ -17,10 +17,12 @@ public partial class Main
     private string _pickerDeck = Decks.StandardId;
     private string _pickerDictionary = Dictionaries.All[0].Id;
     private string _pickerSeed = "";
+    private int _pickerCirculation = Circulations.Lowest;
     private Label? _pickerSeedError;
 
-    // Set when the run that just ended unlocked a new Press Run / deck (shown on the victory screen).
+    // Set when the run that just ended unlocked a new Press Run / deck / Circulation (shown on the victory screen).
     private int? _justUnlockedPressRun;
+    private Circulation? _justUnlockedCirculation;
     private DeckDefinition? _justUnlockedDeck;
     private DictionaryDefinition? _justUnlockedDictionary;
 
@@ -60,6 +62,8 @@ public partial class Main
         _pickerDeck = StatsQueries.UnlockedDecks(stats).Any(d => d.Id == lastDeck) ? lastDeck : Decks.StandardId;
         var dictionaries = StatsQueries.UnlockedDictionaries(stats);
         _pickerDictionary = dictionaries.FirstOrDefault(d => _session is not null && Run.Dictionaries.Contains(d.Id))?.Id ?? Dictionaries.All[0].Id;
+        // Keep the last run's print run when it's still unlocked.
+        _pickerCirculation = Math.Min(_session is null ? Circulations.Lowest : Run.Circulation, StatsQueries.UnlockedCirculation(stats));
         RefreshPressRuns();
         _pressRunOverlay.Visible = true;
     }
@@ -69,9 +73,10 @@ public partial class Main
         var stats = _profile.Profile.Stats;
         UiKit.ClearChildren(_pressRunBox);
         _pressRunBox.AddChild(UiKit.MakeLabel("Start a new run", 26, UiKit.Text));
-        var intro = UiKit.MakeLabel("Pick a deck, then a Press Run to start. Each Press Run adds its rule to every rule above it. "
-            + "Every run you win unlocks the next deck (and, after The Lexicographer's Deck, the next dictionary); "
-            + "a win with a deck unlocks its next Press Run.", 14, UiKit.TextMuted, wrap: true);
+        var intro = UiKit.MakeLabel("Pick a deck and a print run, then a Press Run to start. Each Press Run adds its rule to every rule "
+            + "above it; a bigger print run multiplies the later deadlines. Every run you win unlocks the next deck (and, after The "
+            + "Lexicographer's Deck, the next dictionary) and the next print run; a win with a deck unlocks its next Press Run.",
+            14, UiKit.TextMuted, wrap: true);
         intro.CustomMinimumSize = new Vector2(900, 0);
         _pressRunBox.AddChild(intro);
 
@@ -95,6 +100,18 @@ public partial class Main
                 choices.AddChild(DictionaryButton(dictionary, StatsQueries.WinsToUnlock(stats, dictionary)));
             levels.AddChild(choices);
         }
+        int unlockedCirculation = StatsQueries.UnlockedCirculation(stats);
+        levels.AddChild(UiKit.MakeLabel("Circulation (print run)", 16, UiKit.TextMuted));
+        var prints = UiKit.HBox(8);
+        foreach (var circulation in Circulations.All)
+            prints.AddChild(CirculationButton(circulation, circulation.Level <= unlockedCirculation));
+        levels.AddChild(prints);
+        var chosen = Circulations.Get(_pickerCirculation);
+        var blurb = UiKit.MakeLabel($"{chosen.Name}: {Circulations.Describe(chosen, _baseConfig)}", 13, new Color(chosen.Color).Lightened(0.2f), wrap: true);
+        blurb.Name = "CirculationBlurb";
+        blurb.CustomMinimumSize = new Vector2(580, 0);
+        levels.AddChild(blurb);
+
         int unlocked = StatsQueries.UnlockedPressRun(stats, _pickerDeck);
         levels.AddChild(UiKit.MakeLabel($"Press Run · {Decks.Get(_pickerDeck).Name}", 16, UiKit.TextMuted));
         foreach (var press in PressRuns.All)
@@ -195,6 +212,31 @@ public partial class Main
         return button;
     }
 
+    /// <summary>A print run on the Circulation dial; the selected one is outlined in its color, locked ones are greyed.</summary>
+    private Control CirculationButton(Circulation circulation, bool open)
+    {
+        bool selected = open && circulation.Level == _pickerCirculation;
+        var color = new Color(circulation.Color);
+        var button = UiKit.MakeButton(circulation.PrintRunText, open ? UiKit.PanelRaised : UiKit.Background, 16,
+            open ? color.Lightened(0.2f) : UiKit.TextMuted);
+        button.Name = $"Circulation{circulation.Level}";
+        button.Disabled = !open;
+        button.CustomMinimumSize = new Vector2(90, 40);
+        button.TooltipText = open
+            ? $"{circulation.Name}: {Circulations.Describe(circulation, _baseConfig)}"
+            : $"{circulation.Name} — win a run at {Circulations.Get(circulation.Level - 1).PrintRunText} to unlock.";
+        button.AddThemeStyleboxOverride("normal", UiKit.Box(UiKit.PanelRaised, 8, selected ? color : UiKit.PanelBorder, selected ? 3 : 1, 8));
+        button.AddThemeStyleboxOverride("hover", UiKit.Box(UiKit.PanelRaised.Lightened(0.08f), 8, color, 3, 8));
+        button.AddThemeStyleboxOverride("disabled", UiKit.Box(UiKit.Background, 8, UiKit.PanelBorder, 1, 8));
+        if (open)
+            button.Pressed += () =>
+            {
+                _pickerCirculation = circulation.Level;
+                RefreshPressRuns();
+            };
+        return button;
+    }
+
     private Control PressRunRow(PressRun press, bool open)
     {
         var color = new Color(press.Color);
@@ -238,7 +280,8 @@ public partial class Main
         }
         _pressRunOverlay.Visible = false;
         NewRun(seed, pressRun: level, deck: _pickerDeck,
-            dictionary: Decks.TakesDictionary(_pickerDeck) ? _pickerDictionary : null, seeded: typed.Length > 0);
+            dictionary: Decks.TakesDictionary(_pickerDeck) ? _pickerDictionary : null, seeded: typed.Length > 0,
+            circulation: _pickerCirculation);
     }
 
     /// <summary>The run's seed for the sidebar and end screen, marked when the player chose it.</summary>
@@ -251,8 +294,9 @@ public partial class Main
     private string PressRunText() =>
         (Run.DeckId != Decks.StandardId ? $"{Decks.Get(Run.DeckId).Name} · " : "")
         + string.Concat(Run.Dictionaries.Select(id => $"{Dictionaries.Get(id).Name} · "))
-        + $"Press Run {Run.PressRun} · {PressRuns.Get(Run.PressRun).Name}";
+        + $"Press Run {Run.PressRun} · {PressRuns.Get(Run.PressRun).Name}"
+        + (Run.Circulation > Circulations.Lowest ? $" · {Circulations.Get(Run.Circulation).Name} {Circulations.Get(Run.Circulation).PrintRunText}" : "");
 
-    /// <summary>Whether the run differs from the base game (non-standard deck or a Press Run above Proofreader).</summary>
-    private bool IsCustomRun => Run.DeckId != Decks.StandardId || Run.PressRun > PressRuns.Lowest;
+    /// <summary>Whether the run differs from the base game (non-standard deck, a Press Run above Proofreader or a bigger print run).</summary>
+    private bool IsCustomRun => Run.DeckId != Decks.StandardId || Run.PressRun > PressRuns.Lowest || Run.Circulation > Circulations.Lowest;
 }

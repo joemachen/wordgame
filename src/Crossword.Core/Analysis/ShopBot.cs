@@ -54,14 +54,14 @@ public sealed record ShopBotConfig(
     /// while Answer Key (−3), Red Ink Bottle (−2.5) and Scissors (−8, cutting Q/Z/X/J) cost the bot more than they
     /// returned. White-Out is only used to escape a stuck hand, which almost never happens.
     /// Office upgrades (2026-10-13, 200 paired runs at ScoreFraction 0.75, $10, bot forced to buy the one on offer):
-    /// Overtime +2 and Broadsheet +2, Composing Stick 0, Filing Cabinet −2, Wastebasket −6, Bonus Clause −6.5,
-    /// Photocopier −9, Supply Closet / Editorial Cuts / Savings Bond −10 (the bot never saves, rarely uses Stationery and
-    /// never strikes, so $10 spent on them is $10 lost). Buying only Overtime and Broadsheet at 0.3: +4.5 (36 → 40.5%).
+    /// Overtime +2 and Double Truck +2, Composing Stick 0, Filing Cabinet −2, Wastebasket −6, Bonus Clause −6.5,
+    /// Photocopier −9, Supply Closet / Editorial Cuts / Trust Fund −10 (the bot never saves, rarely uses Stationery and
+    /// never strikes, so $10 spent on them is $10 lost). Buying only Overtime and Double Truck at 0.3: +4.5 (36 → 40.5%).
     /// </summary>
     public static ShopBotConfig Default { get; } = new(
         StationeryGain: new Dictionary<string, double> { ["margin-clip"] = 0.05 },
         DeskItemGain: new Dictionary<string, double> { ["extra-extra"] = 0.2 }, // +1 submission/round is invisible to re-scoring
-        UpgradeGains: new Dictionary<string, double> { ["overtime"] = 0.3, ["broadsheet"] = 0.3 });
+        UpgradeGains: new Dictionary<string, double> { ["overtime"] = 0.3, ["double-truck"] = 0.3 });
 
     /// <summary>Fixed estimated gain of buying a Stationery item (by id); 0 = never buy it.</summary>
     public double GainOf(Stationery.IStationery item) => StationeryGain?.GetValueOrDefault(item.Id) ?? 0;

@@ -92,6 +92,8 @@ public static class RunSaveJson
 
             if (!PressRuns.IsLevel(dto.Run.PressRun))
                 return Result<SavedRun, string>.Fail($"Unreadable save: no Press Run {dto.Run.PressRun}.");
+            if (!Circulations.IsLevel(dto.Run.Circulation))
+                return Result<SavedRun, string>.Fail($"Unreadable save: no Circulation {dto.Run.Circulation}.");
             if (Decks.Find(dto.Run.DeckId) is null)
                 return Result<SavedRun, string>.Fail($"Unreadable save: no deck '{dto.Run.DeckId}'.");
             if (dto.Run.Dictionaries.FirstOrDefault(id => Dictionaries.Find(id) is null) is { } unknown)

@@ -19,7 +19,7 @@ public partial class Main
     private const float HandTileSize = 72;
 
     /// <summary>
-    /// A board square's size: 66 px up to 7×7; a bigger board (the Broadsheet's 9×9) shrinks its squares to keep the
+    /// A board square's size: 66 px up to 7×7; a bigger board (the Double Truck's 9×9) shrinks its squares to keep the
     /// 7×7 board's footprint, so the layout around it never moves.
     /// </summary>
     private float CellSize => Round.Board.Size <= 7

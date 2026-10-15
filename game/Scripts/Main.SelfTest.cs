@@ -530,7 +530,7 @@ public partial class Main
         Check("esc in the shop opens and closes the pause screen", shopPaused && !_pauseOverlay.Visible);
 
         // 14c. Office upgrades: the shop's upgrade card buys a Filing Cabinet, the desk bar grows a slot at once, and a
-        //      maxed office (7 desk + 4 Stationery slots, full) still fits the bar on screen; the Broadsheet's 9×9 board
+        //      maxed office (7 desk + 4 Stationery slots, full) still fits the bar on screen; the Double Truck's 9×9 board
         //      keeps the 7×7 board's footprint.
         var shopBefore = _session;
         int slotsBefore = _session.Config.DeskSlots;
@@ -557,7 +557,7 @@ public partial class Main
         {
             Upgrades = System.Collections.Immutable.ImmutableDictionary<string, int>.Empty
                 .Add(Crossword.Core.Run.OfficeUpgrades.FilingCabinetId, 2).Add(Crossword.Core.Run.OfficeUpgrades.SupplyClosetId, 2)
-                .Add(Crossword.Core.Run.OfficeUpgrades.BroadsheetId, 1),
+                .Add(Crossword.Core.Run.OfficeUpgrades.DoubleTruckId, 1),
             DeskItems = [.. Crossword.Core.DeskItems.DeskItemCatalog.All.Take(Crossword.Core.Domain.RunState.MaxDeskSlots)],
             Stationery = [.. Crossword.Core.Stationery.StationeryCatalog.All.Take(Crossword.Core.Domain.RunState.MaxStationerySlots)],
         };
@@ -573,7 +573,7 @@ public partial class Main
         Check("a maxed office's desk bar stays on screen", _deskRow.GetChildCount() == Crossword.Core.Domain.RunState.MaxDeskSlots
             + Crossword.Core.Domain.RunState.MaxStationerySlots + 1
             && _deskRow.GetChildren().OfType<Control>().All(c => c.GetGlobalRect().End.X <= GetViewportRect().Size.X));
-        Check("the Broadsheet's 9x9 board keeps the board's footprint", Round.Board.Size == 9
+        Check("the Double Truck's 9x9 board keeps the board's footprint", Round.Board.Size == 9
             && _boardHolder.GetChild<Control>(0).Size.X <= boardWidth + 1 && _submitButton.GetGlobalRect().End.Y <= GetViewportRect().Size.Y);
         _session = shopBefore;
         Refresh();
@@ -683,6 +683,8 @@ public partial class Main
             && _endScreenUnlock is { } unlockLine && unlockLine.Text.StartsWith("Unlocked Press Run 2"));
         Check("a win unlocks the next deck", _endScreenDeckUnlock is { } deckLine
             && deckLine.Text.StartsWith($"Unlocked {Decks.Get(Decks.CrosswordDraftId).Name}"));
+        Check("a win unlocks a bigger print run", _profile.Profile.Stats.HighestCirculationWon == 1
+            && _shopContent.FindChild("CirculationUnlock", owned: false) is Label { Text: var printLine } && printLine.Contains("×3"));
         var endMenu = _shopContent.FindChildren("*", nameof(Button), owned: false).OfType<Button>().First(b => b.Text == "Main menu");
         await Click(Centre(endMenu));
         bool endToTitle = _titleOverlay.Visible;
@@ -704,8 +706,19 @@ public partial class Main
             return button.GetParent().FindChildren("*", nameof(Label), owned: false).OfType<Label>().All(l => bounds.Encloses(l.GetGlobalRect()));
         });
         Check("deck descriptions fit inside their cards", DecksFit());
+        Button PrintRun(int level) => _pressRunBox.FindChild($"Circulation{level}", owned: false) as Button ?? throw new InvalidOperationException($"No Circulation{level}");
+        Check("the picker offers the unlocked print runs", !PrintRun(1).Disabled && !PrintRun(2).Disabled && PrintRun(3).Disabled
+            && ((Control)_pressRunBox.GetParent()).GetGlobalRect().End.Y <= GetViewportRect().Size.Y);
+        await Click(Centre(PrintRun(2)));
+        await Frames(2);
+        bool blurbShown = _pressRunBox.FindChild("CirculationBlurb", owned: false) is Label { Text: var circulationBlurb }
+            && circulationBlurb.StartsWith(Crossword.Core.Run.Circulations.Get(2).Name);
         await Click(Centre(PressRow(2)));
         Check("picking a press run starts it", !_pressRunOverlay.Visible && Run.PressRun == 2 && _seedLabel.Text.Contains("First Edition"));
+        Check("the chosen print run ramps the later deadlines", blurbShown && Run.Circulation == 2
+            && _session.Config.TargetFor(0) == Crossword.Core.Run.RunRules.ConfigFor(_baseConfig, Decks.StandardId, 2).TargetFor(0)
+            && _session.Config.TargetFor(14) > Crossword.Core.Run.RunRules.ConfigFor(_baseConfig, Decks.StandardId, 2).TargetFor(14)
+            && _seedLabel.Text.Contains("×3"));
         ChooseNewRun();
         await PressKey(global::Godot.Key.Escape);
         Check("esc closes the press run picker", !_pressRunOverlay.Visible && Run.PressRun == 2);

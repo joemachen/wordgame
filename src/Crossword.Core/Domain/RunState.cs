@@ -42,6 +42,9 @@ public sealed record RunState(
     /// <summary>The run's difficulty level (1 = Proofreader … 8; see <see cref="Run.PressRuns"/>).</summary>
     public int PressRun { get; init; } = 1;
 
+    /// <summary>The run's print run on the Circulation dial (1 = the base game … ; see <see cref="Run.Circulations"/>).</summary>
+    public int Circulation { get; init; } = 1;
+
     /// <summary>The run's starting deck (see <see cref="Run.Decks"/>).</summary>
     public string DeckId { get; init; } = "standard";
 

@@ -85,7 +85,8 @@ public static class Program
                     rest.Skip(2).Any(a => a.Equals("frac", StringComparison.OrdinalIgnoreCase)) ? SkillModel.ScoreFraction : SkillModel.Percentile,
                     PressRunArg(rest.Skip(2)) ?? PressRuns.Lowest,
                     DeckArg(rest.Skip(2)) ?? Decks.StandardId,
-                    DictionaryArg(rest.Skip(2)));
+                    DictionaryArg(rest.Skip(2)),
+                    CirculationArg(rest.Skip(2)) ?? Circulations.Lowest);
                 break;
             case "shop":
                 PrintPhase();
@@ -142,7 +143,7 @@ public static class Program
             case "new" or "n":
                 string newDeck = DeckArg(rest) ?? Run.DeckId;
                 NewRun(rest.Length > 0 && ulong.TryParse(rest[0], out var s) ? s : RandomSeed(), PressRunArg(rest) ?? Run.PressRun,
-                    newDeck, DictionaryArg(rest) ?? CarriedDictionary(newDeck));
+                    newDeck, DictionaryArg(rest) ?? CarriedDictionary(newDeck), CirculationArg(rest) ?? Run.Circulation);
                 break;
             case "quit" or "q" or "exit":
                 return false;
@@ -193,17 +194,21 @@ public static class Program
         }
         _session = saved.Value.Session;
         _lexicon = LexiconLoader.For(Run.Dictionaries);
-        Console.WriteLine($"Loaded {Path.GetFullPath(path)}: seed {Run.Seed}, {Decks.Get(Run.DeckId).Name}, Press Run {Run.PressRun}.");
+        Console.WriteLine($"Loaded {Path.GetFullPath(path)}: seed {Run.Seed}, {Decks.Get(Run.DeckId).Name}, Press Run {Run.PressRun}, "
+            + $"{CirculationText(Run.Circulation)}.");
         PrintPhase();
     }
 
-    private static void NewRun(ulong seed, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null)
+    private static void NewRun(ulong seed, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null,
+        int circulation = Circulations.Lowest)
     {
         var press = PressRuns.Get(pressRun);
         dictionary = DictionaryFor(deck, dictionary);
         string words = Decks.TakesDictionary(deck) ? $" ({Dictionaries.Get(dictionary ?? Dictionaries.All[0].Id).Name})" : "";
-        Console.WriteLine($"\nStarting new run with seed {seed}: {Decks.Get(deck).Name}{words}, Press Run {press.Level} ({press.Name})");
-        _session = RunRules.NewGame(seed, Config, LexiconLoader.Enable, pressRun: pressRun, deck: deck, dictionary: dictionary);
+        Console.WriteLine($"\nStarting new run with seed {seed}: {Decks.Get(deck).Name}{words}, Press Run {press.Level} ({press.Name}), "
+            + CirculationText(circulation));
+        _session = RunRules.NewGame(seed, Config, LexiconLoader.Enable, pressRun: pressRun, deck: deck, dictionary: dictionary,
+            circulation: circulation);
         _lexicon = LexiconLoader.For(Run.Dictionaries);
         PrintPhase();
     }
@@ -215,6 +220,23 @@ public static class Program
             return dictionary;
         if (!quiet)
             Console.WriteLine($"{Decks.Get(deck).Name} doesn't take a dictionary; ignoring '{dictionary}'.");
+        return null;
+    }
+
+    private static string CirculationText(int level) =>
+        $"Circulation {level} ({Circulations.Get(level).Name}, {Circulations.Get(level).PrintRunText})";
+
+    /// <summary>A "circ=N" argument (a Circulation level), or null when absent or out of range (which is reported).</summary>
+    private static int? CirculationArg(IEnumerable<string> args)
+    {
+        foreach (string arg in args)
+        {
+            if (!arg.StartsWith("circ=", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (int.TryParse(arg["circ=".Length..], out int level) && Circulations.IsLevel(level))
+                return level;
+            Console.WriteLine($"Circulation must be {Circulations.Lowest}–{Circulations.Highest}; using the default.");
+        }
         return null;
     }
 
@@ -506,7 +528,7 @@ public static class Program
     }
 
     private static void SimulateRuns(int runs, double skill, ShopStrategy strategy, SkillModel model, int pressRun, string deck,
-        string? dictionary)
+        string? dictionary, int circulation)
     {
         dictionary = DictionaryFor(deck, dictionary);
         if (skill is <= 0 or > 1)
@@ -515,14 +537,15 @@ public static class Program
             return;
         }
         Console.WriteLine($"Simulating {runs} full runs at skill {skill:0.00}, {Decks.Get(deck).Name}"
-            + $"{(Decks.TakesDictionary(deck) ? $" ({Dictionaries.Get(dictionary ?? Dictionaries.All[0].Id).Name})" : "")}, Press Run {pressRun} ({PressRuns.Get(pressRun).Name})...");
+            + $"{(Decks.TakesDictionary(deck) ? $" ({Dictionaries.Get(dictionary ?? Dictionaries.All[0].Id).Name})" : "")}, Press Run {pressRun} ({PressRuns.Get(pressRun).Name}), "
+            + $"{CirculationText(circulation)}...");
         var sw = Stopwatch.StartNew();
         var results = Enumerable.Range(1, runs)
             .AsParallel()
             .Select(seed => RunSimulator.PlayRun((ulong)seed, Config, LexiconLoader.Enable, skill, strategy, model: model, pressRun: pressRun,
-                deck: deck, dictionary: dictionary))
+                deck: deck, dictionary: dictionary, circulation: circulation))
             .ToList();
-        Console.WriteLine(SimulationReport.FormatRuns(results, RunRules.ConfigFor(Config, deck, pressRun), skill, strategy, model));
+        Console.WriteLine(SimulationReport.FormatRuns(results, RunRules.ConfigFor(Config, deck, pressRun, circulation: circulation), skill, strategy, model));
         Console.WriteLine($"  ({sw.Elapsed.TotalSeconds:0.0}s)");
     }
 
@@ -590,10 +613,11 @@ public static class Program
                                              (e.g. 'use 1 QX'), a cell for White-Out ('use 2 D4')
               hint [n]                       Show the n best legal plays (dev/QA aid)
               sim [rounds]                   Greedy-play simulation of the current round settings
-              runsim [runs] [skill] [naive] [frac] [press=N] [deck=id] [dict=id]  Full-run simulation with a shop bot
+              runsim [runs] [skill] [naive] [frac] [press=N] [deck=id] [dict=id] [circ=N]  Full-run simulation with a shop bot
                                     (default 50, 0.9, smart bot; frac = skill is a fraction of the best play's score,
                                     not a percentile; press=N plays at Press Run N, 1-8; deck=id with that starting
-                                    deck; dict=id with that dictionary, for a deck that takes one)
+                                    deck; dict=id with that dictionary, for a deck that takes one; circ=N at
+                                    Circulation N)
             In the shop:
               buy <n> [LETTERS]              Buy offer n; LETTERS picks deck tiles for Enhance/Strike
               reroll                         New offers (cost rises each reroll)
@@ -603,12 +627,12 @@ public static class Program
               desk / deck                    Show Desk Items (+catalog) / your tile deck
               sell <slot>                    Sell a Desk Item for half price
               sellst <slot>                  Sell a Stationery item for half price
-              give <id>                      (dev) Add a Desk Item or Stationery for free
+              give <id>                      (dev) Add a Desk Item, Stationery or Office upgrade for free
               save / load [path]             Save or load the run (default {DefaultSavePath}; the
                                              game's own saves load too)
               board | status                 Redraw the current screen
               continue                       Endless mode after winning
-              new [seed] [press=N] [deck=id] [dict=id] / seed / quit  (press=N: Press Run 1-8;
+              new [seed] [press=N] [deck=id] [dict=id] [circ=N] / seed / quit  (press=N: Press Run 1-8; circ=N: Circulation 1-{Circulations.Highest};
                                     deck=id: {string.Join(", ", Decks.All.Select(d => d.Id))};
                                     dict=id (for {Decks.Get(Decks.LexicographerId).Name}): {string.Join(", ", Dictionaries.All.Select(d => d.Id))};
                                     default: the current run's)

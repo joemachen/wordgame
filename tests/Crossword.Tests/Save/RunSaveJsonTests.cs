@@ -372,7 +372,7 @@ public class RunSaveJsonTests
 
     /// <summary>Keys the pre-Press-Run fixture lacks (they didn't exist when it was written); each loads as its default.</summary>
     private static readonly string[] LegacyMissingKeys =
-        ["pressRun", "deckId", "dictionaries", "seeded", "censoredLetter", "unusedDiscards", "floorTopUp", "clipping", "highlight", "illegalWordsAllowed", "undo", "upgrades"];
+        ["pressRun", "deckId", "dictionaries", "seeded", "censoredLetter", "unusedDiscards", "floorTopUp", "clipping", "highlight", "illegalWordsAllowed", "undo", "upgrades", "circulation"];
 
     /// <summary>
     /// Rewrites both committed fixtures from <see cref="FixtureSession"/> when the environment variable

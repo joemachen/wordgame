@@ -29,6 +29,7 @@ public partial class Main
         _roundWonRecorded = Round.Status == RoundStatus.Won ? Run.RoundIndex : -1;
         _runEndRecorded = _session.Phase is RunPhase.Victory or RunPhase.Defeat;
         _justUnlockedPressRun = null;
+        _justUnlockedCirculation = null;
         _justUnlockedDeck = null;
         ClearLog();
         SetMessage($"Resumed your run: Week {_session.Week + 1}, {WhereText()}.", UiKit.TextMuted);

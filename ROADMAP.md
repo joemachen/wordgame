@@ -119,8 +119,8 @@ all cap breakers as a fourth shop category; build in phases.
 |---|---|---|
 | 1 | Saturating score math (`ScoreMath`, cap 10^18), big-number words (`ScoreFormat`), precision-safe count-up, UI digit budgets, `RunConfig.TargetScale` | ✅ |
 | 2 | Underlined / Embossed tiles, three Desk Item kinds (×CHIPS, AGAIN, COPY), ten compounding Desk Items, bot re-scoring of enhancements, targets → 450/1600/5200/17000/50000 (Week 5 Sunday 80k; the 1M target measured 0–8% for the bot, so the base game keeps 80k and the dial carries 1M+ — user's choice 2026-10-13) | ✅ |
-| 3 | Cap breakers: 4th shop category ("Office upgrades", `Core/Run/OfficeUpgrades.cs`, one per shop): ✅ Filing Cabinet (+desk slot, to 7), Supply Closet (+Stationery slot, to 4), Composing Stick (+hand), Overtime (+submission), Wastebasket (+discard), Broadsheet (9×9 board, 10 premium pairs), Editorial Cuts (deck minimum 30 → 20 → 15), Photocopier (duplicates licence), Savings Bond / Bonus Clause (interest $5 → $10 → $20, overkill $3 → $6 → $12) (2026-10-13). Not built: "Second edition" item levels (the Photocopier's copies already fire twice) and new money→Mult items (Ad Revenue × a lifted interest cap covers it) | 🟡 |
-| 4 | Circulation dial (`RunState.Circulation` → `RunConfig.TargetScale`, rewards as `Payout`/`ShopConfig` fields), steeper endless (×3–4/week), stacking endless bosses; re-measure decks and the Press Run ladder | 🟡 |
+| 3 | Cap breakers: 4th shop category ("Office upgrades", `Core/Run/OfficeUpgrades.cs`, one per shop): ✅ Filing Cabinet (+desk slot, to 7), Supply Closet (+Stationery slot, to 4), Composing Stick (+hand), Overtime (+submission), Wastebasket (+discard), Double Truck (9×9 board, 10 premium pairs), Editorial Cuts (deck minimum 30 → 20 → 15), Photocopier (duplicates licence), Trust Fund / Bonus Clause (interest $5 → $10 → $20, overkill $3 → $6 → $12) (2026-10-13). Not built: "Second edition" item levels (the Photocopier's copies already fire twice) and new money→Mult items (Ad Revenue × a lifted interest cap covers it) | 🟡 |
+| 4 | ✅ Circulation dial (`Core/Run/Circulations.cs`, 2026-10-14): six print runs ×1 / ×3 / ×12 / ×50 / ×250 / ×1000 picked at run start, back-loaded deadline ramp (`RunConfig.WeekScales`, Week 1 always ×1), base pay +1 / +4 / +6 / +8 / +10 and rarer shops, each unlocked by a win at the one below; reference bot 41 / 26 / 17 / 8 / 2 / 0%. ✅ Endless ×3 per week, each endless week's boss stacks one more rule. 🟡 Re-measure decks and the Press Run ladder | 🟡 |
 | 5 | Ring-up tiers past "STOP THE PRESSES!" (×2, ×10, ×100 the deadline), long-log tempo | 🟡 |
 
 ### Stationery (consumables) 🟡 — new system
@@ -236,7 +236,7 @@ modes cheap to build on the core.
 
 | Mode | Design (*proposed*) | Status |
 |---|---|---|
-| **Endless Mode** | After Week 5, targets ×2 per week (`RunConfig.EndlessGrowth`). Offered on the victory screen in the game and CLI. | ✅ |
+| **Endless Mode** | After Week 5, targets ×3 per week (`RunConfig.EndlessGrowth`, ×2 until 2026-10-14) and endless week k's boss stacks k more Early/Mid rules (`EndlessExtraRules`). Offered on the victory screen in the game and CLI. | ✅ |
 | **Custom / seeded runs** | Seed box in the New-run picker (and `--seed=`); the seed shows in the sidebar footer. A run on a chosen seed counts in the stats but **unlocks nothing** (user's choice, as in Balatro: a known seed could be replayed to farm unlocks). Note: two players get the same boards, bosses and **first** shop, but later shop offers drift once their purchases differ (offers exclude owned items), as in Balatro. Later: a copyable seed. | ✅ seed box + seeded runs (`RunState.Seeded`, `PlayerStats.SeededRunsWon`) · 🟡 copy seed |
 | **Daily Editorial** (daily seeded puzzle) | One seed per UTC date, one attempt per day, with a **local** best score and streak. Online leaderboards are out of scope for now. Name check: distinct from the "Daily" round, but keep the UI wording clear. | 🟡 |
 
@@ -297,7 +297,7 @@ tests and a `runsim` balance check.
 | **Release hygiene** | Slur denylist ✅ (ENABLE + definitions; overlays must use it); "Qu" tile (a Q without U is a dead tile — in ~5% of hands); legal checklist (§10) | before shipping |
 | **Wild tiles** ✅ | Play as any letter (chosen when placed), 0 letter chips. 2 in the starting deck, shop wild tile ($6) and "make a tile wild" edit ($5), Fountain Pen Stationery. Bots don't buy the wild offers or the Fountain Pen yet. | done 2026-10-05 |
 | **Letter mix** ✅ | Balanced draws (≥2 vowels, ≥2 consonants, ≤2 of a vowel per refill) + starting deck at ~42% vowels. Rough hands at play time 29.5% → 10%. | done 2026-10-05 |
-| **Break the game** 🟡 | §3b: phases 1–2 ✅ (saturating math, words for big numbers, multiplicative tiles, compounding Desk Items, steeper targets); phase 3 ✅ Office upgrades (cap breakers) except Second Edition; phases 4–5 (Circulation dial + endless, ring-up tiers) next | started 2026-10-12 |
+| **Break the game** 🟡 | §3b: phases 1–2 ✅ (saturating math, words for big numbers, multiplicative tiles, compounding Desk Items, steeper targets); phase 3 ✅ Office upgrades (cap breakers) except Second Edition; phase 4 ✅ Circulation dial + steeper, stacking endless (deck / Press Run re-measure pending); phase 5 (ring-up tiers) next | started 2026-10-12 |
 
 | Parallel track | Work | Best time |
 |---|---|---|

@@ -13,15 +13,15 @@ public sealed record OfficeConfig(
     int HandSizeLevels = 2,
     int SubmissionLevels = 1,
     int DiscardLevels = 2,
-    int BroadsheetSize = 9)
+    int DoubleTruckSize = 9)
 {
     /// <summary>The 9×9 board's premium pairs (~25% of squares, like the 7×7 default's 12 of 49).</summary>
-    public PremiumPairs BroadsheetPremiums { get; init; } = new(TripleWord: 2, DoubleWord: 3, TripleLetter: 2, DoubleLetter: 3);
+    public PremiumPairs DoubleTruckPremiums { get; init; } = new(TripleWord: 2, DoubleWord: 3, TripleLetter: 2, DoubleLetter: 3);
 
     /// <summary>Editorial Cuts: the deck's minimum size at each level.</summary>
     public ImmutableArray<int> DeckMinimums { get; init; } = [20, 15];
 
-    /// <summary>Savings Bond: the interest cap at each level.</summary>
+    /// <summary>Trust Fund: the interest cap at each level.</summary>
     public ImmutableArray<int> InterestCaps { get; init; } = [10, 20];
 
     /// <summary>Bonus Clause: the overkill cap at each level.</summary>
@@ -47,10 +47,10 @@ public static class OfficeUpgrades
     public const string ComposingStickId = "composing-stick";
     public const string OvertimeId = "overtime";
     public const string WastebasketId = "wastebasket";
-    public const string BroadsheetId = "broadsheet";
+    public const string DoubleTruckId = "double-truck";
     public const string EditorialCutsId = "editorial-cuts";
     public const string PhotocopierId = "photocopier";
-    public const string SavingsBondId = "savings-bond";
+    public const string TrustFundId = "trust-fund";
     public const string BonusClauseId = "bonus-clause";
 
     public static ImmutableArray<OfficeUpgrade> All { get; } = Catalog(OfficeConfig.Default);
@@ -63,10 +63,10 @@ public static class OfficeUpgrades
         new(ComposingStickId, "Composing Stick", office.HandSizeLevels),
         new(OvertimeId, "Overtime", office.SubmissionLevels),
         new(WastebasketId, "Wastebasket", office.DiscardLevels),
-        new(BroadsheetId, "Broadsheet", 1),
+        new(DoubleTruckId, "Double Truck", 1),
         new(EditorialCutsId, "Editorial Cuts", office.DeckMinimums.Length),
         new(PhotocopierId, "Photocopier", 1),
-        new(SavingsBondId, "Savings Bond", office.InterestCaps.Length),
+        new(TrustFundId, "Trust Fund", office.InterestCaps.Length),
         new(BonusClauseId, "Bonus Clause", office.OverkillCaps.Length),
     ];
 
@@ -81,7 +81,7 @@ public static class OfficeUpgrades
     {
         FilingCabinetId => config.DeskSlots < RunState.MaxDeskSlots,
         SupplyClosetId => config.StationerySlots < RunState.MaxStationerySlots,
-        BroadsheetId => config.BoardSize < config.Office.BroadsheetSize,
+        DoubleTruckId => config.BoardSize < config.Office.DoubleTruckSize,
         _ => true,
     };
 
@@ -109,13 +109,13 @@ public static class OfficeUpgrades
             ComposingStickId => config with { HandSizeDelta = config.HandSizeDelta + 1 },
             OvertimeId => config with { SubmissionsDelta = config.SubmissionsDelta + 1 },
             WastebasketId => config with { DiscardsDelta = config.DiscardsDelta + 1 },
-            BroadsheetId => config with { BoardSize = office.BroadsheetSize, Premiums = office.BroadsheetPremiums },
+            DoubleTruckId => config with { BoardSize = office.DoubleTruckSize, Premiums = office.DoubleTruckPremiums },
             EditorialCutsId => config with
             {
                 Shop = config.Shop with { MinDeckSize = Math.Min(config.Shop.MinDeckSize, At(office.DeckMinimums, level)) },
             },
             PhotocopierId => config with { DuplicateDeskItems = true },
-            SavingsBondId => config with
+            TrustFundId => config with
             {
                 Economy = config.Economy with { InterestCap = Math.Max(config.Economy.InterestCap, At(office.InterestCaps, level)) },
             },
@@ -138,11 +138,11 @@ public static class OfficeUpgrades
             ComposingStickId => "+1 hand size every round.",
             OvertimeId => "+1 submission every round.",
             WastebasketId => "+1 discard every round.",
-            BroadsheetId => $"The board grows to {office.BroadsheetSize}×{office.BroadsheetSize} with more premium squares "
+            DoubleTruckId => $"The board grows to {office.DoubleTruckSize}×{office.DoubleTruckSize} with more premium squares "
                 + "(Tight Margins still shrinks it).",
             EditorialCutsId => $"Your deck may shrink to {At(office.DeckMinimums, level)} tiles (was {config.Shop.MinDeckSize}).",
             PhotocopierId => "The shop offers Desk Items you already own: hold copies, each fires.",
-            SavingsBondId => $"Interest caps at ${At(office.InterestCaps, level)} (was ${config.Economy.InterestCap}).",
+            TrustFundId => $"Interest caps at ${At(office.InterestCaps, level)} (was ${config.Economy.InterestCap}).",
             BonusClauseId => $"Overkill pays up to ${At(office.OverkillCaps, level)} (was ${config.Economy.OverkillCap}).",
             _ => throw new ArgumentException($"No Office upgrade '{id}'.", nameof(id)),
         };

@@ -116,11 +116,14 @@ public partial class Main
         int unlockedBefore = StatsQueries.UnlockedPressRun(_profile.Profile.Stats, Run.DeckId);
         int decksBefore = StatsQueries.UnlockedDecks(_profile.Profile.Stats).Length;
         int dictionariesBefore = StatsQueries.UnlockedDictionaries(_profile.Profile.Stats).Length;
-        _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1, Run.PressRun, Run.DeckId, Run.Seeded));
+        int circulationBefore = StatsQueries.UnlockedCirculation(_profile.Profile.Stats);
+        _profile.Update(s => StatsRules.RecordRunEnd(s, won, _session.Week + 1, Run.PressRun, Run.DeckId, Run.Seeded, Run.Circulation));
         int unlockedNow = StatsQueries.UnlockedPressRun(_profile.Profile.Stats, Run.DeckId);
         var decksNow = StatsQueries.UnlockedDecks(_profile.Profile.Stats);
         _justUnlockedPressRun = unlockedNow > unlockedBefore ? unlockedNow : null;
         _justUnlockedDeck = decksNow.Length > decksBefore ? decksNow[^1] : null;
+        int circulationNow = StatsQueries.UnlockedCirculation(_profile.Profile.Stats);
+        _justUnlockedCirculation = circulationNow > circulationBefore ? Circulations.Get(circulationNow) : null;
         var dictionariesNow = StatsQueries.UnlockedDictionaries(_profile.Profile.Stats);
         _justUnlockedDictionary = dictionariesNow.Length > dictionariesBefore ? dictionariesNow[^1] : null;
     }

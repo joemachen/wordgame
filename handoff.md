@@ -5,18 +5,31 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-13 · HEAD `53c564f` (Office upgrades) · 660 unit tests passing · UI self-test 115/115 passing · CI green_
+_Last updated: 2026-10-14 · Phase 4 (Circulation dial) committed after `c109d88` · 669 unit tests passing · UI self-test 118/118 passing · CI green at `c109d88`_
 
 ## 0. ▶ Status and what's next
 
+**2026-10-14: Phase 4 built — the Circulation dial** (ROADMAP §3b; Claude's design calls, §3). A print run picked at run
+start in the New-run picker: ×1 Local Weekly (base game) / ×3 County Paper / ×12 City Daily (the ~1M finale) / ×50
+Metro Edition / ×250 National / ×1000 Global Syndicate (Week 5 Sunday 80M; endless takes it into the billions). Deadlines
+ramp back-loaded (Week 1 always ×1), paychecks +$1/4/6/8/10, Rare+ items likelier; a win at level N unlocks N + 1.
+Measured (§4g): reference 0.75 wins **41 / 26 / 17 / 8 / 2 / 0%**, strong 0.9 52 / 36 / 29 / 14%. Endless is now ×3 per
+week and each endless week's boss stacks one more rule. Also fixed two id/name clashes from Phase 3: the 9×9 upgrade is
+now **Double Truck** (a Desk Item is called Broadsheet) and the interest upgrade **Trust Fund** (a Desk Item is called
+Savings Bond); a test guards the shared `give` namespace. **Next:** re-measure the decks and the Press Run ladder on the
+current curve (running/queued — see §4g when filled), then **Phase 5** (ring-up tiers past the stamp). Second Edition /
+money→Mult items still await the user's call (recommended: skip). **Playtest ask:** try ×3 and ×12 (`--circ=2` / `--circ=3`
+dev flags, or win a run to unlock them) — does the back-loaded ramp feel like a climb, and do the bigger paychecks make
+engine builds reachable?
+
 **2026-10-13: Phase 3 "cap breakers" built as Office upgrades** (ROADMAP §3b; Claude's design calls, flagged below
 in §3). One upgrade per shop, $10, ten upgrades (Filing Cabinet, Supply Closet, Composing Stick, Overtime, Wastebasket,
-Broadsheet 9×9, Editorial Cuts, Photocopier, Savings Bond, Bonus Clause), five of them buyable twice. Measured in §4f:
-none is overpowered at $10 for the bot; it now buys Overtime and Broadsheet (reference 0.75: 36 → 40.5%, targets
+Double Truck 9×9, Editorial Cuts, Photocopier, Trust Fund, Bonus Clause), five of them buyable twice. Measured in §4f:
+none is overpowered at $10 for the bot; it now buys Overtime and Double Truck (reference 0.75: 36 → 40.5%, targets
 unchanged). **Not built, recommended to skip:** "Second Edition" item levels (Photocopier copies already fire twice)
-and new money→Mult items (Ad Revenue × Savings Bond covers it) — ask the user. **Next: Phase 4** (Circulation dial →
+and new money→Mult items (Ad Revenue × Trust Fund covers it) — ask the user. **Next: Phase 4** (Circulation dial →
 `RunConfig.TargetScale`, steeper endless, stacking endless bosses, re-measure decks and the Press Run ladder) and
-**Phase 5** (ring-up tiers). **Playtest ask:** buy Office upgrades in a real run (dev: `--give=broadsheet,overtime,filing-cabinet,filing-cabinet,supply-closet,supply-closet`)
+**Phase 5** (ring-up tiers). **Playtest ask:** buy Office upgrades in a real run (dev: `--give=double-truck,overtime,filing-cabinet,filing-cabinet,supply-closet,supply-closet`)
 — does the dense 7 + 4 desk bar read OK, does the 9×9 board feel good, is $10 right?
 
 **2026-10-12/13: "Break the game" phases 1–2 built** (user's direction: scores into the billions on the hardest content,
@@ -237,12 +250,22 @@ Scrabble geometry. C# / .NET 8. Headless rules engine (`src/Crossword.Core`) + *
   would beat the sorted order next to a +Mult item); **Pull Quote** sits between +Mult and ×Mult; the engine items were
   **doubled** after the first measurement (0% at a 1M finale) and the finale shipped at 80k pending the user's decision
   (§0). Dev flags `--score`, `--deadline`, `--textsize`; 12-digit scores fit the sidebar at 100–120% text.
+- **Circulation dial = Phase 4** (2026-10-14, Claude's calls, flagged): the dial ramps deadlines **per week, back-loaded**
+  (week w of 5 ×PrintRun^((w/4)²); Week 1 always ×1) instead of the planned uniform `TargetScale` — a uniform ×12 makes the
+  first Daily 5,400, unwinnable with an empty desk; the geometric ramp measured worse than back-loaded (losses pile into
+  Week 2, before the shops can build anything). Ramps are written out as decimal literals (`Circulation.WeekScales` →
+  `RunConfig.WeekScales`), no runtime `Math.Pow`. **Rewards:** base pay is the lever that matters (×12: 3% → 11.5% with
+  +$4; rarity ×2 changed nothing for the bot), so +1/4/6/8/10; rarity boosts kept for flavour (×1.5–3.5). Six levels to
+  ×1000; **unlocks are global** (a win at any deck/Press Run unlocks the next print run; seeded wins don't), old profiles
+  with a win start with ×3 unlocked. The dial is applied after the Press Run in `ConfigFor` and stored in
+  `RunState.Circulation`. **Endless:** ×3 per week (was ×2) and endless week k's boss stacks k more Early/Mid rules
+  (nested `Reprint`s on a salted seed stream) until it has them all.
 - **Office upgrades = Phase 3 cap breakers** (2026-10-13, built from the user's 2026-10-12 list; Claude's calls,
   flagged): a permanent run upgrade bought in the shop (Balatro's vouchers), **one per shop, rolled last** (so the
   other offers never move), **$10 flat** (per-id overrides exist), levels per upgrade (two for slots, hand, discards,
-  deck minimum, interest, overkill; one for Overtime, Broadsheet, Photocopier), not offered once maxed or at a slot
+  deck minimum, interest, overkill; one for Overtime, Double Truck, Photocopier), not offered once maxed or at a slot
   cap. A `RunConfig` transform like decks and Press Runs, applied last in `RunRules.ConfigFor(base, run)` and at
-  once on purchase. Overtime's submission comes after the boss and Rush Job's cap (like Extra! Extra!); the Broadsheet
+  once on purchase. Overtime's submission comes after the boss and Rush Job's cap (like Extra! Extra!); the Double Truck
   is overridden by Tight Margins; Wastebasket stacks with Ink Shortage's −1 via `DiscardsDelta`; caps 7 Desk Item
   slots and 4 Stationery slots. UI: past 5 + 2 slots the desk bar goes dense; a 9×9 board shrinks its squares to the
   7×7 footprint. Not built: Second Edition and money→Mult items (see §0).
@@ -490,29 +513,59 @@ an `<id>` arm always offers that one upgrade (`ShopConfig.UpgradeIds`) and the b
 | Arm ($10, gain 0.3, 0.75) | Win | Δ | Levels bought |
 |---|---|---|---|
 | Overtime | 38% | +2 | 0.72 |
-| Broadsheet | 38% | +2 | 0.72 |
+| Double Truck | 38% | +2 | 0.72 |
 | Composing Stick | 36% | 0 | 1.27 |
 | Filing Cabinet | 34% | −2 | 1.19 |
 | Wastebasket | 30% | −6 | 1.24 |
 | Bonus Clause | 29.5% | −6.5 | 1.23 |
 | Photocopier | 27% | −9 | 0.72 |
-| Supply Closet / Editorial Cuts / Savings Bond | 26–26.5% | −9.5 / −10 / −10 | 1.22 |
+| Supply Closet / Editorial Cuts / Trust Fund | 26–26.5% | −9.5 / −10 / −10 | 1.22 |
 | all ten | 34% | −2 | 2.19 |
-| **buy only Overtime + Broadsheet (gain 0.3) — shipped bot default** | **40.5%** | **+4.5** | 0.50 |
+| **buy only Overtime + Double Truck (gain 0.3) — shipped bot default** | **40.5%** | **+4.5** | 0.50 |
 | same at gain 0.1 | 39% | +3 | 0.37 |
-| buy Overtime, Broadsheet, Composing Stick, Filing Cabinet (0.1) | 37.5% | +1.5 | 0.64 |
+| buy Overtime, Double Truck, Composing Stick, Filing Cabinet (0.1) | 37.5% | +1.5 | 0.64 |
 
 - First purchase ~round 5 (Week 2): the bot rarely has $10 spare before.
-- The −10 arms are "$20 spent on something the bot can't use" (it never saves, so Savings Bond is dead; it never
+- The −10 arms are "$20 spent on something the bot can't use" (it never saves, so Trust Fund is dead; it never
   strikes; it rarely uses Stationery) — so ~5 pts per $10 is what money is worth to the bot mid-run. A human who saves,
   strikes and uses Stationery should get much more from those; check in playtests.
 - Photocopier −9: the bot values a duplicate by re-scoring, but rarely has a second copy offered *and* the money.
 - Targets unchanged: 40.5% is ~1 noise bar above the 35.5–36% reference. Re-measure with Phase 4.
 
+## 4g. Circulation dial (2026-10-14)
+
+Calibration with scratch harness `circsim` (`<runs> <skill> N[:pay=P][:rare=F][:shape=K]`, paired seeds 1–200, evaluating
+bot with the Office-upgrade gains, ScoreFraction; deadlines ×N^((w/4)^K) per week):
+
+| Arm (0.75) | Win | Arm (0.75) | Win |
+|---|---|---|---|
+| ×1 | 40.5% | ×12 geometric, pay +4 | 11.5% |
+| ×2 geometric | 19.5% | ×12 back-loaded (K=2) | 4.5% |
+| ×4 geometric | 9% | ×12 back-loaded, pay +2 | 8% |
+| ×12 geometric | 3% | ×12 back-loaded, pay +4 | **14%** |
+| ×12 geometric, pay +2 | 8% | ×50 back-loaded, pay +4 | 4.5% |
+| ×12 geometric, rarity ×2 | 3.5% | ×3 geometric / pay +1 | 15% / 21.5% |
+| ×50 geometric | 0% | 0.9: ×1 / ×4 / ×12 / ×50 geometric | 52 / 16.5 / 4 / 0% |
+
+**Shipped ladder** (CLI `runsim 200 <skill> frac circ=N`, seeds 1–200):
+
+| Circulation | Print run | Pay | Week 5 Sunday | 0.75 | 0.9 | Week 5 won-round median / p90 (0.75) |
+|---|---|---|---|---|---|---|
+| 1 Local Weekly | ×1 | +0 | 80,000 | 41% | (52%) | 103k / 601k |
+| 2 County Paper | ×3 | +1 | 240,000 | 26% | 36% | 305k / 1.7M |
+| 3 City Daily | ×12 | +4 | 960,000 | 17% | 29% | 1.3M / 8.7M |
+| 4 Metro Edition | ×50 | +6 | 4,000,000 | 8% | 14% | 5.5M / 41M |
+| 5 National | ×250 | +8 | 20,000,000 | 2% | — | 27M / 104M |
+| 6 Global Syndicate | ×1000 | +10 | 80,000,000 | 0% | — | 86M / 384M |
+
+- The bot buys Overtime and Double Truck far more often at higher print runs (26% → 73%): the bigger paychecks buy them.
+- ×1000 is 0% for the bot, which can't plan an engine (it values items by re-scoring recent plays); it's the human
+  ceiling. If playtests find ×250/×1000 hopeless, raise their pay bonus first (the measured lever).
+
 ## 5. Open concerns / known gaps
 
 18. **Office upgrades** (§4f): prices are a flat $10 and untested by humans. Watch Overtime (+1 submission every round
-    is what Extra! Extra! does for $12 and a slot) and Broadsheet (bigger board = more premiums and longer words). The
+    is what Extra! Extra! does for $12 and a slot) and Double Truck (bigger board = more premiums and longer words). The
     dense desk bar truncates Desk Item names at 7 slots (full text in the tooltip) — revisit in the visual overhaul.
     With the Photocopier, `Main._deskCards` is keyed by item id, so the ring-up pops only one of two copies, and
     `RunSimulator`'s shop spend ignores duplicate purchases (by-id set difference).
@@ -659,6 +712,8 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
+(next)  Add the Circulation dial, steeper stacking endless, and fix upgrade name clashes
+c109d88 Note CI is green in handoff
 53c564f Add Office upgrades: a fourth shop offer that breaks the run's caps
 dc2fead Record the finale decision: 80k base, the Circulation dial carries 1M+
 7b859a0 Record the targets commit in handoff history

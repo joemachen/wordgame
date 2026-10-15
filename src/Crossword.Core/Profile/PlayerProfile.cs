@@ -54,6 +54,12 @@ public sealed record PlayerStats
     /// deck (<see cref="StatsQueries.UnlockedPressRun"/>).
     /// </summary>
     public ImmutableDictionary<string, int> HighestPressRunWon { get; init; } = ImmutableDictionary<string, int>.Empty;
+
+    /// <summary>
+    /// The highest Circulation won (0 = none yet), with any deck at any Press Run; the next one up is unlocked
+    /// (<see cref="StatsQueries.UnlockedCirculation"/>).
+    /// </summary>
+    public int HighestCirculationWon { get; init; }
 }
 
 /// <summary>A named player profile. <see cref="Version"/> lets later releases migrate old files.</summary>
@@ -120,8 +126,11 @@ public static class StatsRules
     /// <param name="deck">The run's deck id; any win also unlocks the next deck (<see cref="StatsQueries.UnlockedDecks"/>).</param>
     /// <param name="seeded">The player chose the seed: a win counts in <see cref="PlayerStats.SeededRunsWon"/> and
     /// unlocks nothing.</param>
-    public static PlayerStats RecordRunEnd(PlayerStats stats, bool won, int weekReached, int pressRun, string deck, bool seeded = false) => stats with
+    /// <param name="circulation">The run's Circulation; a win there unlocks the next one.</param>
+    public static PlayerStats RecordRunEnd(PlayerStats stats, bool won, int weekReached, int pressRun, string deck, bool seeded = false,
+        int circulation = Run.Circulations.Lowest) => stats with
     {
+        HighestCirculationWon = won && !seeded ? Math.Max(stats.HighestCirculationWon, circulation) : stats.HighestCirculationWon,
         RunsWon = stats.RunsWon + (won && !seeded ? 1 : 0),
         SeededRunsWon = stats.SeededRunsWon + (won && seeded ? 1 : 0),
         BestWeekReached = Math.Max(stats.BestWeekReached, weekReached),

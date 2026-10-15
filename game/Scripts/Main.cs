@@ -125,7 +125,8 @@ public partial class Main : Control
             : dictionary is not null ? Decks.LexicographerId : Decks.StandardId;
         if (!Decks.TakesDictionary(deck))
             dictionary = null;
-        bool devSetup = startWeek > 0 || give is not null || pressRun > PressRuns.Lowest || deck != Decks.StandardId;
+        int circulation = args.TryGetValue("circ", out var ci) && int.TryParse(ci, out int print) && Circulations.IsLevel(print) ? print : Circulations.Lowest;
+        bool devSetup = startWeek > 0 || give is not null || pressRun > PressRuns.Lowest || deck != Decks.StandardId || circulation > Circulations.Lowest;
         // QA and dev-setup runs never touch the saved run; an explicit --seed starts (and saves) a new run.
         _runSave = qaRun || devSetup ? RunSaveStore.InMemory() : RunSaveStore.ForProfile(profileName);
         bool showTitle = !qaRun && !devSetup && !seeded;
@@ -134,7 +135,7 @@ public partial class Main : Control
         else if (!showTitle)
             NewRun(seed, devSetup
                 ? run => Give(run with { RoundIndex = startWeek * _baseConfig.RoundsPerWeek }, give ?? "")
-                : null, pressRun, deck, dictionary, seeded);
+                : null, pressRun, deck, dictionary, seeded, circulation);
         if (showTitle)
             ShowTitle(_profile.Notice ?? _runSave.Notice);
         else if (_profile.Notice is { } notice)
@@ -239,12 +240,13 @@ public partial class Main : Control
     }
 
     private void NewRun(ulong seed, Func<RunState, RunState>? setup = null, int pressRun = PressRuns.Lowest, string deck = Decks.StandardId,
-        string? dictionary = null, bool seeded = false)
+        string? dictionary = null, bool seeded = false, int circulation = Circulations.Lowest)
     {
-        _session = RunRules.NewGame(seed, _baseConfig, LexiconLoader.Enable, setup, pressRun, deck, dictionary, seeded);
+        _session = RunRules.NewGame(seed, _baseConfig, LexiconLoader.Enable, setup, pressRun, deck, dictionary, seeded, circulation);
         _titleOverlay.Visible = false;
         _lexicon = LexiconLoader.For(Run.Dictionaries);
         _justUnlockedPressRun = null;
+        _justUnlockedCirculation = null;
         _justUnlockedDeck = null;
         _selected.Clear();
         _pending.Clear();

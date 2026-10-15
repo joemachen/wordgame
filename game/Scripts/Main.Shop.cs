@@ -316,6 +316,13 @@ public partial class Main
                 new Color(press.Color).Lightened(0.2f), HorizontalAlignment.Center);
             box.AddChild(_endScreenUnlock);
         }
+        if (victory && _justUnlockedCirculation is { } print)
+        {
+            var printUnlock = UiKit.MakeLabel($"Unlocked a bigger print run: {print.Name} {print.PrintRunText}. "
+                + Circulations.Describe(print, _baseConfig), 18, new Color(print.Color).Lightened(0.2f), HorizontalAlignment.Center, wrap: true);
+            printUnlock.Name = "CirculationUnlock";
+            box.AddChild(printUnlock);
+        }
         if (victory && _justUnlockedDeck is { } deck)
         {
             _endScreenDeckUnlock = UiKit.MakeLabel($"Unlocked {deck.Name}: {deck.Upside} {deck.Cost}", 18,

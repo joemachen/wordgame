@@ -65,6 +65,10 @@ public static class StatsQueries
     public static int UnlockedPressRun(PlayerStats stats, string deck) =>
         Math.Clamp(stats.HighestPressRunWon.GetValueOrDefault(deck) + 1, PressRuns.Lowest, PressRuns.Highest);
 
+    /// <summary>The highest Circulation this player may start: one above the highest won (the base game for a new player).</summary>
+    public static int UnlockedCirculation(PlayerStats stats) =>
+        Math.Clamp(stats.HighestCirculationWon + 1, Circulations.Lowest, Circulations.Highest);
+
     /// <summary>The decks this player may start with: the Standard Deck plus one more per run won, in <see cref="Decks.All"/> order.</summary>
     public static ImmutableArray<DeckDefinition> UnlockedDecks(PlayerStats stats) =>
         Decks.All.Take(1 + Math.Max(0, stats.RunsWon)).ToImmutableArray();

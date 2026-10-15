@@ -75,10 +75,10 @@ public static class RunSimulator
     /// <c>LexiconLoader.For(run.Dictionaries)</c> instead of <paramref name="lexicon"/>.</param>
     public static SimulatedRun PlayRun(ulong seed, RunConfig config, IWordGraph lexicon, double skill = 1.0,
         ShopStrategy strategy = ShopStrategy.Evaluating, ShopBotConfig? bot = null, SkillModel model = SkillModel.Percentile,
-        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null)
+        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null, int circulation = Circulations.Lowest)
     {
         bot ??= ShopBotConfig.Default;
-        var session = RunRules.NewGame(seed, config, lexicon, pressRun: pressRun, deck: deck, dictionary: dictionary);
+        var session = RunRules.NewGame(seed, config, lexicon, pressRun: pressRun, deck: deck, dictionary: dictionary, circulation: circulation);
         if (!session.Run.Dictionaries.IsEmpty)
             lexicon = LexiconLoader.For(session.Run.Dictionaries);
         var rounds = ImmutableArray.CreateBuilder<SimulatedRunRound>();

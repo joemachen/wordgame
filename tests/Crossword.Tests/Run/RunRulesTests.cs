@@ -12,6 +12,8 @@ public class RunRulesTests
 {
     private static readonly RunConfig Config = RunConfig.Default with
     {
+        EndlessGrowth = 2,
+        EndlessExtraRules = 0,
         WeekTargets = [300, 600, 1200],
         Days =
         [
@@ -173,6 +175,40 @@ public class RunRulesTests
     {
         Assert.Equal(["ink-spill", "tight-margins"], BossIds(1).Order());
         Assert.Equal(["strict-grammarian"], BossIds(2));
+    }
+
+    [Fact]
+    public void BossFor_EndlessWeeks_StackOneMoreRulePerWeek()
+    {
+        var stacking = TieredConfig with { EndlessExtraRules = 1 };
+        int finalWeeks = TieredConfig.WeekTargets.Length;
+        for (ulong seed = 1; seed <= 20; seed++)
+        {
+            var run = RunState.New(seed);
+            var plain = RunRules.BossFor(TieredConfig, run, finalWeeks + 1);
+            var stacked = RunRules.BossFor(stacking, run, finalWeeks + 1); // endless week 2: two more rules
+            var rules = stacked.Rules().Select(r => r.Id).ToList();
+
+            Assert.Equal(plain.Rules().Count() + 2, rules.Count);
+            Assert.Equal(rules.Count, rules.Distinct().Count());
+            Assert.Equal(stacked, RunRules.BossFor(stacking, run, finalWeeks + 1)); // seeded: previews match
+            Assert.Equal(RunRules.BossFor(TieredConfig, run, 1), RunRules.BossFor(stacking, run, 1)); // base weeks unchanged
+        }
+        // Deep in endless every Early/Mid rule is already there: the boss stops growing instead of failing.
+        var deep = RunRules.BossFor(stacking, RunState.New(1), finalWeeks + 30);
+        Assert.True(BossCatalog.PuzzleMasterCandidates.All(c => deep.Rules().Any(r => r.Id == c.Id)));
+    }
+
+    [Fact]
+    public void RunConfig_WeekScales_RampTheDeadlines_AndEndlessKeepsTheLast()
+    {
+        var ramped = Config with { WeekScales = [1, 2, 4] };
+
+        Assert.Equal(300, ramped.TargetFor(0));
+        Assert.Equal(1200, ramped.TargetFor(3)); // week 2: 600 × 2
+        Assert.Equal(4800, ramped.TargetFor(6)); // week 3: 1200 × 4
+        Assert.Equal(9600, ramped.TargetFor(9)); // endless week: 1200 × 2 (growth) × 4
+        Assert.Equal(24000, (ramped with { TargetScale = 5 }).TargetFor(6));
     }
 
     [Fact]

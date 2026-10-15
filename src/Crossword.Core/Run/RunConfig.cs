@@ -50,7 +50,7 @@ public sealed record RunConfig(
     EconomyConfig Economy,
     ScoringConfig Scoring,
     ShopConfig Shop,
-    decimal EndlessGrowth = 2)
+    decimal EndlessGrowth = 3)
 {
     /// <summary>How tiles are drawn into the hand each round (balanced by default; see <see cref="DrawConfig"/>).</summary>
     public DrawConfig Draw { get; init; } = DrawConfig.Balanced;
@@ -78,6 +78,12 @@ public sealed record RunConfig(
 
     /// <summary>With <see cref="BossExtraModifier"/>, the first week (0-based) whose boss gets the extra rule.</summary>
     public int BossExtraFromWeek { get; init; }
+
+    /// <summary>
+    /// Endless week k (1-based, after the final week) adds k × this many Early/Mid boss rules to its boss, none it
+    /// already has (<see cref="RunRules.BossFor"/>; 0 = endless bosses are drawn plainly).
+    /// </summary>
+    public int EndlessExtraRules { get; init; } = 1;
 
     /// <summary>Every round's minimum word length; a boss can raise it further (starting decks).</summary>
     public int MinWordLength { get; init; } = 2;
@@ -118,6 +124,13 @@ public sealed record RunConfig(
     /// </summary>
     public decimal TargetScale { get; init; } = 1;
 
+    /// <summary>
+    /// Per-week deadline multipliers (index = week; endless weeks use the last one; empty = ×1 every week). The
+    /// Circulation dial (<see cref="Circulations"/>) ramps them from ×1 in Week 1 to its print run in the final week, so
+    /// the early weeks play like the base game and the finale demands an engine.
+    /// </summary>
+    public ImmutableArray<decimal> WeekScales { get; init; } = ImmutableArray<decimal>.Empty;
+
     public static RunConfig Default { get; } = new(
         WeekTargets: [450, 1600, 5200, 17000, 50000],
         Days:
@@ -154,7 +167,8 @@ public sealed record RunConfig(
 
     /// <summary>
     /// The deadline for a round: the week's table entry (endless weeks grow the last one by <see cref="EndlessGrowth"/>
-    /// per week, in exact decimal steps) × the day's multiplier × <see cref="TargetScale"/>. Saturates at
+    /// per week, in exact decimal steps) × the day's multiplier × <see cref="TargetScale"/> × the week's
+    /// <see cref="WeekScales"/> entry. Saturates at
     /// <see cref="ScoreMath.MaxScore"/> instead of overflowing deep into endless play.
     /// </summary>
     public long TargetFor(int roundIndex)
@@ -164,7 +178,8 @@ public sealed record RunConfig(
         for (int endless = WeekTargets.Length - 1; endless < week && weekTarget < ScoreMath.MaxScore; endless++)
             weekTarget = ScoreMath.Scale(weekTarget, EndlessGrowth);
         long target = ScoreMath.Scale(weekTarget, KindOf(roundIndex).TargetMultiplier);
-        return TargetScale == 1 ? target : ScoreMath.Scale(target, TargetScale);
+        decimal scale = TargetScale * (WeekScales.IsDefaultOrEmpty ? 1 : WeekScales[Math.Min(week, WeekScales.Length - 1)]);
+        return scale == 1 ? target : ScoreMath.Scale(target, scale);
     }
 
     /// <summary>

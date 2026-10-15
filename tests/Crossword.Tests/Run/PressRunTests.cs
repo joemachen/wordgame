@@ -123,7 +123,8 @@ public class PressRunTests
     [Fact]
     public void Reprint_AddsADifferentEarlyOrMidRule_ToTheSameBoss()
     {
-        var reprinting = RunConfig.Default with { BossExtraModifier = true };
+        var plain = RunConfig.Default with { EndlessExtraRules = 0 };
+        var reprinting = plain with { BossExtraModifier = true };
         var candidates = BossCatalog.PuzzleMasterCandidates.Select(b => b.Id).ToHashSet();
         var extras = new HashSet<string>();
         for (ulong seed = 1; seed <= 40; seed++)
@@ -132,7 +133,7 @@ public class PressRunTests
             for (int week = 0; week < 6; week++)
             {
                 var reprint = Assert.IsType<Reprint>(RunRules.BossFor(reprinting, run, week));
-                Assert.Equal(RunRules.BossFor(RunConfig.Default, run, week), reprint.Main); // the base boss is unchanged
+                Assert.Equal(RunRules.BossFor(plain, run, week), reprint.Main); // the base boss is unchanged
                 Assert.Contains(reprint.Extra!.Id, candidates);
                 Assert.DoesNotContain(reprint.Extra.Id, reprint.Main!.Rules().Select(r => r.Id));
                 Assert.Equal(reprint, RunRules.BossFor(reprinting, run, week)); // seeded: previews match

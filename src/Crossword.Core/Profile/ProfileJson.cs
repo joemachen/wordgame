@@ -45,6 +45,7 @@ public static class ProfileJson
                 FullSpreadRounds = stats.FullSpreadRounds,
                 PressRunsWon = stats.HighestPressRunWon.Count == 0 ? null : stats.HighestPressRunWon.OrderBy(kv => kv.Key, StringComparer.Ordinal)
                     .ToDictionary(kv => kv.Key, kv => kv.Value),
+                HighestCirculationWon = stats.HighestCirculationWon,
             },
         };
         return JsonSerializer.Serialize(dto, Options);
@@ -84,6 +85,8 @@ public static class ProfileJson
             BossesBeaten = (s.BossesBeaten ?? new Dictionary<string, int>()).ToImmutableDictionary(),
             FullSpreadRounds = s.FullSpreadRounds,
             HighestPressRunWon = PressRunsWon(s),
+            // Profiles from before the Circulation dial won every run at the base game's print run.
+            HighestCirculationWon = s.HighestCirculationWon ?? (s.RunsWon > 0 ? Run.Circulations.Lowest : 0),
         };
         return Result<PlayerProfile, string>.Ok(new PlayerProfile(dto.Name ?? "Player", stats) { Version = PlayerProfile.CurrentVersion });
     }
@@ -129,6 +132,9 @@ public static class ProfileJson
 
         /// <summary>Read only, from profiles written before decks (a single level, won with the Standard Deck).</summary>
         public int? HighestPressRunWon { get; set; }
+
+        /// <summary>Highest Circulation won; missing in profiles from before the dial.</summary>
+        public int? HighestCirculationWon { get; set; }
     }
 
     private sealed class WordUseDto

@@ -637,6 +637,7 @@
       }
     ],
     "pressRun": 1,
+    "circulation": 1,
     "deckId": "standard",
     "dictionaries": [],
     "seeded": false,

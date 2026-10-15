@@ -18,6 +18,7 @@ public static class RunRules
     private const ulong WeekSalt = 0xD1B54A32D192ED03UL;
     private const ulong ReprintSalt = 0x9E3779B97F4A7C15UL;
     private const ulong CensorSalt = 0xC2B2AE3D27D4EB4FUL;
+    private const ulong EndlessSalt = 0x165667B19E3779F9UL;
 
     /// <summary>
     /// Starts a run with deck <paramref name="deck"/> at Press Run <paramref name="pressRun"/>: their rules are applied
@@ -29,16 +30,18 @@ public static class RunRules
     /// the first round starts so round hooks such as Tile Rack take effect immediately.</param>
     /// <param name="dictionary">The dictionary overlay picked for a deck that takes one (<see cref="Decks.DictionariesFor"/>).</param>
     public static GameSession NewGame(ulong seed, RunConfig config, IWordGraph lexicon, Func<RunState, RunState>? setup = null,
-        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null, bool seeded = false)
+        int pressRun = PressRuns.Lowest, string deck = Decks.StandardId, string? dictionary = null, bool seeded = false,
+        int circulation = Circulations.Lowest)
     {
         var dictionaries = Decks.DictionariesFor(deck, dictionary);
-        config = ConfigFor(config, deck, pressRun, dictionaries);
+        config = ConfigFor(config, deck, pressRun, dictionaries, circulation);
         var run = RunState.New(seed) with
         {
             Money = config.Economy.StartingMoney,
             Deck = config.StartingTiles,
             DeskItems = Effects.DeskOrder.Sorted(config.StartingDeskItems),
             PressRun = pressRun,
+            Circulation = Circulations.Get(circulation).Level,
             DeckId = Decks.Get(deck).Id,
             Dictionaries = dictionaries,
             Seeded = seeded,
@@ -51,23 +54,24 @@ public static class RunRules
     }
 
     /// <summary>
-    /// The base <paramref name="config"/> with a deck's rules applied, then a Press Run's, then the bonus of a theme
-    /// dictionary among <paramref name="dictionaries"/> (all unchanged = the same instance).
+    /// The base <paramref name="config"/> with a deck's rules applied, then a Press Run's, then a Circulation's print run,
+    /// then the bonus of a theme dictionary among <paramref name="dictionaries"/> (all unchanged = the same instance).
     /// </summary>
-    public static RunConfig ConfigFor(RunConfig config, string deck, int pressRun, IEnumerable<string>? dictionaries = null)
+    public static RunConfig ConfigFor(RunConfig config, string deck, int pressRun, IEnumerable<string>? dictionaries = null,
+        int circulation = Circulations.Lowest)
     {
-        config = PressRuns.Apply(Decks.Apply(config, deck), pressRun);
+        config = Circulations.Apply(PressRuns.Apply(Decks.Apply(config, deck), pressRun), circulation);
         return Dictionaries.Theme(dictionaries ?? []) is { } theme ? config with { Scoring = config.Scoring with { Theme = theme } } : config;
     }
 
     /// <summary>
-    /// The base <paramref name="config"/> with everything <paramref name="run"/> carries applied: its deck, Press Run and
-    /// dictionaries (<see cref="ConfigFor(RunConfig, string, int, IEnumerable{string}?)"/>), then its Office upgrades
+    /// The base <paramref name="config"/> with everything <paramref name="run"/> carries applied: its deck, Press Run,
+    /// Circulation and dictionaries (<see cref="ConfigFor(RunConfig, string, int, IEnumerable{string}?, int)"/>), then its Office upgrades
     /// (<see cref="OfficeUpgrades.Apply(RunConfig, IReadOnlyDictionary{string, int})"/>), last so they build on the deck's numbers.
     /// </summary>
     public static RunConfig ConfigFor(RunConfig config, RunState run)
     {
-        config = ConfigFor(config, run.DeckId, run.PressRun, run.Dictionaries);
+        config = ConfigFor(config, run.DeckId, run.PressRun, run.Dictionaries, run.Circulation);
         return run.Upgrades.IsEmpty ? config : OfficeUpgrades.Apply(config, run.Upgrades);
     }
 
@@ -85,12 +89,27 @@ public static class RunRules
         var boss = pool[index] is PuzzleMaster { First: null } master
             ? master.Pick(BossCatalog.PuzzleMasterCandidates, rng)
             : pool[index];
-        if (!config.BossExtraModifier || week < config.BossExtraFromWeek)
-            return boss;
+        if (config.BossExtraModifier && week >= config.BossExtraFromWeek)
+            boss = WithExtraRule(boss, run.Seed + (ulong)(week + 1) * ReprintSalt);
 
+        // Endless weeks stack one more rule per week past the last (none left = the boss as it is).
+        int endlessRules = week >= config.WeekTargets.Length ? (week - config.WeekTargets.Length + 1) * config.EndlessExtraRules : 0;
+        for (int i = 0; i < endlessRules; i++)
+            boss = WithExtraRule(boss, run.Seed + (ulong)(week + 1) * EndlessSalt + (ulong)i);
+        return boss;
+    }
+
+    /// <summary>
+    /// <paramref name="boss"/> plus one more Early/Mid boss's rule it doesn't already have (a <see cref="Reprint"/>), drawn
+    /// from <paramref name="seed"/>'s stream; the boss unchanged when it already has them all.
+    /// </summary>
+    private static BossModifier WithExtraRule(BossModifier boss, ulong seed)
+    {
         var has = boss.Rules().Select(rule => rule.Id).ToHashSet();
         var extras = BossCatalog.PuzzleMasterCandidates.Where(candidate => !has.Contains(candidate.Id)).ToArray();
-        var (extra, _) = Rng.FromSeed(run.Seed + (ulong)(week + 1) * ReprintSalt).NextInt(extras.Length);
+        if (extras.Length == 0)
+            return boss;
+        var (extra, _) = Rng.FromSeed(seed).NextInt(extras.Length);
         return new Reprint(boss, extras[extra]);
     }
 
