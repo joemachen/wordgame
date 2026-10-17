@@ -5,7 +5,7 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-17 · Phase 5 (ring-up tiers) committed after `7e72b80` · 669 unit tests passing · UI self-test 120/120 passing · CI green at `7e72b80`_
+_Last updated: 2026-10-17 · HEAD `ba639de` (ring-up tiers) · 669 unit tests passing · UI self-test 120/120 passing · CI green_
 
 ## 0. ▶ Status and what's next
 
@@ -735,7 +735,7 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
-(next)  Climb a stamp ladder for huge plays and compress long ring-ups
+ba639de Climb a stamp ladder for huge plays and compress long ring-ups
 7e72b80 Record the deck, Press Run and Circulation measurements
 107fc2c Add the Circulation dial, steeper stacking endless, and fix upgrade name clashes
 c109d88 Note CI is green in handoff
