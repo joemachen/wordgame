@@ -5,9 +5,19 @@
 > [`ROADMAP.md`](ROADMAP.md) is the feature design roadmap (what we intend to build, phased).
 > **Update this file** (status, decisions, next steps, date) at the end of any meaningful chunk of work.
 
-_Last updated: 2026-10-14 · HEAD `107fc2c` (Circulation dial) · 669 unit tests passing · UI self-test 118/118 passing · CI green_
+_Last updated: 2026-10-17 · Phase 5 (ring-up tiers) committed after `7e72b80` · 669 unit tests passing · UI self-test 120/120 passing · CI green at `7e72b80`_
 
 ## 0. ▶ Status and what's next
+
+**2026-10-17: Phase 5 built — "break the game" is complete** (ROADMAP §3b; Claude's calls). The ring-up now climbs a
+**stamp ladder**: a play worth ×1 the deadline still stamps STOP THE PRESSES!; ×2 SPECIAL EDITION! (gold), ×10 HOLD THE
+FRONT PAGE! (blue), ×100 HEADLINE OF THE CENTURY! (green) — each slams from bigger, shakes harder (×1.35/×1.8/×2.4), adds
+confetti bursts at the board's corners and holds longer (`Juice.StampTiers`, all numbers there). **Long logs** (engine
+builds: one line per enhanced tile per word + 7 Desk Items) are compressed to ~4 s in all (`Juice.StepTimes`, floor
+0.04 s per step), and the receipt prints at the same pace. Reduced motion still only fades. Self-test 120/120.
+**Next: nothing queued** — pick from §6 (visual overhaul, balance pass, the Second Edition / money→Mult call). **Playtest
+ask:** build an engine on ×3 or ×12 and see whether the stamp ladder and the faster ring-up feel right (dev:
+`--seed=42 --autoplay=1 --deadline=20 --ringup` replays a ×12 stamp).
 
 **2026-10-14: Phase 4 built — the Circulation dial** (ROADMAP §3b; Claude's design calls, §3). A print run picked at run
 start in the New-run picker: ×1 Local Weekly (base game) / ×3 County Paper / ×12 City Daily (the ~1M finale) / ×50
@@ -17,7 +27,7 @@ Measured (§4g): reference 0.75 wins **41 / 26 / 17 / 8 / 2 / 0%**, strong 0.9 5
 week and each endless week's boss stacks one more rule. Also fixed two id/name clashes from Phase 3: the 9×9 upgrade is
 now **Double Truck** (a Desk Item is called Broadsheet) and the interest upgrade **Trust Fund** (a Desk Item is called
 Savings Bond); a test guards the shared `give` namespace. Decks and the Press Run ladder were re-measured on the current
-curve (§4g): both still in their bands, not retuned. **Next: Phase 5** (ring-up tiers past the stamp). Second Edition /
+curve (§4g): both still in their bands, not retuned. Phase 5 followed on 2026-10-17 (above). Second Edition /
 money→Mult items still await the user's call (recommended: skip). **Playtest ask:** try ×3 and ×12 (`--circ=2` / `--circ=3`
 dev flags, or win a run to unlock them) — does the back-loaded ramp feel like a climb, and do the bigger paychecks make
 engine builds reachable?
@@ -658,11 +668,9 @@ Editorial, presentation, onboarding).
    Stationery value (Margin Clip $6; Scissors/White-Out worth $3?).
 
 **Build next (Claude's recommendation first):**
--1. ~~Decide the finale~~ ✅ 2026-10-13 (80k stays; the dial carries 1M+); ~~Phase 3 cap breakers~~ ✅ 2026-10-13
-   (Office upgrades, §4f; Second Edition and money→Mult items not built — ask the user), so **Phase 4** (Circulation dial → `RunConfig.TargetScale`, steeper
-   endless, stacking endless bosses, then re-measure decks and the Press Run ladder on the new curve) and **Phase 5**
-   (ring-up tiers past the stamp; the longer `EffectEvent` logs — one line per enhanced tile per word — may need a faster
-   step floor or collapsed enhancement lines). Also measure `ShopBotConfig.EnhancedTileGains` and the new items' prices.
+-1. ~~"Break the game" phases 1–5~~ ✅ 2026-10-12 → 10-17 (finale 80k + Circulation dial, Office upgrades, ring-up
+   tiers). Leftovers: the user's call on Second Edition / money→Mult items (recommended: skip); measure
+   `ShopBotConfig.EnhancedTileGains` and the compounding items' prices; teach the bot to plan engines (it can't win ×1000).
 0. ~~Playtest the new content + re-measure the Press Run ladder~~ ✅ 2026-10-11 (playtest "all is good"; ladder
    retuned, §4a). Playtest the new ladder when convenient: First Edition without the paycheck floor, Rush Job's
    3-submission Sundays, Heavy Printing's pricier Desk Items, Final Print Run from Week 2.
@@ -727,6 +735,8 @@ Editorial, presentation, onboarding).
 ## 9. Commit history (newest first)
 
 ```
+(next)  Climb a stamp ladder for huge plays and compress long ring-ups
+7e72b80 Record the deck, Press Run and Circulation measurements
 107fc2c Add the Circulation dial, steeper stacking endless, and fix upgrade name clashes
 c109d88 Note CI is green in handoff
 53c564f Add Office upgrades: a fourth shop offer that breaks the run's caps

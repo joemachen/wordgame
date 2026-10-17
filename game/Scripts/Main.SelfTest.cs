@@ -468,6 +468,43 @@ public partial class Main
         _session = _session with { Round = realRound };
         Refresh();
 
+        // 13c2. The stamp ladder: a play worth ×1, ×2, ×10 and ×100 the deadline stamps a bigger banner each time; a
+        //       60-step engine log rings up within the compressed budget and prints every line.
+        var ladderRound = Round;
+        var stamps = new List<string?>();
+        var tenThousand = submitted.Score with { Chips = 1_000, Mult = 10m }; // a 10,000-point play
+        foreach (long deadline in new long[] { 20_000, 10_000, 5_000, 1_000, 100 })
+        {
+            _session = _session with { Round = ladderRound with { Config = ladderRound.Config with { TargetScore = deadline } } };
+            _lastStamp = null;
+            _animating = true;
+            AnimateScore(tenThousand, 0);
+            for (int i = 0; i < 100 && _animating; i++)
+                await Seconds(0.1);
+            stamps.Add(_lastStamp?.Text);
+        }
+        Check($"bigger plays climb the stamp ladder ({string.Join(" / ", stamps.Select(s => s ?? "none"))})",
+            stamps.SequenceEqual([null, Juice.StampTiers[0].Text, Juice.StampTiers[1].Text, Juice.StampTiers[2].Text, Juice.StampTiers[3].Text]));
+        var longLog = submitted.Score with
+        {
+            Log = [.. Enumerable.Range(1, 60).Select(i => new Crossword.Core.Effects.EffectEvent("enhancement", $"step {i}: +1 chips", i, 1m))],
+        };
+        _session = _session with { Round = ladderRound };
+        _animating = true;
+        ulong ringStart = Time.GetTicksMsec();
+        AnimateScore(longLog, 0);
+        for (int i = 0; i < 200 && !_receipt.HasTotal; i++)
+            await Seconds(0.05);
+        double ringSeconds = (Time.GetTicksMsec() - ringStart) / 1000.0;
+        int printedLines = _receipt.LineCount;
+        for (int i = 0; i < 100 && _animating; i++)
+            await Seconds(0.1);
+        Check($"a long scoring log rings up in about {Juice.MaxRingUpSeconds} s ({ringSeconds:0.0} s, {printedLines} lines)",
+            _lastRingUpSeconds <= Juice.MaxRingUpSeconds + 0.01 && ringSeconds < Juice.MaxRingUpSeconds + 1.5 && printedLines >= 60);
+        _receipt.Clear();
+        _session = _session with { Round = realRound };
+        Refresh();
+
         // 13d. A play with an Underlined tile prints its ×1.5 mult line on the receipt (scoring step 4d).
         var underlinedTile = submitted.Play.Placed[0].Tile with { Enhancement = Crossword.Core.Domain.TileEnhancement.Underlined };
         var underlinedScore = Crossword.Core.Scoring.ScoringEngine.Score(submitted.Play.WithTile(underlinedTile), Run.DeskItems, RoundScoring,

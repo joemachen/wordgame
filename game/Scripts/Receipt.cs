@@ -69,7 +69,7 @@ public partial class Receipt : PanelContainer
 
     /// <summary>Prints one scoring step: its description on the left, the running chips × mult and product on the right.</summary>
     /// <returns>The printed row (fades and unrolls in unless reduced motion is on).</returns>
-    public Control AddLine(EffectEvent e, Color ink)
+    public Control AddLine(EffectEvent e, Color ink, double seconds = Juice.ReceiptLineSeconds)
     {
         var row = UiKit.HBox(8);
         var description = UiKit.MakeMonoLabel(e.Description, 12, ink);
@@ -83,7 +83,7 @@ public partial class Receipt : PanelContainer
         long product = ScoreMath.Total(e.ChipsAfter, e.MultAfter);
         tally.AddChild(UiKit.MakeMonoLabel($"= {ScoreFormat.Number(product, Juice.ReceiptProductDigits)}", 10, UiKit.PaperMuted, HorizontalAlignment.Right));
         row.AddChild(tally);
-        Print(row);
+        Print(row, seconds);
         LineCount++;
         return row;
     }
@@ -143,16 +143,17 @@ public partial class Receipt : PanelContainer
     }
 
     /// <summary>Adds a row to the tape: it fades in and unrolls from its top edge (instant with reduced motion), and the end stays in view.</summary>
-    private void Print(Control row)
+    private void Print(Control row, double seconds = Juice.ReceiptLineSeconds)
     {
+        seconds = Math.Min(seconds, Juice.ReceiptLineSeconds); // a compressed ring-up prints its lines as fast as it steps
         _lines.AddChild(row);
         if (!Juice.ReducedMotion)
         {
             row.Modulate = new Color(1, 1, 1, 0);
             row.Scale = new Vector2(1, Juice.ReceiptUnrollStart);
             var tween = row.CreateTween().SetParallel();
-            tween.TweenProperty(row, "scale", Vector2.One, Juice.ReceiptLineSeconds).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
-            tween.TweenProperty(row, "modulate:a", 1f, Juice.ReceiptLineSeconds);
+            tween.TweenProperty(row, "scale", Vector2.One, seconds).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            tween.TweenProperty(row, "modulate:a", 1f, seconds);
         }
         Callable.From(() =>
         {

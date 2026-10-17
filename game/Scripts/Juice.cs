@@ -4,10 +4,19 @@ using Godot;
 namespace Wordgame.Godot;
 
 /// <summary>
+/// One rung of the stamp ladder: a play worth at least <see cref="Multiple"/> × the round's deadline slams
+/// <see cref="Text"/> in <see cref="Ink"/>, shakes <see cref="ShakeScale"/> × as hard, fires
+/// <see cref="ConfettiBursts"/> bursts and holds the stamp <see cref="HoldSeconds"/>.
+/// </summary>
+public sealed record StampTier(decimal Multiple, string Text, Color Ink, float ShakeScale, int ConfettiBursts, double HoldSeconds);
+
+/// <summary>
 /// Scoring "ring-up" effects and every number that tunes them. Intensity grows with the play's share of the round's
 /// deadline: <see cref="BigPlay"/> and <see cref="HugePlay"/> unlock stronger punches, screen shake and confetti; a
-/// play that clears the whole deadline on its own gets the <see cref="StampText"/> stamp. With
-/// <see cref="ReducedMotion"/> nothing shakes, bounces, bursts or slams: numbers still count up and text still fades.
+/// play that clears the whole deadline on its own gets a stamp, and plays worth 2, 10 and 100 deadlines climb the
+/// <see cref="StampTiers"/> (bigger stamp, harder shake, more confetti). Long scoring logs (engine builds) are
+/// compressed to <see cref="MaxRingUpSeconds"/> (<see cref="StepTimes"/>). With <see cref="ReducedMotion"/> nothing
+/// shakes, bounces, bursts or slams: numbers still count up and text still fades.
 /// </summary>
 public static class Juice
 {
@@ -19,6 +28,11 @@ public static class Juice
     public const double MinStepSeconds = 0.13;
     public const double StepAcceleration = 0.88;
     public const double FinalCountSeconds = 0.55;
+
+    // Long logs: when the steps would take longer than this in all, every step shrinks in proportion, never below the
+    // compressed floor (an engine build's 40-line receipt rings up in ~4 s instead of ~6).
+    public const double MaxRingUpSeconds = 4.0;
+    public const double MinCompressedStepSeconds = 0.04;
 
     // Intensity thresholds: the play's total as a fraction of the round's deadline.
     public const double BigPlay = 0.25;
@@ -38,6 +52,19 @@ public static class Juice
     public const double ShakeSeconds = 0.45;
     public const int ConfettiAmount = 90;
     public const string StampText = "STOP THE PRESSES!";
+
+    /// <summary>The stamp ladder, lowest first: one play worth ×1, ×2, ×10, ×100 the deadline.</summary>
+    public static readonly StampTier[] StampTiers =
+    [
+        new(1, StampText, UiKit.Mult, ShakeScale: 1f, ConfettiBursts: 1, HoldSeconds: 1.0),
+        new(2, "SPECIAL EDITION!", UiKit.Money, ShakeScale: 1.35f, ConfettiBursts: 2, HoldSeconds: 1.2),
+        new(10, "HOLD THE FRONT PAGE!", UiKit.Chips.Lightened(0.2f), ShakeScale: 1.8f, ConfettiBursts: 3, HoldSeconds: 1.4),
+        new(100, "HEADLINE OF THE CENTURY!", UiKit.Good, ShakeScale: 2.4f, ConfettiBursts: 5, HoldSeconds: 1.8),
+    ];
+
+    /// <summary>The highest stamp a play of <paramref name="total"/> earns against <paramref name="target"/> (null: below the deadline).</summary>
+    public static StampTier? StampFor(long total, long target) =>
+        target <= 0 ? null : StampTiers.LastOrDefault(tier => total >= tier.Multiple * target);
 
     // The scoring receipt beside the board: paper fade-in, one printed line per scoring step (faster than the slowest
     // ring-up step so lines never pile up), the TOTAL punch, and the scroll-off when the player touches a tile.
@@ -81,6 +108,20 @@ public static class Juice
     /// <summary>Seconds for log step <paramref name="index"/>.</summary>
     public static double StepSeconds(int index) =>
         Math.Max(MinStepSeconds, FirstStepSeconds * Math.Pow(StepAcceleration, index));
+
+    /// <summary>
+    /// Seconds for each of <paramref name="count"/> log steps: <see cref="StepSeconds"/>, scaled down together when they
+    /// would add up to more than <see cref="MaxRingUpSeconds"/> (each at least <see cref="MinCompressedStepSeconds"/>).
+    /// </summary>
+    public static double[] StepTimes(int count)
+    {
+        var times = Enumerable.Range(0, count).Select(StepSeconds).ToArray();
+        double sum = times.Sum();
+        if (sum <= MaxRingUpSeconds)
+            return times;
+        double factor = MaxRingUpSeconds / sum;
+        return times.Select(t => Math.Max(MinCompressedStepSeconds, t * factor)).ToArray();
+    }
 
     public static float StepScale(int index, Level level) =>
         Math.Min(MaxStepPunch, StepPunch + PunchPerStep * index) + (level == Level.Huge ? 0.08f : level == Level.Big ? 0.04f : 0f);
@@ -186,11 +227,20 @@ public static class Juice
     }
 
     /// <summary>Slams a rotated rubber-stamp banner onto the centre of <paramref name="over"/>.</summary>
-    public static void Stamp(Control layer, Control over, string text)
+    public static void Stamp(Control layer, Control over, string text) => Stamp(layer, over, StampTiers[0] with { Text = text });
+
+    /// <summary>
+    /// Slams <paramref name="tier"/>'s banner onto the centre of <paramref name="over"/>: higher tiers start bigger, hold
+    /// longer and the text shrinks to stay about one board wide. Returns the banner (self-test hook).
+    /// </summary>
+    public static Control Stamp(Control layer, Control over, StampTier tier)
     {
-        var panel = UiKit.MakePanel(new Color(0, 0, 0, 0.35f), padding: 14, radius: 6, border: UiKit.Mult, borderWidth: 5);
+        string text = tier.Text;
+        var panel = UiKit.MakePanel(new Color(0, 0, 0, 0.35f), padding: 14, radius: 6, border: tier.Ink, borderWidth: 5);
         panel.MouseFilter = Control.MouseFilterEnum.Ignore;
-        var label = UiKit.MakeLabel(text, 54, UiKit.Mult, HorizontalAlignment.Center);
+        panel.Name = "Stamp";
+        int size = Math.Min(54, 54 * 18 / Math.Max(18, text.Length));
+        var label = UiKit.MakeLabel(text, size, tier.Ink, HorizontalAlignment.Center);
         label.AddThemeConstantOverride("outline_size", 4);
         label.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.6f));
         panel.AddChild(label);
@@ -200,14 +250,16 @@ public static class Juice
         panel.Position = centre - panel.Size / 2;
         panel.PivotOffset = panel.Size / 2;
         panel.Rotation = Mathf.DegToRad(-9);
-        panel.Scale = ReducedMotion ? Vector2.One : new Vector2(2.6f, 2.6f); // reduced motion: fades in without the slam
+        float start = 2.6f * (1 + 0.15f * (tier.ShakeScale - 1));
+        panel.Scale = ReducedMotion ? Vector2.One : new Vector2(start, start); // reduced motion: fades in without the slam
         panel.Modulate = new Color(1, 1, 1, 0);
         var tween = panel.CreateTween();
         tween.SetParallel();
         tween.TweenProperty(panel, "scale", Vector2.One, 0.22).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
         tween.TweenProperty(panel, "modulate:a", 1f, 0.12);
-        tween.Chain().TweenInterval(1.0);
+        tween.Chain().TweenInterval(tier.HoldSeconds);
         tween.Chain().TweenProperty(panel, "modulate:a", 0f, 0.4);
         tween.Chain().TweenCallback(Callable.From(panel.QueueFree));
+        return panel;
     }
 }

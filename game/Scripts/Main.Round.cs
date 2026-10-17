@@ -596,12 +596,14 @@ public partial class Main
         var tween = CreateTween();
         long chips = 0;
         decimal mult = 0;
+        var times = Juice.StepTimes(score.Log.Count);
+        _lastRingUpSeconds = times.Sum();
         for (int i = 0; i < score.Log.Count; i++)
         {
             var e = score.Log[i];
             var (chipsFrom, multFrom) = (chips, mult);
             (chips, mult) = (e.ChipsAfter, e.MultAfter);
-            double seconds = Juice.StepSeconds(i);
+            double seconds = times[i];
             float punch = Juice.StepScale(i, level);
             tween.TweenCallback(Callable.From(() => RingUp(e, chipsFrom, multFrom, seconds, punch)));
             tween.TweenInterval(seconds);
@@ -614,7 +616,9 @@ public partial class Main
         }));
         tween.TweenInterval(Juice.FinalCountSeconds);
         tween.TweenCallback(Callable.From(() => Celebrate(score.Total, target, level)));
-        tween.TweenInterval(_session.Phase == RunPhase.InRound ? (level == Juice.Level.Huge ? 0.6 : 0.25) : 1.4);
+        // A higher stamp holds the board a little longer before play resumes.
+        double stampHold = Juice.StampFor(score.Total, target) is { Multiple: > 1 } stamp ? stamp.HoldSeconds - Juice.StampTiers[0].HoldSeconds : 0;
+        tween.TweenInterval((_session.Phase == RunPhase.InRound ? (level == Juice.Level.Huge ? 0.6 : 0.25) : 1.4) + stampHold);
         tween.TweenCallback(Callable.From(() =>
         {
             _animating = false;
@@ -639,7 +643,7 @@ public partial class Main
             Juice.Pop(_multPanel, punch);
         }
         var color = ColorFor(e.SourceId);
-        _receipt.AddLine(e, Receipt.InkFor(e.SourceId, color));
+        _receipt.AddLine(e, Receipt.InkFor(e.SourceId, color), seconds);
 
         int colon = e.Description.IndexOf(": ", StringComparison.Ordinal);
         string delta = colon >= 0 ? e.Description[(colon + 2)..] : e.Description;
@@ -659,7 +663,7 @@ public partial class Main
     }
 
     /// <summary>The finish: a punch on the score that grows with the play, shake + confetti for huge plays, and a stamp
-    /// when one play clears the whole deadline.</summary>
+    /// when one play clears the whole deadline — a bigger one, with harder shake and more confetti, at ×2, ×10 and ×100.</summary>
     private void Celebrate(long total, long target, Juice.Level level)
     {
         float punch = level switch
@@ -671,18 +675,31 @@ public partial class Main
         Juice.Pop(_scoreLabel, punch, 0.4, fromLeft: true);
         if (level != Juice.Level.Normal)
             Juice.Flash(_scoreLabel, UiKit.Money, 0.6);
+        var stamp = Juice.StampFor(total, target);
         if (level == Juice.Level.Huge)
         {
-            Juice.Shake(_shakeRoot);
+            Juice.Shake(_shakeRoot, Juice.ShakePixels * (stamp?.ShakeScale ?? 1f));
             Juice.Confetti(_fxLayer, _scoreLabel.GetGlobalRect().GetCenter());
+            // Higher stamps throw more bursts, around the board's corners.
+            var board = _boardHolder.GetGlobalRect();
+            Vector2[] corners = [board.Position, board.Position + new Vector2(board.Size.X, 0), board.End, board.Position + new Vector2(0, board.Size.Y)];
+            for (int burst = 1; burst < (stamp?.ConfettiBursts ?? 1); burst++)
+                Juice.Confetti(_fxLayer, corners[(burst - 1) % corners.Length]);
         }
-        if (target > 0 && total >= target)
-            Juice.Stamp(_fxLayer, _boardHolder, Juice.StampText);
+        if (stamp is not null)
+            Juice.Stamp(_fxLayer, _boardHolder, stamp);
         _lastCelebration = level;
+        _lastStamp = stamp;
     }
 
     /// <summary>The last finish level shown (self-test hook).</summary>
     private Juice.Level? _lastCelebration;
+
+    /// <summary>The last stamp shown, null when the last play didn't clear the deadline (self-test hook).</summary>
+    private StampTier? _lastStamp;
+
+    /// <summary>How long the last ring-up's steps took in all (self-test hook).</summary>
+    private double _lastRingUpSeconds;
 
     /// <summary>Theme dictionary words (The Olde English Folio): old gold.</summary>
     private static readonly Color ThemeColor = new("d9b77a");
